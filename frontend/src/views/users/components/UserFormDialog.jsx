@@ -1,0 +1,233 @@
+/**
+ * UserFormDialog - Dialog form untuk membuat dan mengedit data karyawan/user.
+ *
+ * @component
+ * @param {Object} props - Props komponen
+ * @param {string} props.type - Tipe form ("create" atau "edit")
+ * @param {Object} [props.user] - Data user untuk mode edit
+ * @param {string} [props.user.email] - Email user
+ * @param {string} [props.user.fullName] - Nama lengkap user
+ * @param {string} [props.user.phone] - Nomor telepon user
+ * @param {string} [props.user.role] - Role user (CASHIER/MECHANIC)
+ * @param {boolean} [props.user.isActive] - Status aktif user
+ * @param {Function} props.onClose - Handler tutup dialog
+ * @param {Function} props.onSubmit - Handler submit form
+ * @param {boolean} props.isPending - Status loading
+ * @param {boolean} props.open - Status dialog terbuka
+ *
+ * @returns {JSX.Element} Dialog form user
+ */
+import { useEffect, useCallback } from "react";
+import { Controller } from "react-hook-form";
+import { X } from "lucide-react";
+
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  FormControl,
+  FormControlLabel,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  Switch,
+  TextField,
+} from "@mui/material";
+
+import { useUserForm } from "@views/users/hooks";
+
+const UserFormDialog = ({
+  open,
+  user,
+  onClose,
+  onSubmit,
+  isPending,
+  type = "create",
+}) => {
+  const isEdit = type === "edit";
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors, isDirty },
+  } = useUserForm();
+
+  /**
+   * Handle tutup dialog dan reset form
+   */
+  const handleClose = useCallback(() => {
+    reset();
+    onClose?.();
+  }, [reset, onClose]);
+
+  useEffect(() => {
+    if (open) {
+      if (isEdit && user) {
+        reset({
+          email: user.email || "",
+          fullName: user.fullName || "",
+          phone: user.phone || "",
+          role: user.role || "CASHIER",
+          isActive: user.isActive ?? true,
+        });
+      } else {
+        reset({
+          email: "",
+          fullName: "",
+          phone: "",
+          role: "CASHIER",
+          isActive: true,
+        });
+      }
+    }
+  }, [open, user, isEdit, reset]);
+
+  return (
+    <Dialog open={open} onClose={isPending ? undefined : handleClose} maxWidth="xs" fullWidth>
+      <DialogTitle
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        {isEdit ? "Edit Karyawan" : "Tambah Karyawan"}
+        <IconButton onClick={handleClose} disabled={isPending} size="small">
+          <X size={20} />
+        </IconButton>
+      </DialogTitle>
+
+      <Divider />
+
+      <Box component="form" onSubmit={handleSubmit(onSubmit)}>
+        <DialogContent>
+          <Stack spacing={2.5}>
+            <Controller
+              name="email"
+              control={control}
+              rules={{
+                required: "Email wajib diisi",
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: "Format email tidak valid",
+                },
+              }}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  autoFocus={!isEdit}
+                  label="Email"
+                  placeholder="Masukkan alamat email"
+                  disabled={isEdit}
+                  error={!!errors.email}
+                  helperText={errors.email?.message}
+                />
+              )}
+            />
+
+            <Controller
+              name="fullName"
+              control={control}
+              rules={{ required: "Nama lengkap wajib diisi" }}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  autoFocus={isEdit}
+                  label="Nama Lengkap"
+                  placeholder="Masukkan nama lengkap"
+                  error={!!errors.fullName}
+                  helperText={errors.fullName?.message}
+                  disabled={isPending}
+                />
+              )}
+            />
+
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Nomor Telepon"
+                  placeholder="08123456789"
+                  disabled={isPending}
+                />
+              )}
+            />
+
+            <Controller
+              name="role"
+              control={control}
+              rules={{ required: "Role wajib dipilih" }}
+              render={({ field }) => (
+                <FormControl error={!!errors.role} disabled={isPending}>
+                  <InputLabel>Role</InputLabel>
+                  <Select {...field} label="Role">
+                    <MenuItem value="CASHIER">Kasir</MenuItem>
+                    <MenuItem value="MECHANIC">Mekanik</MenuItem>
+                  </Select>
+                </FormControl>
+              )}
+            />
+
+            {isEdit && (
+              <Controller
+                name="isActive"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        disabled={isPending}
+                      />
+                    }
+                    label={field.value ? "Aktif" : "Nonaktif"}
+                  />
+                )}
+              />
+            )}
+          </Stack>
+        </DialogContent>
+
+        <Divider />
+
+        <DialogActions>
+          <Button
+            color="inherit"
+            variant="outlined"
+            disabled={isPending}
+            onClick={handleClose}
+          >
+            Batal
+          </Button>
+          <Button
+            variant="contained"
+            type="submit"
+            disabled={isPending || (isEdit && !isDirty)}
+            startIcon={
+              isPending ? <CircularProgress size={14} color="inherit" /> : null
+            }
+          >
+            {isPending
+              ? "Menyimpan..."
+              : isEdit
+              ? "Simpan Perubahan"
+              : "Kirim Undangan"}
+          </Button>
+        </DialogActions>
+      </Box>
+    </Dialog>
+  );
+};
+
+export default UserFormDialog;

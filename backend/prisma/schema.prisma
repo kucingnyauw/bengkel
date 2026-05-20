@@ -1,0 +1,416 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  CASHIER
+  MECHANIC
+}
+
+enum ProductType {
+  SPAREPART
+  SERVICE
+}
+
+enum OrderStatus {
+  DRAFT
+  QUEUED
+  IN_PROGRESS
+  COMPLETED
+  CLOSED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  QRIS
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+}
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+enum StockSourceType {
+  MANUAL
+  PURCHASE
+  SALE
+  RETURN
+  ADJUSTMENT
+}
+
+enum ExpenseCategory {
+  SUPPLIES
+  MAINTENANCE
+  UTILITIES
+  RENT
+  OTHER
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
+}
+
+model Notification {
+  id      String           @id @default(uuid())
+  title   String
+  message String
+  type    NotificationType @default(INFO)
+  isRead  Boolean          @default(false)
+  userId  String
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([isRead])
+}
+
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model File {
+  id       String  @id @default(uuid())
+  path     String
+  fileName String
+  mimeType String?
+  size     Int?
+  checksum String?
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  products Product[]
+  expenses Expense[]
+
+  @@index([uploadedById])
+}
+
+model User {
+  id              String   @id @default(uuid())
+  email           String   @unique
+  fullName        String
+  phone           String?  @unique
+  role            Role     @default(CASHIER)
+  isActive        Boolean  @default(true)
+  isAuthenticated Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders              Order[]              @relation("CashierOrders")
+  shifts              Shift[]              @relation("CashierShifts")
+  expenses            Expense[]
+  stockMovements      StockMovement[]      @relation("RecordedMovements")
+  mechanicAssignments MechanicAssignment[]
+  OrderStatusHistory   OrderStatusHistory[]
+  uploadedFiles       File[]
+  Notification        Notification[]
+
+  @@index([role, isActive])
+  @@index([role, fullName])
+  @@index([email])
+  @@index([phone])
+}
+
+model Customer {
+  id    String  @id @default(uuid())
+  name  String
+  phone String?
+
+  vehicles Vehicle[]
+  orders   Order[]
+
+  createdAt DateTime @default(now())
+
+  @@index([name])
+  @@index([phone])
+}
+
+model Vehicle {
+  id          String  @id @default(uuid())
+  plateNumber String  @unique
+  brand       String?
+  model       String?
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  orders    Order[]
+  createdAt DateTime @default(now())
+
+  @@index([customerId])
+  @@index([plateNumber])
+}
+
+model Product {
+  id   String      @id @default(uuid())
+  name String
+  sku  String      @unique
+  type ProductType @default(SPAREPART)
+
+  description String?
+  price       Int
+  cost        Int     @default(0)
+  stock       Int     @default(0)
+  isActive    Boolean @default(true)
+
+  imageId String?
+  image   File?   @relation(fields: [imageId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems   OrderItem[]
+  movements    StockMovement[]
+  priceHistory ProductPriceHistory[]
+
+  @@index([type, isActive])
+  @@index([name])
+  @@index([sku])
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  orderNumber String      @unique
+  status      OrderStatus @default(DRAFT)
+
+  subtotal Int
+  tax      Int @default(0)
+  total    Int
+
+  diagnosedAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  closedAt    DateTime?
+
+  cashierId String
+  cashier   User   @relation("CashierOrders", fields: [cashierId], references: [id])
+
+  shiftId String
+  shift   Shift  @relation(fields: [shiftId], references: [id])
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
+
+  items     OrderItem[]
+  payment   Payment?
+  histories OrderStatusHistory[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([status, deletedAt])
+  @@index([cashierId, status, deletedAt])
+  @@index([createdAt, deletedAt])
+  @@index([orderNumber])
+  @@index([shiftId])
+  @@index([customerId])
+  @@index([vehicleId])
+}
+
+model OrderItem {
+  id      String @id @default(uuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  productNameSnapshot String
+
+  quantity         Int
+  unitPrice        Int
+  unitCostSnapshot Int @default(0)
+  subtotal         Int
+
+  movements   StockMovement[]
+  assignments MechanicAssignment[]
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([orderId, productId])
+}
+
+model MechanicAssignment {
+  id String @id @default(uuid())
+
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+
+  mechanicId String
+  mechanic   User   @relation(fields: [mechanicId], references: [id])
+
+  startAt DateTime?
+  endAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([mechanicId, endAt])
+  @@index([orderItemId])
+  @@index([createdAt])
+}
+
+model Payment {
+  id      String @id @default(uuid())
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  method     PaymentMethod
+  amountPaid Int
+  change     Int           @default(0)
+  status     PaymentStatus @default(PAID)
+
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([status])
+  @@index([paidAt])
+}
+
+model Shift {
+  id        String @id @default(uuid())
+  cashierId String
+  cashier   User   @relation("CashierShifts", fields: [cashierId], references: [id])
+
+  status ShiftStatus @default(OPEN)
+
+  startingCash Int
+  endingCash   Int?
+  expectedCash Int?
+
+  cashSales   Int @default(0)
+  cashIn      Int @default(0)
+  cashOut     Int @default(0)
+  discrepancy Int @default(0)
+
+  openedAt DateTime  @default(now())
+  closedAt DateTime?
+
+  orders   Order[]
+  expenses Expense[]
+
+  @@index([cashierId, status])
+  @@index([status])
+  @@index([openedAt])
+}
+
+model StockMovement {
+  id String @id @default(uuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  type       StockMovementType
+  sourceType StockSourceType
+
+  quantity Int
+
+  orderItemId String?
+  orderItem   OrderItem? @relation(fields: [orderItemId], references: [id])
+
+  note String?
+
+  recordedById String
+  recordedBy   User   @relation("RecordedMovements", fields: [recordedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([productId, createdAt])
+  @@index([orderItemId])
+  @@index([recordedById])
+  @@index([type, sourceType])
+}
+
+model Expense {
+  id          String          @id @default(uuid())
+  title       String
+  description String?
+  amount      Int
+  category    ExpenseCategory @default(OTHER)
+
+  date DateTime @default(now())
+
+  shiftId String?
+  shift   Shift?  @relation(fields: [shiftId], references: [id])
+
+  recordedById String
+  recordedBy   User   @relation(fields: [recordedById], references: [id])
+
+  receiptId String?
+  receipt   File?   @relation(fields: [receiptId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shiftId])
+  @@index([recordedById])
+  @@index([date])
+  @@index([category])
+}
+
+model ProductPriceHistory {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  price         Int
+  cost          Int      @default(0)
+  effectiveFrom DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([productId, effectiveFrom])
+}
+
+model OrderStatusHistory {
+  id String @id @default(uuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  status OrderStatus
+  note   String?
+
+  changedById String
+  changedBy   User   @relation(fields: [changedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
+  @@index([changedById])
+}

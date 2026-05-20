@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@api/*": ["src/api/*"],
+      "@assets/*": ["src/assets/*"],
+      "@components": ["src/components/index.jsx"],
+      "@data/*": ["src/data/*"],
+      "@hooks": ["src/hooks/index.js"],
+      "@layout/*": ["src/layout/*"],
+      "@lib/*": ["src/lib/*"],
+      "@menu/*": ["src/menuItems/*"],
+      "@routes/*": ["src/routes/*"],
+      "@routes": ["src/routes/index.jsx"],
+      "@shared/*": ["src/shared/*"],
+      "@shared/constant": ["src/shared/constant/index.js"],
+      "@shared/utils": ["src/shared/utils/index.js"],
+      "@store/*": ["src/store/*"],
+      "@styles/*": ["src/styles/*"],
+      "@views/*": ["src/views/*"]
+    },
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false,
+    "jsx": "react-jsx",
+    "target": "ESNext",
+    "module": "ESNext",
+    "checkJs": false,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "build"]
+}

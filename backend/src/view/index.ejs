@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      border-bottom: 2px solid var(--text-main);
+      padding-bottom: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    .version-badge {
+      display: inline-block;
+      background: #f1f5f9;
+      color: var(--text-main);
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-top: 1rem;
+      border: 1px solid var(--border);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-card {
+      padding: 1rem;
+      border-left: 3px solid var(--border);
+    }
+
+    .stat-number {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .section {
+      margin-bottom: 4rem;
+    }
+
+    .section-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .section-header h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .endpoint-grid {
+      display: flex;
+      flex-direction: column;
+      border-top: 1px solid var(--border);
+    }
+
+    .endpoint {
+      display: grid;
+      grid-template-columns: 80px 1fr auto;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .method {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-align: center;
+      padding: 4px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .get { color: #059669; background: #ecfdf5; }
+    .post { color: #2563eb; background: #eff6ff; }
+    .put { color: #d97706; background: #fffbeb; }
+    .patch { color: #7c3aed; background: #f5f3ff; }
+    .delete { color: #dc2626; background: #fef2f2; }
+
+    .path-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .path {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #334155;
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      border-radius: 4px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+
+    .copy-btn:hover {
+      background: #e2e8f0;
+      border-color: #94a3b8;
+    }
+
+    .copy-btn.copied {
+      background: #ecfdf5;
+      border-color: #10b981;
+      color: #059669;
+    }
+
+    .copy-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .description {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-top: 0.25rem;
+    }
+
+    .info-group {
+      text-align: right;
+    }
+
+    .role-badges {
+      display: flex;
+      gap: 0.25rem;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .role-badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .role-badge.public {
+      background: #ecfdf5;
+      color: #059669;
+      border-color: #a7f3d0;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: #ffffff;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    .footer {
+      margin-top: 5rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      text-align: center;
+    }
+
+    code {
+      font-family: monospace;
+      background: #f1f5f9;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+
+    @media (max-width: 640px) {
+      .endpoint {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+      }
+      .info-group {
+        text-align: left;
+      }
+      .role-badges {
+        justify-content: flex-start;
+        margin-bottom: 0.5rem;
+      }
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Bengkel API Documentation</h1>
+      <p class="subtitle">Motorcycle Workshop Management System Backend</p>
+      <span class="version-badge">Version <%= version %></span>
+    </header>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Endpoints</div>
+        <div class="stat-number" id="endpointCount">0</div>
+      </div>
+      <div class="stat-card" style="border-left-color: #10b981;">
+        <div class="stat-label">Public</div>
+        <div class="stat-number" id="publicCount">0</div>
+      </div>
+      <div class="stat-card" style="border-left-color: #3b82f6;">
+        <div class="stat-label">Private</div>
+        <div class="stat-number" id="privateCount">0</div>
+      </div>
+    </div>
+
+    <div id="api-content"></div>
+
+    <div class="footer">
+      <p>&copy; <span id="currentYear"></span> Bengkel API &bull; Internal Documentation</p>
+      <p style="margin-top: 0.5rem;">Base URL: <code><%= baseUrl %></code></p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const BASE_URL = '<%= baseUrl %>';
+
+    const sections = {
+      public: "Public Routes",
+      user: "User Management",
+      customer: "Customer Management",
+      expense: "Expense Management",
+      order: "Order Management",
+      payment: "Payment Management",
+      product: "Product Management",
+      report: "Reports & Analytics",
+      shift: "Shift Management",
+      stock: "Stock Management",
+      task: "Task Management",
+      vehicle: "Vehicle Management"
+    };
+
+    const endpoints = {
+      public: [
+        { method: 'POST', path: '/auth/validate/email', desc: 'Validasi email pengguna', role: 'PUBLIC' },
+        { method: 'GET', path: '/products', desc: 'Lihat daftar produk', role: 'PUBLIC' },
+        { method: 'GET', path: '/products/services', desc: 'Lihat daftar service', role: 'PUBLIC' },
+        { method: 'GET', path: '/products/spareparts', desc: 'Lihat daftar sparepart', role: 'PUBLIC' },
+        { method: 'GET', path: '/products/:id', desc: 'Detail produk', role: 'PUBLIC' },
+        { method: 'GET', path: '/products/sku/:sku', desc: 'Detail produk by SKU', role: 'PUBLIC' }
+      ],
+      user: [
+        { method: 'POST', path: '/users', desc: 'Buat user baru', role: 'ADMIN' },
+        { method: 'GET', path: '/users', desc: 'Daftar user', role: 'ADMIN' },
+        { method: 'GET', path: '/users/me', desc: 'Data user login', role: 'ALL' },
+        { method: 'GET', path: '/users/cashiers', desc: 'Daftar kasir', role: 'ALL' },
+        { method: 'GET', path: '/users/mechanics', desc: 'Daftar mekanik', role: 'ALL' },
+        { method: 'GET', path: '/users/admins', desc: 'Daftar admin', role: 'ADMIN' },
+        { method: 'GET', path: '/users/role/:role', desc: 'User by role', role: 'ADMIN' },
+        { method: 'GET', path: '/users/email/check', desc: 'Cek email tersedia', role: 'ADMIN' },
+        { method: 'GET', path: '/users/phone/check', desc: 'Cek HP tersedia', role: 'ADMIN' },
+        { method: 'GET', path: '/users/email/:email', desc: 'User by email', role: 'ADMIN' },
+        { method: 'GET', path: '/users/phone/:phone', desc: 'User by HP', role: 'ADMIN' },
+        { method: 'GET', path: '/users/:id', desc: 'Detail user', role: 'ALL' },
+        { method: 'PUT', path: '/users/:id', desc: 'Update user', role: 'ADMIN' },
+        { method: 'PATCH', path: '/users/:id/role', desc: 'Update role user', role: 'ADMIN' },
+        { method: 'DELETE', path: '/users/:id', desc: 'Hapus user', role: 'ADMIN' }
+      ],
+      customer: [
+        { method: 'POST', path: '/customers', desc: 'Buat pelanggan', role: 'ADMIN,CASHIER' },
+        { method: 'PUT', path: '/customers/upsert', desc: 'Upsert pelanggan', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/customers', desc: 'Daftar pelanggan', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/customers/phone/check', desc: 'Cek HP pelanggan', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/customers/phone/:phone', desc: 'Pelanggan by HP', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/customers/:id', desc: 'Detail pelanggan', role: 'ADMIN,CASHIER' },
+        { method: 'PUT', path: '/customers/:id', desc: 'Update pelanggan', role: 'ADMIN,CASHIER' },
+        { method: 'DELETE', path: '/customers/:id', desc: 'Hapus pelanggan', role: 'ADMIN' }
+      ],
+      expense: [
+        { method: 'POST', path: '/expenses', desc: 'Catat pengeluaran (optional receipt)', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/expenses', desc: 'Daftar pengeluaran', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/expenses/shift/:shiftId', desc: 'Pengeluaran per shift', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/expenses/:id', desc: 'Detail pengeluaran', role: 'ADMIN,CASHIER' },
+        { method: 'PUT', path: '/expenses/:id', desc: 'Update pengeluaran (optional receipt)', role: 'ADMIN,CASHIER' },
+        { method: 'DELETE', path: '/expenses/:id', desc: 'Hapus pengeluaran', role: 'ADMIN' }
+      ],
+      order: [
+        { method: 'POST', path: '/orders', desc: 'Buat pesanan baru', role: 'CASHIER' },
+        { method: 'GET', path: '/orders', desc: 'Daftar pesanan', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/orders/active', desc: 'Pesanan aktif kasir', role: 'CASHIER' },
+        { method: 'POST', path: '/orders/calculate', desc: 'Hitung estimasi total', role: 'CASHIER' },
+        { method: 'GET', path: '/orders/:id', desc: 'Detail pesanan', role: 'ADMIN,CASHIER' },
+        { method: 'PATCH', path: '/orders/:id/status', desc: 'Update status pesanan', role: 'ALL' },
+        { method: 'POST', path: '/orders/:id/cancel', desc: 'Batalkan pesanan', role: 'ADMIN,CASHIER' },
+        { method: 'DELETE', path: '/orders/:id', desc: 'Soft delete pesanan', role: 'ADMIN' },
+        { method: 'POST', path: '/orders/:id/restore', desc: 'Restore pesanan', role: 'ADMIN' }
+      ],
+      payment: [
+        { method: 'POST', path: '/payments', desc: 'Proses pembayaran', role: 'CASHIER' },
+        { method: 'POST', path: '/payments/:id/refund', desc: 'Refund pembayaran', role: 'ADMIN' },
+        { method: 'GET', path: '/payments', desc: 'Daftar pembayaran', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/payments/order/:orderId', desc: 'Pembayaran by order', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/payments/:id', desc: 'Detail pembayaran', role: 'ADMIN,CASHIER' }
+      ],
+      product: [
+        { method: 'POST', path: '/products', desc: 'Buat produk (single image)', role: 'ADMIN' },
+        { method: 'GET', path: '/products', desc: 'Daftar produk', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/products/services', desc: 'Daftar service', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/products/spareparts', desc: 'Daftar sparepart', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/products/lowstock', desc: 'Produk stok rendah', role: 'ADMIN' },
+        { method: 'GET', path: '/products/sku/check', desc: 'Cek SKU tersedia', role: 'ADMIN' },
+        { method: 'GET', path: '/products/sku/:sku', desc: 'Produk by SKU', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/products/:id', desc: 'Detail produk', role: 'ADMIN,CASHIER' },
+        { method: 'PUT', path: '/products/:id', desc: 'Update produk (optional image)', role: 'ADMIN' },
+        { method: 'PATCH', path: '/products/:id/status', desc: 'Update status produk', role: 'ADMIN' },
+        { method: 'PATCH', path: '/products/:id/stock', desc: 'Adjust stok', role: 'ADMIN' },
+        { method: 'DELETE', path: '/products/:id', desc: 'Hapus produk', role: 'ADMIN' }
+      ],
+      report: [
+        { method: 'GET', path: '/reports/sales', desc: 'Ringkasan penjualan', role: 'ADMIN' },
+        { method: 'GET', path: '/reports/profitloss', desc: 'Laporan laba rugi', role: 'ADMIN' },
+        { method: 'GET', path: '/reports/inventory', desc: 'Laporan inventaris', role: 'ADMIN' },
+        { method: 'GET', path: '/reports/expenses', desc: 'Laporan pengeluaran', role: 'ADMIN' },
+        { method: 'GET', path: '/reports/payments', desc: 'Laporan pembayaran', role: 'ADMIN' },
+        { method: 'GET', path: '/reports/dashboard', desc: 'Ringkasan dashboard', role: 'ALL' },
+        { method: 'GET', path: '/reports/shift/:shiftId', desc: 'Laporan per shift', role: 'ADMIN' },
+        { method: 'GET', path: '/reports/products/top', desc: 'Produk terlaris', role: 'ADMIN' },
+        { method: 'GET', path: '/reports/mechanics/performance', desc: 'Performa mekanik', role: 'ADMIN' },
+        { method: 'GET', path: '/reports/mechanics/:mechanicId/tasks', desc: 'Statistik tugas mekanik', role: 'ADMIN' },
+        { method: 'GET', path: '/reports/mechanics/:mechanicId/earnings', desc: 'Pendapatan mekanik', role: 'ADMIN' },
+        { method: 'GET', path: '/reports/orders/:orderId/tasks', desc: 'Statistik tugas per order', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/reports/stock/:productId/movements', desc: 'Pergerakan stok produk', role: 'ADMIN' }
+      ],
+      shift: [
+        { method: 'POST', path: '/shifts/open', desc: 'Buka shift', role: 'CASHIER' },
+        { method: 'POST', path: '/shifts/:id/close', desc: 'Tutup shift', role: 'CASHIER' },
+        { method: 'GET', path: '/shifts/active', desc: 'Shift aktif', role: 'CASHIER' },
+        { method: 'GET', path: '/shifts/active/check', desc: 'Cek shift aktif', role: 'CASHIER' },
+        { method: 'GET', path: '/shifts/cashiers', desc: 'Shift kasir login', role: 'CASHIER' },
+        { method: 'GET', path: '/shifts', desc: 'Daftar shift (admin)', role: 'ADMIN' },
+        { method: 'GET', path: '/shifts/:id', desc: 'Detail shift', role: 'ADMIN,CASHIER' },
+        { method: 'POST', path: '/shifts/:id/cashin', desc: 'Catat kas masuk', role: 'CASHIER' },
+        { method: 'POST', path: '/shifts/:id/cashout', desc: 'Catat kas keluar', role: 'CASHIER' }
+      ],
+      stock: [
+        { method: 'POST', path: '/stock/in', desc: 'Stok masuk', role: 'ADMIN' },
+        { method: 'POST', path: '/stock/out', desc: 'Stok keluar', role: 'ADMIN' },
+        { method: 'POST', path: '/stock/sale', desc: 'Stok keluar (penjualan)', role: 'ADMIN,CASHIER' },
+        { method: 'POST', path: '/stock/return', desc: 'Stok masuk (retur)', role: 'ADMIN,CASHIER' },
+        { method: 'POST', path: '/stock/adjust', desc: 'Adjust stok', role: 'ADMIN' },
+        { method: 'GET', path: '/stock/movements', desc: 'Riwayat mutasi stok', role: 'ADMIN' },
+        { method: 'GET', path: '/stock/movements/:id', desc: 'Detail mutasi stok', role: 'ADMIN' },
+        { method: 'GET', path: '/stock/products/:productId/movements', desc: 'Mutasi per produk', role: 'ADMIN' },
+        { method: 'GET', path: '/stock/orders/:orderId/movements', desc: 'Mutasi per order', role: 'ADMIN' },
+        { method: 'DELETE', path: '/stock/movements/:id', desc: 'Hapus mutasi stok', role: 'ADMIN' }
+      ],
+      task: [
+        { method: 'POST', path: '/tasks/assign', desc: 'Assign mekanik', role: 'ADMIN,CASHIER' },
+        { method: 'POST', path: '/tasks/bulkassign', desc: 'Bulk assign mekanik', role: 'ADMIN,CASHIER' },
+        { method: 'POST', path: '/tasks/:id/unassign', desc: 'Lepas mekanik', role: 'ADMIN,CASHIER' },
+        { method: 'POST', path: '/tasks/:id/start', desc: 'Mulai tugas', role: 'MECHANIC' },
+        { method: 'POST', path: '/tasks/:id/complete', desc: 'Selesai tugas', role: 'MECHANIC' },
+        { method: 'GET', path: '/tasks', desc: 'Daftar tugas', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/tasks/unassigned', desc: 'Tugas belum di-assign', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/tasks/mechanics/available', desc: 'Mekanik tersedia', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/tasks/mechanic/:mechanicId', desc: 'Tugas per mekanik', role: 'ADMIN,MECHANIC' },
+        { method: 'GET', path: '/tasks/orderitem/:orderItemId', desc: 'Tugas per item', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/tasks/orderitem/:orderItemId/check', desc: 'Cek mekanik assigned', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/tasks/:id', desc: 'Detail tugas', role: 'ALL' }
+      ],
+      vehicle: [
+        { method: 'POST', path: '/vehicles', desc: 'Registrasi kendaraan', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/vehicles', desc: 'Daftar kendaraan', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/vehicles/plate/check', desc: 'Cek plat tersedia', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/vehicles/plate/search', desc: 'Cari by plat', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/vehicles/plate/:plateNumber', desc: 'Detail by plat', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/vehicles/customer/:customerId', desc: 'Kendaraan pelanggan', role: 'ADMIN,CASHIER' },
+        { method: 'GET', path: '/vehicles/:id', desc: 'Detail kendaraan', role: 'ADMIN,CASHIER' },
+        { method: 'PUT', path: '/vehicles/:id', desc: 'Update kendaraan', role: 'ADMIN,CASHIER' },
+        { method: 'DELETE', path: '/vehicles/:id', desc: 'Hapus kendaraan', role: 'ADMIN' }
+      ]
+    };
+
+    const toastEl = document.getElementById('toast');
+    let toastTimer;
+
+    function showToast(message) {
+      clearTimeout(toastTimer);
+      toastEl.textContent = message;
+      toastEl.classList.add('show');
+      toastTimer = setTimeout(() => {
+        toastEl.classList.remove('show');
+      }, 2000);
+    }
+
+    function copyToClipboard(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        btn.classList.add('copied');
+        showToast('Copied: ' + text);
+        setTimeout(() => {
+          btn.classList.remove('copied');
+        }, 1500);
+      }).catch(() => {
+        showToast('Failed to copy');
+      });
+    }
+
+    function renderAll() {
+      const mainContainer = document.getElementById('api-content');
+      let total = 0;
+      let publicCount = 0;
+
+      Object.keys(sections).forEach(key => {
+        const sectionData = endpoints[key] || [];
+        if (sectionData.length === 0) return;
+
+        const sectionEl = document.createElement('section');
+        sectionEl.className = 'section';
+
+        let endpointsHtml = sectionData.map((ep, idx) => {
+          total++;
+          const isPublic = ep.role === 'PUBLIC';
+          if (isPublic) publicCount++;
+
+          const roles = isPublic
+            ? '<span class="role-badge public">PUBLIC</span>'
+            : ep.role.split(',').map(r => `<span class="role-badge">${r}</span>`).join('');
+
+          const fullUrl = BASE_URL + ep.path;
+          const btnId = `copy-btn-${key}-${idx}`;
+
+          return `
+            <div class="endpoint">
+              <div class="method ${ep.method.toLowerCase()}">${ep.method}</div>
+              <div>
+                <div class="path-row">
+                  <span class="path">${fullUrl}</span>
+                  <button class="copy-btn" id="${btnId}" title="Copy URL">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                  </button>
+                </div>
+                <span class="description">${ep.desc}</span>
+              </div>
+              <div class="info-group">
+                <div class="role-badges">${roles}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        sectionEl.innerHTML = `
+          <div class="section-header">
+            <h2>${sections[key]}</h2>
+          </div>
+          <div class="endpoint-grid">
+            ${endpointsHtml}
+          </div>
+        `;
+        mainContainer.appendChild(sectionEl);
+      });
+
+      document.getElementById('endpointCount').textContent = total;
+      document.getElementById('publicCount').textContent = publicCount;
+      document.getElementById('privateCount').textContent = total - publicCount;
+      document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+      document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const pathEl = btn.closest('.endpoint').querySelector('.path');
+          copyToClipboard(pathEl.textContent, btn);
+        });
+      });
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>

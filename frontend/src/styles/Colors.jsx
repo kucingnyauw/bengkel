@@ -1,0 +1,185 @@
+// Color.jsx - Palet Monokrom + Aksen Ungu
+export const Color = {
+  light: {
+    primary: {
+      main: "#09090B",
+      light: "#27272A",
+      dark: "#000000",
+      contrastText: "#FAFAFA",
+    },
+    secondary: {
+      main: "#7C3AED", // Ungu aksen
+      light: "#A78BFA",
+      dark: "#5B21B6",
+      contrastText: "#FFFFFF",
+    },
+    error: {
+      main: "#DC2626",
+      light: "#EF4444",
+      dark: "#B91C1C",
+      contrastText: "#FAFAFA",
+    },
+    warning: {
+      main: "#D97706",
+      light: "#F59E0B",
+      dark: "#B45309",
+      contrastText: "#FAFAFA",
+    },
+    info: {
+      main: "#2563EB",
+      light: "#3B82F6",
+      dark: "#1D4ED8",
+      contrastText: "#FAFAFA",
+    },
+    success: {
+      main: "#16A34A",
+      light: "#22C55E",
+      dark: "#15803D",
+      contrastText: "#FAFAFA",
+    },
+    grey: {
+      50: "#FAFAFA",
+      100: "#F4F4F5",
+      200: "#E4E4E7",
+      300: "#D4D4D8",
+      400: "#A1A1AA",
+      500: "#71717A",
+      600: "#52525B",
+      700: "#3F3F46",
+      800: "#27272A",
+      900: "#18181B",
+      950: "#09090B",
+    },
+    text: {
+      primary: "#09090B",
+      secondary: "#52525B",
+      disabled: "#A1A1AA",
+    },
+    background: {
+      default: "#FAFAFA",
+      paper: "#FFFFFF",
+    },
+    divider: "#E4E4E7",
+    action: {
+      active: "#09090B",
+      hover: "rgba(9,9,11,0.04)",
+      selected: "rgba(9,9,11,0.06)",
+      disabled: "rgba(9,9,11,0.26)",
+      disabledBackground: "rgba(9,9,11,0.06)",
+    },
+    common: {
+      black: "#000000",
+      white: "#FFFFFF",
+    },
+    ring: "#7C3AED",
+    accent: {
+      subtle: "#F4F4F5",
+      muted: "#E4E4E7",
+      emphasis: "#7C3AED",
+    },
+  },
+
+  dark: {
+    primary: {
+      main: "#FAFAFA",
+      light: "#E4E4E7",
+      dark: "#D4D4D8",
+      contrastText: "#09090B",
+    },
+    secondary: {
+      main: "#A78BFA", // Ungu muda aksen
+      light: "#C4B5FD",
+      dark: "#7C3AED",
+      contrastText: "#09090B",
+    },
+    error: {
+      main: "#EF4444",
+      light: "#F87171",
+      dark: "#DC2626",
+      contrastText: "#FAFAFA",
+    },
+    warning: {
+      main: "#F59E0B",
+      light: "#FBBF24",
+      dark: "#D97706",
+      contrastText: "#09090B",
+    },
+    info: {
+      main: "#3B82F6",
+      light: "#60A5FA",
+      dark: "#2563EB",
+      contrastText: "#FAFAFA",
+    },
+    success: {
+      main: "#22C55E",
+      light: "#4ADE80",
+      dark: "#16A34A",
+      contrastText: "#FAFAFA",
+    },
+    grey: {
+      50: "#09090B",
+      100: "#18181B",
+      200: "#27272A",
+      300: "#3F3F46",
+      400: "#52525B",
+      500: "#71717A",
+      600: "#A1A1AA",
+      700: "#D4D4D8",
+      800: "#E4E4E7",
+      900: "#F4F4F5",
+      950: "#FAFAFA",
+    },
+    text: {
+      primary: "#FAFAFA",
+      secondary: "#A1A1AA",
+      disabled: "#52525B",
+    },
+    background: {
+      default: "#09090B",
+      paper: "#18181B",
+    },
+    divider: "#27272A",
+    action: {
+      active: "#FAFAFA",
+      hover: "rgba(250,250,250,0.04)",
+      selected: "rgba(250,250,250,0.06)",
+      disabled: "rgba(250,250,250,0.26)",
+      disabledBackground: "rgba(250,250,250,0.06)",
+    },
+    common: {
+      black: "#000000",
+      white: "#FFFFFF",
+    },
+    ring: "#A78BFA",
+    accent: {
+      subtle: "#27272A",
+      muted: "#3F3F46",
+      emphasis: "#A78BFA",
+    },
+  },
+
+  shadows: {
+    light: [
+      "none",
+      "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+      "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+      "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+      "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+      "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+      "0 25px 50px -12px rgb(0 0 0 / 0.25)",
+      "0 0 0 1px rgba(124,58,237,0.2), 0 10px 15px -3px rgba(0,0,0,0.1)",
+      "0 0 15px -3px rgba(124,58,237,0.3), 0 4px 6px -2px rgba(0,0,0,0.05)",
+    ],
+    dark: [
+      "none",
+      "0 1px 2px 0 rgb(0 0 0 / 0.25)",
+      "0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4)",
+      "0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4)",
+      "0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4)",
+      "0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4)",
+      "0 25px 50px -12px rgb(0 0 0 / 0.5)",
+      "0 0 0 1px rgba(167,139,250,0.25), 0 10px 15px -3px rgba(0,0,0,0.4)",
+      "0 0 20px -5px rgba(167,139,250,0.4), 0 4px 6px -2px rgba(0,0,0,0.2)",
+    ],
+  },
+};

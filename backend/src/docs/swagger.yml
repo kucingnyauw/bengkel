@@ -1,0 +1,2386 @@
+openapi: 3.0.3
+info:
+  title: Bengkel API
+  description: API untuk manajemen bengkel (sparepart, service, shift, dan laporan)
+  version: 1.0.0
+  contact:
+    name: Developer
+    email: h3ykyy@gmail.com
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development Server
+
+tags:
+  - name: Auth
+    description: Otentikasi pengguna
+  - name: Users
+    description: Manajemen pengguna
+  - name: Customers
+    description: Manajemen pelanggan
+  - name: Vehicles
+    description: Manajemen kendaraan
+  - name: Products
+    description: Manajemen produk (sparepart & service)
+  - name: Orders
+    description: Manajemen pesanan
+  - name: Payments
+    description: Manajemen pembayaran
+  - name: Expenses
+    description: Manajemen pengeluaran
+  - name: Shifts
+    description: Manajemen shift kasir
+  - name: Stock
+    description: Manajemen stok sparepart
+  - name: Tasks
+    description: Penugasan mekanik
+  - name: Reports
+    description: Laporan
+  - name: Notifications
+    description: Manajemen notifikasi
+  - name: Settings
+    description: Pengaturan aplikasi
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        error:
+          type: string
+      required: [success, message]
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ==================== AUTH ====================
+  /auth/validate/email:
+    post:
+      tags: [Auth]
+      summary: Validasi email & kirim magic link
+      description: Cek apakah email terdaftar, jika ya kirim magic link
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+      responses:
+        "200":
+          description: Magic link terkirim
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string }
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ==================== USERS ====================
+  /users:
+    post:
+      tags: [Users]
+      summary: Buat user baru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, fullName]
+              properties:
+                email: { type: string, format: email }
+                fullName: { type: string }
+                phone: { type: string }
+                role:
+                  {
+                    type: string,
+                    enum: [SUPERADMIN, ADMIN, CASHIER, MECHANIC],
+                    default: CASHIER,
+                  }
+      responses:
+        "201": { description: Created }
+        "400": { description: Bad Request }
+        "409": { description: Conflict - Email/phone sudah terdaftar }
+    get:
+      tags: [Users]
+      summary: Daftar user
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: role
+          schema: { type: string, enum: [SUPERADMIN, ADMIN, CASHIER, MECHANIC] }
+        - in: query
+          name: isActive
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    {
+                      type: array,
+                      items: { $ref: "#/components/schemas/UserResponse" },
+                    }
+                  metadata: { $ref: "#/components/schemas/PaginationMeta" }
+
+    UserResponse:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string }
+        fullName: { type: string }
+        phone: { type: string }
+        role: { type: string }
+        isActive: { type: boolean }
+        isAuthenticated: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Profil pengguna yang sedang login
+      responses:
+        "200": { description: OK }
+        "401": { description: Unauthorized }
+
+  /users/employees:
+    get:
+      tags: [Users]
+      summary: Daftar karyawan (kasir & mekanik)
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: role
+          schema: { type: string, enum: [CASHIER, MECHANIC] }
+        - in: query
+          name: isActive
+          schema: { type: boolean }
+      responses:
+        "200": { description: OK }
+
+  /users/admins:
+    get:
+      tags: [Users]
+      summary: Daftar admin (SUPERADMIN & ADMIN)
+      responses:
+        "200": { description: OK }
+
+  /users/check/email:
+    get:
+      tags: [Users]
+      summary: Cek ketersediaan email
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema: { type: string, format: email }
+        - in: query
+          name: excludeId
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /users/check/phone:
+    get:
+      tags: [Users]
+      summary: Cek ketersediaan nomor telepon
+      parameters:
+        - in: query
+          name: phone
+          required: true
+          schema: { type: string }
+        - in: query
+          name: excludeId
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /users/role/{role}:
+    get:
+      tags: [Users]
+      summary: Daftar user berdasarkan role
+      parameters:
+        - in: path
+          name: role
+          required: true
+          schema: { type: string, enum: [SUPERADMIN, ADMIN, CASHIER, MECHANIC] }
+      responses:
+        "200": { description: OK }
+
+  /users/email/{email}:
+    get:
+      tags: [Users]
+      summary: Cari user berdasarkan email
+      parameters:
+        - in: path
+          name: email
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /users/phone/{phone}:
+    get:
+      tags: [Users]
+      summary: Cari user berdasarkan nomor telepon
+      parameters:
+        - in: path
+          name: phone
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Detail user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+    put:
+      tags: [Users]
+      summary: Update user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                fullName: { type: string }
+                phone: { type: string }
+                role:
+                  { type: string, enum: [SUPERADMIN, ADMIN, CASHIER, MECHANIC] }
+                isActive: { type: boolean }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+    delete:
+      tags: [Users]
+      summary: Hapus user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /users/{id}/resend-magic-link:
+    post:
+      tags: [Users]
+      summary: Kirim ulang magic link
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  # ==================== CUSTOMERS ====================
+  /customers:
+    post:
+      tags: [Customers]
+      summary: Buat pelanggan baru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone]
+              properties:
+                name: { type: string }
+                phone: { type: string }
+      responses:
+        "201": { description: Created }
+        "409": { description: Conflict - Phone sudah terdaftar }
+    get:
+      tags: [Customers]
+      summary: Daftar pelanggan
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /customers/upsert:
+    put:
+      tags: [Customers]
+      summary: Buat atau update pelanggan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone]
+              properties:
+                name: { type: string }
+                phone: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /customers/phone/check:
+    get:
+      tags: [Customers]
+      summary: Cek ketersediaan nomor telepon
+      parameters:
+        - in: query
+          name: phone
+          required: true
+          schema: { type: string }
+        - in: query
+          name: excludeId
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /customers/phone/{phone}:
+    get:
+      tags: [Customers]
+      summary: Cari pelanggan berdasarkan nomor telepon
+      parameters:
+        - in: path
+          name: phone
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /customers/{id}:
+    get:
+      tags: [Customers]
+      summary: Detail pelanggan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+    put:
+      tags: [Customers]
+      summary: Update pelanggan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                name: { type: string }
+                phone: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+    delete:
+      tags: [Customers]
+      summary: Hapus pelanggan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  # ==================== VEHICLES ====================
+  /vehicles:
+    post:
+      tags: [Vehicles]
+      summary: Tambah kendaraan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plateNumber, customerId]
+              properties:
+                plateNumber: { type: string }
+                customerId: { type: string }
+                brand: { type: string }
+                model: { type: string }
+      responses:
+        "201": { description: Created }
+        "409": { description: Conflict - Plat nomor sudah terdaftar }
+    get:
+      tags: [Vehicles]
+      summary: Daftar kendaraan
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: customerId
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /vehicles/check/plate:
+    get:
+      tags: [Vehicles]
+      summary: Cek ketersediaan plat nomor
+      parameters:
+        - in: query
+          name: plateNumber
+          required: true
+          schema: { type: string }
+        - in: query
+          name: excludeId
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /vehicles/search/plate:
+    get:
+      tags: [Vehicles]
+      summary: Cari kendaraan berdasarkan plat nomor
+      parameters:
+        - in: query
+          name: plateNumber
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /vehicles/plate/{plateNumber}:
+    get:
+      tags: [Vehicles]
+      summary: Detail kendaraan berdasarkan plat nomor
+      parameters:
+        - in: path
+          name: plateNumber
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /vehicles/customer/{customerId}:
+    get:
+      tags: [Vehicles]
+      summary: Daftar kendaraan milik pelanggan
+      parameters:
+        - in: path
+          name: customerId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /vehicles/{id}:
+    get:
+      tags: [Vehicles]
+      summary: Detail kendaraan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+    put:
+      tags: [Vehicles]
+      summary: Update kendaraan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                plateNumber: { type: string }
+                brand: { type: string }
+                model: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+    delete:
+      tags: [Vehicles]
+      summary: Hapus kendaraan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  # ==================== PRODUCTS ====================
+  /products:
+    post:
+      tags: [Products]
+      summary: Buat produk baru
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name, price]
+              properties:
+                name: { type: string }
+                type:
+                  {
+                    type: string,
+                    enum: [SPAREPART, SERVICE],
+                    default: SPAREPART,
+                  }
+                description: { type: string }
+                price: { type: integer, minimum: 0 }
+                cost: { type: integer, minimum: 0 }
+                stock: { type: integer, minimum: 0 }
+                image: { type: string, format: binary }
+      responses:
+        "201": { description: Created }
+        "400": { description: Bad Request }
+    get:
+      tags: [Products]
+      summary: Daftar produk
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: type
+          schema: { type: string, enum: [SPAREPART, SERVICE] }
+        - in: query
+          name: isActive
+          schema: { type: boolean }
+        - in: query
+          name: sortBy
+          schema: { type: string, enum: [name, price, stock, createdAt] }
+        - in: query
+          name: sortOrder
+          schema: { type: string, enum: [asc, desc] }
+      responses:
+        "200": { description: OK }
+
+  /products/services:
+    get:
+      tags: [Products]
+      summary: Daftar produk service
+      security: []
+      responses:
+        "200": { description: OK }
+
+  /products/spareparts:
+    get:
+      tags: [Products]
+      summary: Daftar produk sparepart
+      security: []
+      responses:
+        "200": { description: OK }
+
+  /products/low-stock:
+    get:
+      tags: [Products]
+      summary: Produk dengan stok rendah
+      parameters:
+        - in: query
+          name: threshold
+          schema: { type: integer, minimum: 1, default: 5 }
+      responses:
+        "200": { description: OK }
+
+  /products/check/sku:
+    get:
+      tags: [Products]
+      summary: Cek ketersediaan SKU
+      parameters:
+        - in: query
+          name: sku
+          required: true
+          schema: { type: string }
+        - in: query
+          name: excludeId
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /products/sku/{sku}:
+    get:
+      tags: [Products]
+      summary: Detail produk berdasarkan SKU
+      parameters:
+        - in: path
+          name: sku
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /products/{id}:
+    get:
+      tags: [Products]
+      summary: Detail produk
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+    put:
+      tags: [Products]
+      summary: Update produk
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                type: { type: string, enum: [SPAREPART, SERVICE] }
+                description: { type: string }
+                price: { type: integer }
+                cost: { type: integer }
+                stock: { type: integer }
+                isActive: { type: boolean }
+                image: { type: string, format: binary }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /products/{id}/status:
+    patch:
+      tags: [Products]
+      summary: Toggle status aktif/non-aktif produk
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  # ==================== ORDERS ====================
+  /orders:
+    post:
+      tags: [Orders]
+      summary: Buat pesanan baru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                customerId: { type: string }
+                vehicleId: { type: string }
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [productId, quantity]
+                    properties:
+                      productId: { type: string }
+                      quantity: { type: integer, minimum: 1 }
+      responses:
+        "201": { description: Created }
+        "400": { description: Bad Request }
+    get:
+      tags: [Orders]
+      summary: Daftar pesanan
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: status
+          schema:
+            {
+              type: string,
+              enum: [DRAFT, QUEUED, IN_PROGRESS, COMPLETED, CLOSED, CANCELLED],
+            }
+        - in: query
+          name: cashierId
+          schema: { type: string }
+        - in: query
+          name: customerId
+          schema: { type: string }
+        - in: query
+          name: vehicleId
+          schema: { type: string }
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: OK }
+
+  /orders/calculate:
+    post:
+      tags: [Orders]
+      summary: Hitung estimasi total pesanan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [productId, quantity]
+                    properties:
+                      productId: { type: string }
+                      quantity: { type: integer, minimum: 1 }
+      responses:
+        "200": { description: OK }
+
+  /orders/active:
+    get:
+      tags: [Orders]
+      summary: Daftar pesanan aktif kasir yang login
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /orders/{identifier}:
+    get:
+      tags: [Orders]
+      summary: Detail pesanan (ID atau nomor pesanan)
+      parameters:
+        - in: path
+          name: identifier
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /orders/{id}/status:
+    patch:
+      tags: [Orders]
+      summary: Update status pesanan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  {
+                    type: string,
+                    enum: [QUEUED, IN_PROGRESS, COMPLETED, CLOSED, CANCELLED],
+                  }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+        "409": { description: Conflict }
+
+  /orders/{id}/close:
+    patch:
+      tags: [Orders]
+      summary: Tutup pesanan (COMPLETED → CLOSED)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+        "409": { description: Conflict }
+
+  /orders/{id}/cancel:
+    post:
+      tags: [Orders]
+      summary: Batalkan pesanan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+        "409": { description: Conflict }
+
+  /orders/{id}:
+    delete:
+      tags: [Orders]
+      summary: Soft delete pesanan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /orders/{id}/restore:
+    post:
+      tags: [Orders]
+      summary: Restore pesanan yang sudah di-soft delete
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /orders/{orderNumber}/history:
+    get:
+      tags: [Orders]
+      summary: Lacak riwayat pesanan (public)
+      security: []
+      parameters:
+        - in: path
+          name: orderNumber
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  # ==================== PAYMENTS ====================
+  /payments:
+    post:
+      tags: [Payments]
+      summary: Buat pembayaran
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, method, amountPaid]
+              properties:
+                orderId: { type: string }
+                method: { type: string, enum: [CASH, QRIS] }
+                amountPaid: { type: integer, minimum: 0 }
+      responses:
+        "201": { description: Created }
+        "404": { description: Order not found }
+        "409": { description: Conflict }
+    get:
+      tags: [Payments]
+      summary: Daftar pembayaran
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: orderId
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string, enum: [PENDING, PAID, REFUNDED] }
+        - in: query
+          name: method
+          schema: { type: string, enum: [CASH, QRIS] }
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: OK }
+
+  /payments/webhook:
+    post:
+      tags: [Payments]
+      summary: Webhook Midtrans
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200": { description: OK }
+
+  /payments/order/{orderId}:
+    get:
+      tags: [Payments]
+      summary: Pembayaran berdasarkan order
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /payments/order/{orderId}/status:
+    get:
+      tags: [Payments]
+      summary: Cek status pembayaran QRIS dari Midtrans
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /payments/{id}:
+    get:
+      tags: [Payments]
+      summary: Detail pembayaran
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /payments/{id}/refund:
+    post:
+      tags: [Payments]
+      summary: Refund pembayaran
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+        "409": { description: Conflict }
+
+  # ==================== EXPENSES ====================
+  /expenses:
+    post:
+      tags: [Expenses]
+      summary: Buat pengeluaran baru
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [title, amount]
+              properties:
+                title: { type: string }
+                description: { type: string }
+                amount: { type: integer, minimum: 1 }
+                category:
+                  {
+                    type: string,
+                    enum: [SUPPLIES, MAINTENANCE, UTILITIES, RENT, OTHER],
+                    default: OTHER,
+                  }
+                date: { type: string, format: date }
+                receipt: { type: string, format: binary }
+      responses:
+        "201": { description: Created }
+        "400": { description: Bad Request }
+    get:
+      tags: [Expenses]
+      summary: Daftar pengeluaran
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: category
+          schema:
+            {
+              type: string,
+              enum: [SUPPLIES, MAINTENANCE, UTILITIES, RENT, OTHER],
+            }
+        - in: query
+          name: shiftId
+          schema: { type: string }
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /expenses/cashier:
+    get:
+      tags: [Expenses]
+      summary: Daftar pengeluaran kasir yang login
+      responses:
+        "200": { description: OK }
+
+  /expenses/shift/{shiftId}:
+    get:
+      tags: [Expenses]
+      summary: Daftar pengeluaran berdasarkan shift
+      parameters:
+        - in: path
+          name: shiftId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /expenses/{id}:
+    get:
+      tags: [Expenses]
+      summary: Detail pengeluaran
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+    put:
+      tags: [Expenses]
+      summary: Update pengeluaran
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                amount: { type: integer }
+                category:
+                  {
+                    type: string,
+                    enum: [SUPPLIES, MAINTENANCE, UTILITIES, RENT, OTHER],
+                  }
+                date: { type: string, format: date }
+                receipt: { type: string, format: binary }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+    delete:
+      tags: [Expenses]
+      summary: Hapus pengeluaran
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  # ==================== SHIFTS ====================
+  /shifts/open:
+    post:
+      tags: [Shifts]
+      summary: Buka shift baru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [startingCash]
+              properties:
+                startingCash: { type: integer, minimum: 0 }
+      responses:
+        "201": { description: Created }
+        "409": { description: Conflict - Sudah memiliki shift aktif }
+
+  /shifts:
+    get:
+      tags: [Shifts]
+      summary: Daftar semua shift
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: status
+          schema: { type: string, enum: [OPEN, CLOSED] }
+        - in: query
+          name: cashierId
+          schema: { type: string }
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: OK }
+
+  /shifts/active:
+    get:
+      tags: [Shifts]
+      summary: Shift aktif kasir yang login
+      responses:
+        "200": { description: OK }
+        "404": { description: Tidak memiliki shift aktif }
+
+  /shifts/active/check:
+    get:
+      tags: [Shifts]
+      summary: Cek apakah memiliki shift aktif
+      responses:
+        "200": { description: OK }
+
+  /shifts/cashiers:
+    get:
+      tags: [Shifts]
+      summary: Daftar shift kasir yang login
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+      responses:
+        "200": { description: OK }
+
+  /shifts/starting-cash-suggestion:
+    get:
+      tags: [Shifts]
+      summary: Saran starting cash
+      responses:
+        "200": { description: OK }
+
+  /shifts/{id}:
+    get:
+      tags: [Shifts]
+      summary: Detail shift
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /shifts/{id}/expected-cash:
+    get:
+      tags: [Shifts]
+      summary: Hitung expected cash
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /shifts/{id}/close:
+    post:
+      tags: [Shifts]
+      summary: Tutup shift
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [endingCash]
+              properties:
+                endingCash: { type: integer, minimum: 0 }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+        "409": { description: Conflict }
+
+  /shifts/{id}/cash-in:
+    post:
+      tags: [Shifts]
+      summary: Catat kas masuk
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { type: integer, minimum: 1 }
+                note: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /shifts/{id}/cash-out:
+    post:
+      tags: [Shifts]
+      summary: Catat kas keluar
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { type: integer, minimum: 1 }
+                note: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  # ==================== STOCK ====================
+  /stock/in:
+    post:
+      tags: [Stock]
+      summary: Catat stok masuk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId, quantity]
+              properties:
+                productId: { type: string }
+                quantity: { type: integer, minimum: 1 }
+                note: { type: string }
+      responses:
+        "201": { description: Created }
+
+  /stock/out:
+    post:
+      tags: [Stock]
+      summary: Catat stok keluar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId, quantity]
+              properties:
+                productId: { type: string }
+                quantity: { type: integer, minimum: 1 }
+                note: { type: string }
+      responses:
+        "201": { description: Created }
+
+  /stock/adjust:
+    post:
+      tags: [Stock]
+      summary: Catat penyesuaian stok
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId, quantity]
+              properties:
+                productId: { type: string }
+                quantity: { type: integer }
+                note: { type: string }
+      responses:
+        "201": { description: Created }
+
+  /stock/movements:
+    get:
+      tags: [Stock]
+      summary: Daftar pergerakan stok
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: productId
+          schema: { type: string }
+        - in: query
+          name: type
+          schema: { type: string, enum: [IN, OUT, ADJUSTMENT] }
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: OK }
+
+  /stock/movements/{id}:
+    get:
+      tags: [Stock]
+      summary: Detail pergerakan stok
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+    delete:
+      tags: [Stock]
+      summary: Hapus pergerakan stok
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /stock/products/{productId}/movements:
+    get:
+      tags: [Stock]
+      summary: Pergerakan stok per produk
+      parameters:
+        - in: path
+          name: productId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /stock/orders/{orderId}/movements:
+    get:
+      tags: [Stock]
+      summary: Pergerakan stok per pesanan
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  # ==================== TASKS ====================
+  /tasks/assign:
+    post:
+      tags: [Tasks]
+      summary: Assign mekanik ke order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, mechanicId]
+              properties:
+                orderId: { type: string }
+                mechanicId: { type: string }
+      responses:
+        "201": { description: Created }
+        "400": { description: Bad Request }
+
+  /tasks/bulk-assign:
+    post:
+      tags: [Tasks]
+      summary: Bulk assign mekanik
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assignments]
+              properties:
+                assignments:
+                  type: array
+                  items:
+                    type: object
+                    required: [orderId, mechanicId]
+                    properties:
+                      orderId: { type: string }
+                      mechanicId: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: Daftar semua task
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: mechanicId
+          schema: { type: string }
+        - in: query
+          name: orderId
+          schema: { type: string }
+        - in: query
+          name: orderStatus
+          schema: { type: string }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /tasks/me:
+    get:
+      tags: [Tasks]
+      summary: Task saya (mekanik login) - aktif
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /tasks/me/history:
+    get:
+      tags: [Tasks]
+      summary: Riwayat task saya (mekanik login) - selesai
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: OK }
+
+  /tasks/unassigned:
+    get:
+      tags: [Tasks]
+      summary: Task service yang belum ditugaskan
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+      responses:
+        "200": { description: OK }
+
+  /tasks/mechanics/available:
+    get:
+      tags: [Tasks]
+      summary: Daftar mekanik tersedia
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /tasks/mechanic/{mechanicId}:
+    get:
+      tags: [Tasks]
+      summary: Task berdasarkan mekanik
+      parameters:
+        - in: path
+          name: mechanicId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /tasks/order-item/{orderItemId}:
+    get:
+      tags: [Tasks]
+      summary: Task berdasarkan order item
+      parameters:
+        - in: path
+          name: orderItemId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /tasks/order-item/{orderItemId}/check:
+    get:
+      tags: [Tasks]
+      summary: Cek apakah order item sudah ada mekanik
+      parameters:
+        - in: path
+          name: orderItemId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /tasks/{id}:
+    get:
+      tags: [Tasks]
+      summary: Detail task
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /tasks/order/{orderId}/unassign:
+    post:
+      tags: [Tasks]
+      summary: Unassign mekanik dari order
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /tasks/order/{orderId}/start:
+    post:
+      tags: [Tasks]
+      summary: Mulai pengerjaan order
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+        "409": { description: Conflict }
+
+  /tasks/order/{orderId}/complete:
+    post:
+      tags: [Tasks]
+      summary: Selesaikan pengerjaan order
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+        "409": { description: Conflict }
+
+  # ==================== REPORTS ====================
+  /reports/dashboard:
+    get:
+      tags: [Reports]
+      summary: Ringkasan dashboard
+      responses:
+        "200": { description: OK }
+
+  /reports/sales:
+    get:
+      tags: [Reports]
+      summary: Laporan penjualan
+      parameters:
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: OK }
+
+  /reports/profit-loss:
+    get:
+      tags: [Reports]
+      summary: Laporan laba rugi
+      parameters:
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: OK }
+
+  /reports/inventory:
+    get:
+      tags: [Reports]
+      summary: Laporan inventaris
+      responses:
+        "200": { description: OK }
+
+  /reports/expenses:
+    get:
+      tags: [Reports]
+      summary: Laporan pengeluaran
+      parameters:
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+        - in: query
+          name: category
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /reports/payments:
+    get:
+      tags: [Reports]
+      summary: Laporan pembayaran
+      parameters:
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+        - in: query
+          name: method
+          schema: { type: string, enum: [CASH, QRIS] }
+      responses:
+        "200": { description: OK }
+
+  /reports/products/top:
+    get:
+      tags: [Reports]
+      summary: Produk terlaris
+      parameters:
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+      responses:
+        "200": { description: OK }
+
+  /reports/mechanics/performance:
+    get:
+      tags: [Reports]
+      summary: Performa mekanik
+      parameters:
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: OK }
+
+  /reports/mechanics/{mechanicId}/tasks:
+    get:
+      tags: [Reports]
+      summary: Statistik tugas mekanik
+      parameters:
+        - in: path
+          name: mechanicId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /reports/mechanics/{mechanicId}/earnings:
+    get:
+      tags: [Reports]
+      summary: Pendapatan mekanik
+      parameters:
+        - in: path
+          name: mechanicId
+          required: true
+          schema: { type: string }
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: OK }
+
+  /reports/shift/{shiftId}:
+    get:
+      tags: [Reports]
+      summary: Laporan shift
+      parameters:
+        - in: path
+          name: shiftId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /reports/stock/{productId}/movements:
+    get:
+      tags: [Reports]
+      summary: Laporan pergerakan stok
+      parameters:
+        - in: path
+          name: productId
+          required: true
+          schema: { type: string }
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: OK }
+
+  /reports/orders/{orderId}/tasks:
+    get:
+      tags: [Reports]
+      summary: Statistik task per order
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  # ==================== NOTIFICATIONS ====================
+  /notifications:
+    post:
+      tags: [Notifications]
+      summary: Buat notifikasi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, message, userId]
+              properties:
+                title: { type: string }
+                message: { type: string }
+                type:
+                  {
+                    type: string,
+                    enum: [INFO, WARNING, SUCCESS, ERROR],
+                    default: INFO,
+                  }
+                userId: { type: string }
+      responses:
+        "201": { description: Created }
+
+  /notifications/bulk:
+    post:
+      tags: [Notifications]
+      summary: Buat notifikasi ke banyak user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, message, userIds]
+              properties:
+                title: { type: string }
+                message: { type: string }
+                type:
+                  {
+                    type: string,
+                    enum: [INFO, WARNING, SUCCESS, ERROR],
+                    default: INFO,
+                  }
+                userIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "201": { description: Created }
+
+  /notifications/me:
+    get:
+      tags: [Notifications]
+      summary: Notifikasi saya
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20 }
+        - in: query
+          name: isRead
+          schema: { type: boolean }
+        - in: query
+          name: type
+          schema: { type: string, enum: [INFO, WARNING, SUCCESS, ERROR] }
+      responses:
+        "200": { description: OK }
+
+  /notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: Jumlah notifikasi belum dibaca
+      responses:
+        "200": { description: OK }
+
+  /notifications/total-count:
+    get:
+      tags: [Notifications]
+      summary: Jumlah total notifikasi
+      responses:
+        "200": { description: OK }
+
+  /notifications/read-all:
+    patch:
+      tags: [Notifications]
+      summary: Tandai semua sudah dibaca
+      responses:
+        "200": { description: OK }
+
+  /notifications/{id}:
+    get:
+      tags: [Notifications]
+      summary: Detail notifikasi
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+    delete:
+      tags: [Notifications]
+      summary: Hapus notifikasi
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /notifications/{id}/read:
+    patch:
+      tags: [Notifications]
+      summary: Tandai sudah dibaca
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+
+  /notifications/delete-all:
+    delete:
+      tags: [Notifications]
+      summary: Hapus semua notifikasi
+      responses:
+        "200": { description: OK }
+
+  # ==================== SETTINGS ====================
+  /settings:
+    get:
+      tags: [Settings]
+      summary: Daftar semua settings
+      responses:
+        "200": { description: OK }
+    put:
+      tags: [Settings]
+      summary: Bulk update settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties:
+                type: string
+      responses:
+        "200": { description: OK }
+
+  /settings/{key}:
+    get:
+      tags: [Settings]
+      summary: Detail setting
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not Found }
+    put:
+      tags: [Settings]
+      summary: Update setting
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value: { type: string }
+      responses:
+        "200": { description: OK }
+        "404":
+          { description: Not Found }
+          # ==================== TASK SCHEMAS ====================
+    TaskDetailResponse:
+      type: object
+      properties:
+        id: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        taskStatus: { type: string, enum: [PENDING, IN_PROGRESS, COMPLETED] }
+        taskStatusLabel: { type: string }
+        mechanic:
+          type: object
+          properties:
+            id: { type: string }
+            fullName: { type: string }
+            email: { type: string }
+            phone: { type: string }
+        orderItem:
+          type: object
+          properties:
+            id: { type: string }
+            quantity: { type: integer }
+            unitPrice: { type: integer }
+            subtotal: { type: integer }
+            productName: { type: string }
+            product:
+              type: object
+              properties:
+                id: { type: string }
+                name: { type: string }
+                type: { type: string }
+                description: { type: string }
+            order:
+              type: object
+              properties:
+                id: { type: string }
+                orderNumber: { type: string }
+                status: { type: string }
+                total: { type: integer }
+                createdAt: { type: string, format: date-time }
+                customer: { type: object }
+                vehicle: { type: object }
+
+    TaskListResponse:
+      type: object
+      properties:
+        id: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        taskStatus: { type: string, enum: [PENDING, IN_PROGRESS, COMPLETED] }
+        taskStatusLabel: { type: string }
+        mechanic:
+          type: object
+          properties:
+            id: { type: string }
+            fullName: { type: string }
+        orderItem:
+          type: object
+          properties:
+            id: { type: string }
+            quantity: { type: integer }
+            productName: { type: string }
+            product:
+              type: object
+              properties:
+                id: { type: string }
+                name: { type: string }
+                type: { type: string }
+            order:
+              type: object
+              properties:
+                id: { type: string }
+                orderNumber: { type: string }
+                status: { type: string }
+                createdAt: { type: string, format: date-time }
+                customer:
+                  type: object
+                  properties:
+                    name: { type: string }
+                vehicle:
+                  type: object
+                  properties:
+                    plateNumber: { type: string }
+
+    TaskTimeUpdatedResponse:
+      type: object
+      properties:
+        id: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        taskStatus: { type: string, enum: [PENDING, IN_PROGRESS, COMPLETED] }
+        taskStatusLabel: { type: string }
+
+    MyTaskResponse:
+      type: object
+      properties:
+        orderId: { type: string }
+        orderNumber: { type: string }
+        status: { type: string }
+        createdAt: { type: string, format: date-time }
+        customer:
+          type: object
+          properties:
+            name: { type: string }
+        vehicle:
+          type: object
+          nullable: true
+          properties:
+            plateNumber: { type: string }
+            brand: { type: string }
+            model: { type: string }
+        services:
+          type: array
+          items:
+            type: object
+            properties:
+              assignmentId: { type: string }
+              name: { type: string }
+              startAt: { type: string, format: date-time }
+              endAt: { type: string, format: date-time }
+              taskStatus:
+                { type: string, enum: [PENDING, IN_PROGRESS, COMPLETED] }
+        totalTasks: { type: integer }
+        completedTasks: { type: integer }
+        progress: { type: integer }
+
+    MyTaskHistoryResponse:
+      type: object
+      properties:
+        orderId: { type: string }
+        orderNumber: { type: string }
+        status: { type: string }
+        orderCreatedAt: { type: string, format: date-time }
+        customer:
+          type: object
+          properties:
+            name: { type: string }
+        vehicle:
+          type: object
+          nullable: true
+          properties:
+            plateNumber: { type: string }
+            brand: { type: string }
+            model: { type: string }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time }
+        duration: { type: string }
+        totalTasks: { type: integer }
+        totalEarnings: { type: integer }
+        services:
+          type: array
+          items:
+            type: object
+            properties:
+              assignmentId: { type: string }
+              name: { type: string }
+              startAt: { type: string, format: date-time }
+              endAt: { type: string, format: date-time }
+
+    UnassignedTaskResponse:
+      type: object
+      properties:
+        orderId: { type: string }
+        orderNumber: { type: string }
+        status: { type: string }
+        createdAt: { type: string, format: date-time }
+        customer:
+          type: object
+          nullable: true
+          properties:
+            name: { type: string }
+        vehicle:
+          type: object
+          nullable: true
+          properties:
+            plateNumber: { type: string }
+            brand: { type: string }
+            model: { type: string }
+        services:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              quantity: { type: integer }
+              price: { type: integer }
+
+    AvailableMechanicResponse:
+      type: object
+      properties:
+        id: { type: string }
+        fullName: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        activeTaskCount: { type: integer }
+        isAvailable: { type: boolean }
+
+    # ==================== STOCK SCHEMAS ====================
+    StockMovementResponse:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [IN, OUT, ADJUSTMENT] }
+        sourceType:
+          { type: string, enum: [MANUAL, PURCHASE, SALE, RETURN, ADJUSTMENT] }
+        quantity: { type: integer }
+        note: { type: string }
+        createdAt: { type: string, format: date-time }
+        product:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+            sku: { type: string }
+            stock: { type: integer }
+        recordedBy:
+          type: object
+          properties:
+            id: { type: string }
+            fullName: { type: string }
+        orderItem:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            productNameSnapshot: { type: string }
+            order:
+              type: object
+              properties:
+                id: { type: string }
+                orderNumber: { type: string }

@@ -1,0 +1,15 @@
+export const HEADER = {
+  DESKTOP_HEIGHT: 70,
+  MOBILE_HEIGHT: 64,
+};
+
+export const SIDEBAR = {
+  EXPANDED_WIDTH: 280,
+  COLLAPSED_WIDTH: 80,
+  MOBILE_WIDTH: 280,
+};
+
+export const DRAWER = {
+  WIDTH: 280,
+  COLLAPSED_WIDTH: 80,
+};

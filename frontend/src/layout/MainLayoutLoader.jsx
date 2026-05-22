@@ -1,12 +1,3 @@
-/**
- * MainLayoutLoader - Full layout skeleton untuk loading state
- * Digunakan saat data user sudah ready (auth) tapi data layout belum siap
- *
- * @component
- * @param {Object} props - Component props
- * @param {boolean} props.isLoading - Status loading
- * @returns {JSX.Element|null} Layout skeleton atau null
- */
 import { Box } from "@mui/material";
 import { Skeleton } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -26,9 +17,7 @@ import MainContentStyled from "@layout/MainContentStyled.jsx";
  * @returns {JSX.Element}
  */
 const HeaderSkeleton = ({ theme, isMobile, isOpen }) => {
-  const sidebarWidth = isOpen
-    ? SIDEBAR.EXPANDED_WIDTH
-    : SIDEBAR.COLLAPSED_WIDTH;
+  const sidebarWidth = isOpen ? SIDEBAR.EXPANDED_WIDTH : SIDEBAR.COLLAPSED_WIDTH;
 
   return (
     <Box
@@ -55,15 +44,11 @@ const HeaderSkeleton = ({ theme, isMobile, isOpen }) => {
           gap: 1.5,
           width: { xs: "auto", md: `${sidebarWidth}px` },
           transition: "width 0.3s ease, padding 0.3s ease",
-          justifyContent: {
-            xs: "flex-start",
-            md: isOpen ? "flex-start" : "center",
-          },
+          justifyContent: { xs: "flex-start", md: isOpen ? "flex-start" : "center" },
           pl: { xs: 0, md: isOpen ? 3 : 0 },
           pr: { xs: 0, md: isOpen ? 2 : 0 },
         }}
       >
-        {/* Logo skeleton */}
         <Skeleton
           variant="text"
           width={120}
@@ -73,7 +58,6 @@ const HeaderSkeleton = ({ theme, isMobile, isOpen }) => {
             flex: 1,
           }}
         />
-        {/* Toggle button skeleton */}
         <Skeleton
           variant="rounded"
           width={34}
@@ -101,7 +85,7 @@ const HeaderSkeleton = ({ theme, isMobile, isOpen }) => {
         />
       </Box>
 
-      {/* RIGHT: Action Icons & Profile */}
+      {/* RIGHT: Action Icons */}
       <Box
         sx={{
           display: "flex",
@@ -110,42 +94,36 @@ const HeaderSkeleton = ({ theme, isMobile, isOpen }) => {
           gap: { xs: 1, sm: 1.5 },
         }}
       >
-        {/* Mobile search icon */}
         <Skeleton
           variant="rounded"
           width={34}
           height={34}
           sx={{ display: { xs: "inline-flex", md: "none" }, borderRadius: 1 }}
         />
-        {/* Desktop notification icon */}
         <Skeleton
           variant="rounded"
           width={34}
           height={34}
           sx={{ display: { xs: "none", sm: "inline-flex" }, borderRadius: 1 }}
         />
-        {/* Cart/Order icon */}
         <Skeleton
           variant="rounded"
           width={34}
           height={34}
           sx={{ borderRadius: 1 }}
         />
-        {/* Settings icon */}
         <Skeleton
           variant="rounded"
           width={34}
           height={34}
           sx={{ display: { xs: "none", sm: "inline-flex" }, borderRadius: 1 }}
         />
-        {/* Divider */}
         <Skeleton
           variant="rounded"
           height={24}
           width={1}
           sx={{ mx: { xs: 0, sm: 0.5 } }}
         />
-        {/* User avatar */}
         <Skeleton
           variant="circular"
           sx={{
@@ -185,19 +163,13 @@ const SidebarSkeleton = ({ theme, isOpen }) => (
       overflow: "hidden",
     }}
   >
-    {/* Main Navigation Group */}
     <Box sx={{ mt: 2.5, mb: 0.5 }}>
       {isOpen && (
-        <Skeleton
-          variant="text"
-          width={60}
-          height={10}
-          sx={{ mb: 1.5, ml: 2, borderRadius: 1 }}
-        />
+        <Skeleton width={60} height={10} sx={{ mb: 1.5, ml: 2, borderRadius: 1 }} />
       )}
       {[1, 2, 3].map((i) => (
         <Skeleton
-          key={`main-nav-${i}`}
+          key={i}
           variant="rounded"
           height={44}
           sx={{ borderRadius: 1, mb: 0.5 }}
@@ -205,26 +177,15 @@ const SidebarSkeleton = ({ theme, isOpen }) => (
       ))}
     </Box>
 
-    {/* Divider */}
-    <Skeleton
-      variant="rounded"
-      height={1}
-      sx={{ mx: 2, my: 1.5, borderRadius: 0.5 }}
-    />
+    <Skeleton height={1} sx={{ mx: 2, my: 1.5, borderRadius: 0.5 }} />
 
-    {/* Management Navigation Group */}
     <Box sx={{ mt: isOpen ? 2.5 : 0.5, mb: 0.5 }}>
       {isOpen && (
-        <Skeleton
-          variant="text"
-          width={80}
-          height={10}
-          sx={{ mb: 1.5, ml: 2, borderRadius: 1 }}
-        />
+        <Skeleton width={80} height={10} sx={{ mb: 1.5, ml: 2, borderRadius: 1 }} />
       )}
       {[1, 2, 3, 4].map((i) => (
         <Skeleton
-          key={`management-nav-${i}`}
+          key={i}
           variant="rounded"
           height={44}
           sx={{ borderRadius: 1, mb: 0.5 }}
@@ -232,26 +193,15 @@ const SidebarSkeleton = ({ theme, isOpen }) => (
       ))}
     </Box>
 
-    {/* Divider */}
-    <Skeleton
-      variant="rounded"
-      height={1}
-      sx={{ mx: 2, my: 1.5, borderRadius: 0.5 }}
-    />
+    <Skeleton height={1} sx={{ mx: 2, my: 1.5, borderRadius: 0.5 }} />
 
-    {/* Other Navigation Group */}
     <Box sx={{ mt: isOpen ? 2.5 : 0.5, mb: 0.5 }}>
       {isOpen && (
-        <Skeleton
-          variant="text"
-          width={50}
-          height={10}
-          sx={{ mb: 1.5, ml: 2, borderRadius: 1 }}
-        />
+        <Skeleton width={50} height={10} sx={{ mb: 1.5, ml: 2, borderRadius: 1 }} />
       )}
       {[1, 2].map((i) => (
         <Skeleton
-          key={`other-nav-${i}`}
+          key={i}
           variant="rounded"
           height={44}
           sx={{ borderRadius: 1, mb: 0.5 }}
@@ -271,6 +221,7 @@ const ContentSkeleton = ({ theme }) => (
   <Box
     sx={{
       flex: 1,
+
       display: "flex",
       flexDirection: "column",
       gap: 3,
@@ -278,30 +229,19 @@ const ContentSkeleton = ({ theme }) => (
     }}
   >
     {/* Page Header */}
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-      }}
-    >
+    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <Box>
         <Skeleton variant="text" width={200} height={36} />
         <Skeleton variant="text" width={280} height={20} sx={{ mt: 0.5 }} />
       </Box>
-      <Skeleton
-        variant="rounded"
-        width={140}
-        height={40}
-        sx={{ borderRadius: `${theme.shape.borderRadius}px` }}
-      />
+      <Skeleton variant="rounded" width={140} height={40} sx={{ borderRadius: `${theme.shape.borderRadius}px` }} />
     </Box>
 
     {/* Stats Cards */}
     <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
       {[1, 2, 3, 4].map((i) => (
         <Skeleton
-          key={`stat-card-${i}`}
+          key={i}
           variant="rounded"
           sx={{
             flex: "1 1 calc(25% - 16px)",
@@ -314,23 +254,13 @@ const ContentSkeleton = ({ theme }) => (
     </Box>
 
     {/* Table/Chart */}
-    <Skeleton
-      variant="rounded"
-      sx={{
-        flex: 1,
-        borderRadius: `${theme.shape.borderRadius}px`,
-        minHeight: 400,
-      }}
-    />
+    <Skeleton variant="rounded" sx={{ flex: 1, borderRadius: `${theme.shape.borderRadius}px`, minHeight: 400 }} />
   </Box>
 );
 
 /**
  * MainLayoutLoader - Full layout skeleton untuk loading state
- * Menampilkan skeleton header, sidebar (desktop), dan content area
- * Digunakan saat initial load atau navigasi halaman
- *
- * @component
+ * Digunakan saat data user sudah ready (auth) tapi data layout belum siap
  * @param {Object} props
  * @param {boolean} props.isLoading - Status loading
  * @returns {JSX.Element|null} Layout skeleton atau null
@@ -343,15 +273,18 @@ const MainLayoutLoader = ({ isLoading }) => {
   if (!isLoading) return null;
 
   return (
-
     <>
-      <HeaderSkeleton /> {/* Fixed top */}
-      {!isMobile && <SidebarSkeleton />} {/* Fixed left, below header */}
-      <MainContentStyled>
-        {" "}
-        {/* Auto margin-top from styled component */}
-        <ContentSkeleton />
-      </MainContentStyled>
+      <HeaderSkeleton theme={theme} isMobile={isMobile} isOpen={isOpen} />
+      
+ 
+        {/* Sidebar skeleton - hanya desktop */}
+        {!isMobile && <SidebarSkeleton theme={theme} isOpen={isOpen} />}
+        
+        {/* Content skeleton */}
+        <MainContentStyled open={isOpen} isMobile={isMobile}>
+          <ContentSkeleton theme={theme} />
+        </MainContentStyled>
+    
     </>
   );
 };

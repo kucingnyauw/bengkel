@@ -5,7 +5,7 @@ import { showNotification } from "@store/notifications/notificationsSlice.js";
 /**
  * Setup Axios Interceptors untuk request dan response
  * Menangani auth token, error handling, dan notifikasi
- * 
+ *
  * @param {Object} params
  * @param {import("@reduxjs/toolkit").EnhancedStore} params.store - Redux store
  */
@@ -26,7 +26,7 @@ export function setupInterceptors({ store }) {
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
-          console.error("[Supabase Session Error]", error);
+          return config;
         }
 
         const session = data?.session;
@@ -36,15 +36,27 @@ export function setupInterceptors({ store }) {
         }
 
         return config;
-      } catch (err) {
-        console.error("[Axios Request Interceptor Error]", err);
-        return Promise.reject(err);
+      } catch {
+        return Promise.reject({
+          success: false,
+          statusCode: 0,
+          code: "REQUEST_SETUP_FAILED",
+          message:
+            "Gagal menyiapkan permintaan. Silakan muat ulang halaman atau coba beberapa saat lagi.",
+          details: null,
+        });
       }
     },
 
     (error) => {
-      console.error("[Axios Request Error]", error);
-      return Promise.reject(error);
+      return Promise.reject({
+        success: false,
+        statusCode: 0,
+        code: "REQUEST_FAILED",
+        message:
+          "Permintaan tidak dapat diproses. Silakan periksa kembali dan coba lagi.",
+        details: null,
+      });
     }
   );
 
@@ -60,7 +72,8 @@ export function setupInterceptors({ store }) {
 
       let statusCode = 500;
       let errorCode = "UNKNOWN_ERROR";
-      let message = "Terjadi gangguan pada sistem. Silakan coba kembali.";
+      let message =
+        "Sistem sedang mengalami gangguan. Tim kami sedang menanganinya. Silakan coba beberapa saat lagi.";
       let details = null;
 
       if (response?.data) {
@@ -68,30 +81,42 @@ export function setupInterceptors({ store }) {
         errorCode = response.data.code || errorCode;
         message = response.data.message || message;
         details = response.data.details || null;
-      } else if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
+      } else if (
+        error.code === "ECONNABORTED" ||
+        error.message?.includes("timeout")
+      ) {
         errorCode = "REQUEST_TIMEOUT";
-        message = "Permintaan membutuhkan waktu terlalu lama. Periksa koneksi internet Anda lalu coba kembali.";
+        message =
+          "Permintaan membutuhkan waktu terlalu lama. Periksa koneksi internet Anda dan coba kembali.";
       } else if (!navigator.onLine) {
         errorCode = "NO_INTERNET_CONNECTION";
-        message = "Koneksi internet terputus. Periksa jaringan Anda lalu coba kembali.";
+        message =
+          "Koneksi internet terputus. Periksa jaringan Anda dan coba kembali saat sudah terhubung.";
       } else if (error.message?.includes("Network Error")) {
         errorCode = "SERVER_UNREACHABLE";
-        message = "Server tidak dapat dihubungi. Periksa koneksi internet Anda atau coba beberapa saat lagi.";
+        message =
+          "Layanan sedang tidak dapat dijangkau. Periksa koneksi internet Anda atau coba beberapa saat lagi.";
       }
 
       /**
        * Handle 401 Unauthorized - Session expired atau invalid
        * Redirect ke login jika bukan di halaman login
        */
-      if (
-        statusCode === 401 &&
-        !window.location.pathname.includes("/login")
-      ) {
+      if (statusCode === 401 && !window.location.pathname.includes("/login")) {
         try {
           const { data, error } = await supabase.auth.getSession();
 
           if (error) {
-            console.error("[Supabase Session Check Error]", error);
+            await supabase.auth.signOut();
+            window.location.replace("/login");
+            return Promise.reject({
+              success: false,
+              statusCode: 401,
+              code: "SESSION_EXPIRED",
+              message:
+                "Sesi Anda telah berakhir. Silakan masuk kembali untuk melanjutkan.",
+              details: null,
+            });
           }
 
           const session = data?.session;
@@ -100,15 +125,13 @@ export function setupInterceptors({ store }) {
             await supabase.auth.signOut();
             window.location.replace("/login");
           }
-        } catch (err) {
-          console.error("[Unauthorized Handler Error]", err);
+        } catch {
           window.location.replace("/login");
         }
       }
 
       /**
        * Tampilkan notifikasi error untuk network issues atau server error
-       * Tidak mengubah auth status agar UI tetap bisa digunakan
        */
       if (
         errorCode === "NO_INTERNET_CONNECTION" ||
@@ -145,7 +168,7 @@ export function setupInterceptors({ store }) {
 
 /**
  * Mendapatkan judul error yang mudah dibaca berdasarkan error code
- * 
+ *
  * @param {string} code - Error code dari response
  * @returns {string} Judul error dalam Bahasa Indonesia
  */
@@ -155,22 +178,22 @@ function getErrorTitle(code) {
       return "Koneksi Terputus";
 
     case "SERVER_UNREACHABLE":
-      return "Server Tidak Tersedia";
+      return "Layanan Tidak Tersedia";
 
     case "REQUEST_TIMEOUT":
-      return "Waktu Habis";
+      return "Waktu Permintaan Habis";
 
     case "AUTH_SERVICE_UNAVAILABLE":
-      return "Layanan Autentikasi Terganggu";
+      return "Layanan Masuk Terganggu";
 
     case "DATABASE_UNAVAILABLE":
-      return "Database Tidak Tersedia";
+      return "Penyimpanan Data Terganggu";
 
     case "DATABASE_ERROR":
-      return "Kesalahan Database";
+      return "Kesalahan Penyimpanan Data";
 
     case "INTERNAL_SERVER_ERROR":
-      return "Kesalahan Server";
+      return "Gangguan Layanan";
 
     default:
       return "Gangguan Sistem";

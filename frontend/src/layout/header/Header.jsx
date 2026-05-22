@@ -441,7 +441,7 @@ const Header = () => {
         anchorEl={profileAnchorEl}
         onClose={handleProfileClose}
         user={user}
-        isKasir={isCashier}
+        isCashier={isCashier}
         onOpenCart={handleToggleCart}
       />
 

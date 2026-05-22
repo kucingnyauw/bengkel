@@ -9,11 +9,12 @@ const userRepo = new UserRepository();
 const userCache = new CacheManager("auth:user");
 
 /**
- * Mendapatkan user Supabase berdasarkan access token
+ * Memverifikasi user Supabase menggunakan access token
+ * Mengembalikan data user Supabase jika token valid
  *
- * @param {string} token
- * @returns {Promise<Object>}
- * @throws {ApiError}
+ * @param {string} token - Supabase access token
+ * @returns {Promise<Object>} Data user Supabase
+ * @throws {ApiError} Jika token tidak valid, sesi berakhir, atau layanan terganggu
  */
 const getSupabaseUser = async (token) => {
   try {
@@ -21,8 +22,7 @@ const getSupabaseUser = async (token) => {
       message: "[AUTH] Verify Supabase User",
     });
 
-    const { data, error } =
-      await supabase.auth.getUser(token);
+    const { data, error } = await supabase.auth.getUser(token);
 
     logger.info({
       message: "[AUTH] Supabase Response",
@@ -30,21 +30,14 @@ const getSupabaseUser = async (token) => {
       hasError: !!error,
     });
 
-    /**
-     * Supabase Error
-     */
     if (error) {
       logger.error({
         message: "[AUTH] Supabase Error",
         error: error.message,
       });
 
-      const errorMessage =
-        error.message?.toLowerCase() || "";
+      const errorMessage = error.message?.toLowerCase() || "";
 
-      /**
-       * Invalid / Expired Session
-       */
       if (
         errorMessage.includes("jwt") ||
         errorMessage.includes("expired") ||
@@ -52,37 +45,25 @@ const getSupabaseUser = async (token) => {
       ) {
         throw ApiError.unauthorized({
           code: "SESSION_EXPIRED",
-          message:
-            "Sesi login Anda sudah berakhir. Silakan login kembali.",
+          message: "Sesi login Anda sudah berakhir. Silakan login kembali untuk melanjutkan.",
         });
       }
 
-      /**
-       * Auth Service Error
-       */
       throw ApiError.serviceUnavailable({
         code: "AUTH_SERVICE_UNAVAILABLE",
-        message:
-          "Layanan autentikasi sedang mengalami gangguan. Silakan coba beberapa saat lagi.",
+        message: "Layanan autentikasi sedang mengalami gangguan. Silakan coba beberapa saat lagi.",
       });
     }
 
-    /**
-     * No User
-     */
     if (!data?.user) {
       throw ApiError.unauthorized({
         code: "INVALID_SESSION",
-        message:
-          "Sesi login tidak valid. Silakan login kembali.",
+        message: "Sesi login tidak valid. Silakan login kembali untuk melanjutkan.",
       });
     }
 
     return data.user;
   } catch (err) {
-    /**
-     * ApiError passthrough
-     */
     if (err instanceof ApiError) {
       throw err;
     }
@@ -92,31 +73,24 @@ const getSupabaseUser = async (token) => {
       error: err.message,
     });
 
-    /**
-     * Network / Connectivity Error
-     */
     throw ApiError.serviceUnavailable({
       code: "NETWORK_ERROR",
-      message:
-        "Tidak dapat terhubung ke layanan autentikasi. Periksa koneksi internet Anda lalu coba kembali.",
+      message: "Tidak dapat terhubung ke layanan autentikasi. Periksa koneksi internet Anda dan coba kembali.",
     });
   }
 };
 
 /**
- * Mendapatkan user database dengan cache
+ * Mendapatkan data user dari database berdasarkan email
+ * Menggunakan cache untuk mengurangi query database
  *
- * @param {string} email
- * @returns {Promise<Object|null>}
+ * @param {string} email - Email user
+ * @returns {Promise<Object|null>} Data user atau null jika tidak ditemukan
  */
 const getUserByEmail = async (email) => {
   const cacheKey = `email:${email}`;
 
-  /**
-   * Check Cache
-   */
-  const cached =
-    await userCache.get(cacheKey);
+  const cached = await userCache.get(cacheKey);
 
   if (cached) {
     logger.info({
@@ -132,18 +106,10 @@ const getUserByEmail = async (email) => {
     email,
   });
 
-  const user =
-    await userRepo.findByEmail(email);
+  const user = await userRepo.findByEmail(email);
 
-  /**
-   * Save Cache
-   */
   if (user) {
-    await userCache.set(
-      cacheKey,
-      user,
-      3600
-    );
+    await userCache.set(cacheKey, user, 3600);
 
     logger.info({
       message: "[AUTH] User Cached",
@@ -156,17 +122,14 @@ const getUserByEmail = async (email) => {
 
 /**
  * Middleware autentikasi JWT Supabase
+ * Memverifikasi token, memuat data user, dan melampirkannya ke request
  *
- * @param {import("express").Request} req
- * @param {import("express").Response} res
- * @param {import("express").NextFunction} next
+ * @param {import("express").Request} req - Express request object
+ * @param {import("express").Response} res - Express response object
+ * @param {import("express").NextFunction} next - Express next function
  * @returns {Promise<void>}
  */
-const authMiddleware = async (
-  req,
-  res,
-  next
-) => {
+const authMiddleware = async (req, res, next) => {
   try {
     logger.info({
       message: "[AUTH] Incoming Request",
@@ -174,101 +137,61 @@ const authMiddleware = async (
       path: req.originalUrl,
     });
 
-    /**
-     * Authorization Header
-     */
-    const authHeader =
-      req.headers.authorization;
+    const authHeader = req.headers.authorization;
 
     logger.info({
       message: "[AUTH] Authorization Header",
       exists: !!authHeader,
     });
 
-    /**
-     * No Authorization Header
-     */
     if (!authHeader) {
       throw ApiError.unauthorized({
         code: "UNAUTHORIZED",
-        message:
-          "Anda perlu login untuk melanjutkan.",
+        message: "Anda perlu login untuk mengakses halaman ini.",
       });
     }
 
-    /**
-     * Extract Bearer Token
-     */
-    const token =
-      authHeader.startsWith("Bearer ")
-        ? authHeader.split(" ")[1]
-        : null;
+    const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
 
     logger.info({
       message: "[AUTH] Access Token",
       exists: !!token,
     });
 
-    /**
-     * No Token
-     */
     if (!token) {
       throw ApiError.unauthorized({
         code: "INVALID_TOKEN",
-        message:
-          "Token autentikasi tidak valid.",
+        message: "Format token autentikasi tidak valid. Silakan login kembali.",
       });
     }
 
-    /**
-     * Verify Supabase User
-     */
-    const supabaseUser =
-      await getSupabaseUser(token);
+    const supabaseUser = await getSupabaseUser(token);
 
     logger.info({
       message: "[AUTH] Supabase User Verified",
       email: supabaseUser.email,
     });
 
-    /**
-     * Get Application User
-     */
-    const user =
-      await getUserByEmail(
-        supabaseUser.email
-      );
+    const user = await getUserByEmail(supabaseUser.email);
 
-    /**
-     * User Not Found
-     */
     if (!user) {
       throw ApiError.unauthorized({
         code: "USER_NOT_FOUND",
-        message:
-          "Akun pengguna tidak ditemukan.",
+        message: "Akun tidak ditemukan dalam sistem. Silakan hubungi administrator.",
       });
     }
 
-    /**
-     * User Inactive
-     */
     if (!user.isActive) {
       throw ApiError.forbidden({
         code: "ACCOUNT_INACTIVE",
-        message:
-          "Akun Anda saat ini tidak aktif. Silakan hubungi administrator.",
+        message: "Akun Anda sedang tidak aktif. Silakan hubungi administrator untuk informasi lebih lanjut.",
       });
     }
 
-    /**
-     * Attach User
-     */
     req.user = user;
 
     logger.info({
-      message:
-        "[AUTH] Authentication Success",
+      message: "[AUTH] Authentication Success",
       userId: user.id,
       email: user.email,
       role: user.role,
@@ -277,12 +200,10 @@ const authMiddleware = async (
     next();
   } catch (err) {
     logger.error({
-      message:
-        "[AUTH] Authentication Failed",
+      message: "[AUTH] Authentication Failed",
       error: err.message,
       code: err.code || null,
-      statusCode:
-        err.statusCode || 500,
+      statusCode: err.statusCode || 500,
       path: req.originalUrl,
       method: req.method,
     });

@@ -22,9 +22,16 @@
   },
   "scripts": {
     "dev": "nodemon src/main.js",
+
+    "build": "prisma generate",
+
     "start": "node src/main.js",
+
+    "start:prod": "NODE_ENV=production node src/main.js",
+
     "test": "jest",
     "test:watch": "jest --watch",
+
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:pull": "prisma db pull",

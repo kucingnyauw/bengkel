@@ -1,13 +1,17 @@
 import PaymentRepository from "#repository/paymentRepository.js";
 import OrderRepository from "#repository/orderRepository.js";
+import NotificationRepository from "#repository/notificationRepository.js";
+import SettingRepository from "#repository/settingRepository.js";
 import ApiError from "#shared/utils/error.js";
+import CacheManager from "#shared/utils/cache.js";
+import Currency from "#shared/utils/currency.js";
 import prisma from "#app/database.js";
 import logger from "#app/logger.js";
 import midtrans from "#lib/midtrans.js";
-import { getIO } from "#app/io.js";
-import { isProd } from "#config/env.js";
 import axios from "axios";
 import crypto from "crypto";
+import { getIO } from "#app/io.js";
+import { isProd } from "#config/env.js";
 
 /**
  * Service untuk mengelola logika bisnis pembayaran
@@ -24,16 +28,50 @@ class PaymentService {
   constructor() {
     this.paymentRepo = new PaymentRepository();
     this.orderRepo = new OrderRepository();
+    this.settingRepo = new SettingRepository();
+    this.notifRepo = new NotificationRepository();
+    this.cache = new CacheManager("order");
+  }
+
+  /**
+   * Invalidasi cache order history
+   * @param {string} orderNumber
+   * @returns {Promise<void>}
+   * @private
+   */
+  async #invalidateOrderHistoryCache(orderNumber) {
+    await this.cache.invalidate(`history:${orderNumber}`);
+  }
+
+  /**
+   * Mengirim notifikasi
+   * @param {string} userId
+   * @param {string} title
+   * @param {string} message
+   * @param {string} [type="INFO"]
+   * @returns {Promise<void>}
+   * @private
+   */
+  async #sendNotification(userId, title, message, type = "INFO") {
+    if (!userId) return;
+    try {
+      await this.notifRepo.create({ title, message, type, userId });
+    } catch (err) {
+      logger.warn("Gagal mengirim notifikasi pembayaran", {
+        userId,
+        error: err.message,
+      });
+    }
   }
 
   /**
    * Membuat pembayaran
-   * @param {Object} payload - Data pembayaran
-   * @param {string} payload.orderId - ID pesanan
-   * @param {string} payload.method - Metode pembayaran (CASH/QRIS)
-   * @param {number} [payload.amountPaid] - Jumlah dibayar (wajib untuk CASH)
+   * @param {Object} payload
+   * @param {string} payload.orderId
+   * @param {string} payload.method
+   * @param {number} [payload.amountPaid]
    * @returns {Promise<Object>}
-   * @throws {ApiError} 400 | 404 | 409 | 500
+   * @throws {ApiError}
    */
   async createPayment(payload) {
     const { orderId, method, amountPaid } = payload;
@@ -51,7 +89,7 @@ class PaymentService {
 
   /**
    * Cek apakah order memiliki item SERVICE
-   * @param {Object} order - Data order
+   * @param {Object} order
    * @returns {boolean}
    * @private
    */
@@ -63,9 +101,8 @@ class PaymentService {
 
   /**
    * Menentukan status setelah pembayaran
-   * SERVICE → QUEUED, SPAREPART only → COMPLETED
-   * @param {Object} order - Data order
-   * @returns {string} Status baru
+   * @param {Object} order
+   * @returns {string}
    * @private
    */
   #getStatusAfterPayment(order) {
@@ -73,13 +110,11 @@ class PaymentService {
   }
 
   /**
-   * Memproses pembayaran tunai (CASH).
-   * SERVICE + SPAREPART: DRAFT → QUEUED / COMPLETED
-   *
-   * @param {string} orderId - ID pesanan
-   * @param {number} amountPaid - Jumlah dibayar
+   * Memproses pembayaran tunai (CASH)
+   * @param {string} orderId
+   * @param {number} amountPaid
    * @returns {Promise<Object>}
-   * @throws {ApiError} 400 | 404 | 409
+   * @throws {ApiError}
    */
   async createCashPayment(orderId, amountPaid) {
     const order = await this.orderRepo.findById(orderId);
@@ -116,7 +151,9 @@ class PaymentService {
 
     if (amountPaid < order.total) {
       throw ApiError.badRequest({
-        message: `Gagal membuat pembayaran. Jumlah pembayaran (Rp ${amountPaid.toLocaleString()}) kurang dari total tagihan (Rp ${order.total.toLocaleString()}).`,
+        message: `Gagal membuat pembayaran. Jumlah pembayaran (${Currency.toIDR(
+          amountPaid
+        )}) kurang dari total tagihan (${Currency.toIDR(order.total)}).`,
       });
     }
 
@@ -205,6 +242,45 @@ class PaymentService {
       return payment;
     });
 
+    await this.#invalidateOrderHistoryCache(order.orderNumber);
+
+    const customerName = order.customer?.name || "Pelanggan";
+    const vehiclePlate = order.vehicle?.plateNumber || "-";
+
+    await this.#sendNotification(
+      order.cashierId,
+      "Pembayaran Tunai Berhasil",
+      `Pembayaran untuk pesanan #${order.orderNumber} berhasil.\n\n` +
+        `Pelanggan: ${customerName}\n` +
+        `Kendaraan: ${vehiclePlate}\n` +
+        `Total: ${Currency.toIDR(order.total)}\n` +
+        `Dibayar: ${Currency.toIDR(amountPaid)}\n` +
+        `Kembalian: ${Currency.toIDR(change)}\n` +
+        `Status Pesanan: ${newStatus}`,
+      "SUCCESS"
+    );
+
+    if (hasService) {
+      const mechanics = await prisma.user.findMany({
+        where: { role: "MECHANIC", isActive: true },
+        select: { id: true },
+      });
+
+      for (const mechanic of mechanics) {
+        await this.#sendNotification(
+          mechanic.id,
+          "Pesanan Baru Menunggu",
+          `Pesanan #${order.orderNumber} siap dikerjakan.\n\n` +
+            `Pelanggan: ${customerName}\n` +
+            `Kendaraan: ${vehiclePlate}\n` +
+            `Item Service: ${
+              order.items.filter((i) => i.product?.type === "SERVICE").length
+            } item`,
+          "INFO"
+        );
+      }
+    }
+
     logger.info(`Pembayaran CASH berhasil, pesanan ${newStatus}`, {
       paymentId: result.id,
       orderId,
@@ -218,13 +294,10 @@ class PaymentService {
   }
 
   /**
-   * Memproses pembayaran QRIS via Midtrans.
-   * Status akan diupdate oleh webhook handler.
-   * Hanya bisa dari status DRAFT.
-   *
-   * @param {string} orderId - ID pesanan
+   * Memproses pembayaran QRIS via Midtrans
+   * @param {string} orderId
    * @returns {Promise<Object>}
-   * @throws {ApiError} 404 | 409 | 500
+   * @throws {ApiError}
    */
   async createQrisPayment(orderId) {
     const order = await this.orderRepo.findById(orderId);
@@ -341,6 +414,16 @@ class PaymentService {
       status: "PENDING",
     });
 
+    await this.#sendNotification(
+      order.cashierId,
+      "Pembayaran QRIS Menunggu",
+      `QRIS untuk pesanan #${order.orderNumber} telah dibuat.\n\n` +
+        `Total: ${Currency.toIDR(order.total)}\n` +
+        `Status: Menunggu Pembayaran\n\n` +
+        `Scan QR code untuk menyelesaikan pembayaran.`,
+      "INFO"
+    );
+
     logger.info("Pembayaran QRIS berhasil dibuat", {
       orderId,
       orderNumber: order.orderNumber,
@@ -360,9 +443,9 @@ class PaymentService {
 
   /**
    * Mendapatkan detail pembayaran berdasarkan ID
-   * @param {string} paymentId - ID pembayaran
+   * @param {string} paymentId
    * @returns {Promise<Object>}
-   * @throws {ApiError} 404
+   * @throws {ApiError}
    */
   async getPaymentById(paymentId) {
     const payment = await this.paymentRepo.findById(paymentId);
@@ -378,25 +461,36 @@ class PaymentService {
    * @param {Object} [query={}]
    * @returns {Promise<{data: Array, metadata: Object}>}
    */
+
+  // Di PaymentService.getPayments()
   async getPayments(query = {}) {
     const result = await this.paymentRepo.findMany(query);
-    logger.info("Mengambil daftar pembayaran", {
-      total: result.metadata.total,
-      page: result.metadata.currentPage,
-      filters: {
-        orderId: query.orderId,
-        status: query.status,
-        method: query.method,
-      },
+
+    result.data = result.data.map((payment) => {
+      const order = payment.order;
+      if (!order) return payment;
+
+      const subtotal = Number(order.subtotal) || 0;
+      const tax = Number(order.tax) || 0;
+      const taxRate = subtotal > 0 ? Math.round((tax / subtotal) * 100) : 0;
+
+      return {
+        ...payment,
+        order: {
+          ...order,
+          taxRate,
+        },
+      };
     });
+
     return result;
   }
 
   /**
    * Mendapatkan pembayaran berdasarkan ID pesanan
-   * @param {string} orderId - ID pesanan
+   * @param {string} orderId
    * @returns {Promise<Object>}
-   * @throws {ApiError} 404
+   * @throws {ApiError}
    */
   async getPaymentByOrder(orderId) {
     const order = await this.orderRepo.findById(orderId);
@@ -416,9 +510,9 @@ class PaymentService {
 
   /**
    * Mendapatkan status pembayaran QRIS dari Midtrans
-   * @param {string} orderId - ID pesanan
+   * @param {string} orderId
    * @returns {Promise<Object>}
-   * @throws {ApiError} 404
+   * @throws {ApiError}
    */
   async getPaymentStatus(orderId) {
     const order = await this.orderRepo.findById(orderId);
@@ -519,7 +613,7 @@ class PaymentService {
 
   /**
    * Verifikasi signature key webhook Midtrans
-   * @param {Object} payload - Data webhook dari Midtrans
+   * @param {Object} payload
    * @returns {boolean}
    * @private
    */
@@ -544,18 +638,10 @@ class PaymentService {
   }
 
   /**
-   * Webhook handler untuk notifikasi pembayaran QRIS dari Midtrans.
-   *
-   * Flow sukses:
-   *   SERVICE: DRAFT → QUEUED
-   *   SPAREPART: DRAFT → COMPLETED
-   *
-   * Flow gagal:
-   *   Payment REFUNDED, order tetap DRAFT
-   *
-   * @param {Object} payload - Notifikasi dari Midtrans
+   * Webhook handler untuk notifikasi pembayaran QRIS dari Midtrans
+   * @param {Object} payload
    * @returns {Promise<void>}
-   * @throws {ApiError} 400 | 401 | 404
+   * @throws {ApiError}
    */
   async handleMidtransWebhook(payload) {
     const {
@@ -668,6 +754,41 @@ class PaymentService {
         }
       });
 
+      await this.#invalidateOrderHistoryCache(orderNumber);
+
+      const customerName = order.customer?.name || "Pelanggan";
+
+      await this.#sendNotification(
+        order.cashierId,
+        "Pembayaran QRIS Berhasil",
+        `Pembayaran QRIS untuk pesanan #${orderNumber} berhasil.\n\n` +
+          `Pelanggan: ${customerName}\n` +
+          `Total: ${Currency.toIDR(grossAmount)}\n` +
+          `Status Pesanan: ${newStatus}\n` +
+          `Transaksi: ${transactionId}`,
+        "SUCCESS"
+      );
+
+      if (hasServiceItem) {
+        const mechanics = await prisma.user.findMany({
+          where: { role: "MECHANIC", isActive: true },
+          select: { id: true },
+        });
+
+        for (const mechanic of mechanics) {
+          await this.#sendNotification(
+            mechanic.id,
+            "Pesanan Baru Menunggu",
+            `Pesanan #${orderNumber} siap dikerjakan.\n\n` +
+              `Pelanggan: ${customerName}\n` +
+              `Item Service: ${
+                order.items.filter((i) => i.product?.type === "SERVICE").length
+              } item`,
+            "INFO"
+          );
+        }
+      }
+
       try {
         const io = getIO();
         io.emit("payment:status", {
@@ -708,6 +829,18 @@ class PaymentService {
         }
       });
 
+      await this.#invalidateOrderHistoryCache(orderNumber);
+
+      await this.#sendNotification(
+        order.cashierId,
+        "Pembayaran QRIS Gagal",
+        `Pembayaran QRIS untuk pesanan #${orderNumber} gagal.\n\n` +
+          `Status: ${transactionStatus}\n` +
+          `Transaksi: ${transactionId}\n\n` +
+          `Pesanan tetap sebagai draft. Silakan coba lagi.`,
+        "ERROR"
+      );
+
       try {
         const io = getIO();
         io.emit("payment:status", {
@@ -738,16 +871,13 @@ class PaymentService {
   }
 
   /**
-   * Merefund pembayaran yang sudah PAID.
-   * Mengubah status payment ke REFUNDED, order ke CANCELLED.
-   * OrderStatusHistory hanya dicatat jika ada item SERVICE.
-   *
-   * @param {string} paymentId - ID pembayaran
-   * @param {Object} [payload] - Data refund
-   * @param {string} [payload.reason] - Alasan refund
-   * @param {string} userId - ID user
+   * Merefund pembayaran yang sudah PAID
+   * @param {string} paymentId
+   * @param {Object} [payload]
+   * @param {string} [payload.reason]
+   * @param {string} userId
    * @returns {Promise<Object>}
-   * @throws {ApiError} 404 | 409
+   * @throws {ApiError}
    */
   async refundPayment(paymentId, payload = {}, userId) {
     const payment = await this.paymentRepo.findById(paymentId);
@@ -801,6 +931,18 @@ class PaymentService {
 
       return refunded;
     });
+
+    await this.#invalidateOrderHistoryCache(payment.order.orderNumber);
+
+    await this.#sendNotification(
+      payment.order.cashierId || changedById,
+      "Pembayaran Direfund",
+      `Refund pembayaran untuk pesanan #${payment.order.orderNumber}.\n\n` +
+        `Jumlah: ${Currency.toIDR(payment.amountPaid)}\n` +
+        `Alasan: ${reason}\n` +
+        `Status Pesanan: CANCELLED`,
+      "WARNING"
+    );
 
     logger.warn("Pembayaran direfund, pesanan dibatalkan", {
       paymentId,

@@ -34,7 +34,7 @@ import { alpha } from "@mui/material/styles";
 
 import { getCustomers } from "@api/customerApi.js";
 import { formatToIdr } from "@shared/utils";
-import { ProductType, productTypeColorMap } from "@shared/constant";
+import { ProductType } from "@shared/constant";
 import { useDevice, useDebounce } from "@hooks";
 import { AsyncAutocomplete } from "@components";
 import { useHeaderCart } from "../hooks/useHeaderCart";
@@ -45,9 +45,10 @@ const QuantityControl = ({ quantity, maxLimit, onChange, disabled }) => (
     sx={{
       alignItems: "center",
       gap: 0.5,
-      border: 1,
+      border: `1px solid`,
       borderColor: "divider",
-      borderRadius: 1,
+      borderRadius: `${useTheme().shape.borderRadius}px`,
+      bgcolor: "background.paper",
     }}
   >
     <IconButton
@@ -55,12 +56,17 @@ const QuantityControl = ({ quantity, maxLimit, onChange, disabled }) => (
       onClick={() => onChange(-1)}
       disabled={disabled || quantity <= 1}
     >
-      <Minus size={14} />
+      <Minus size={14} strokeWidth={1.5} />
     </IconButton>
     <Typography
       variant="body2"
-      fontWeight={600}
-      sx={{ minWidth: 24, textAlign: "center", userSelect: "none" }}
+      sx={{
+        minWidth: 28,
+        textAlign: "center",
+        userSelect: "none",
+        fontWeight: 400,
+        fontVariantNumeric: "tabular-nums",
+      }}
     >
       {quantity}
     </Typography>
@@ -69,7 +75,7 @@ const QuantityControl = ({ quantity, maxLimit, onChange, disabled }) => (
       onClick={() => onChange(1)}
       disabled={disabled || quantity >= maxLimit}
     >
-      <Plus size={14} />
+      <Plus size={14} strokeWidth={1.5} />
     </IconButton>
   </Stack>
 );
@@ -78,86 +84,81 @@ const CartItemCard = ({ item, onRemove, onQuantityChange, disabled }) => {
   const theme = useTheme();
   const isSparepart = item.type === ProductType.SPAREPART;
   const maxLimit = item.maxQuantity || item.productStock || 999;
+  const itemTotal = (item.unitPrice || 0) * item.quantity;
 
   return (
     <Card
-      variant="outlined"
       sx={{
         opacity: disabled ? 0.5 : 1,
         transition: theme.transitions.create("opacity"),
+        border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+        boxShadow: "none",
+        borderRadius: `${theme.shape.borderRadius}px`,
       }}
     >
-      <CardContent sx={{ p: 2.5, "&:last-child": { pb: 2.5 } }}>
+      <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
         <Stack direction="row" sx={{ alignItems: "flex-start", gap: 2 }}>
           <Avatar
             alt={item.productName}
             src={item.image?.url || ""}
             variant="rounded"
             sx={{
-              width: 56,
-              height: 56,
+              width: 48,
+              height: 48,
               flexShrink: 0,
+              borderRadius: `${theme.shape.borderRadius}px`,
               bgcolor: !item.image?.url
-                ? alpha(theme.palette.text.primary, 0.06)
+                ? alpha(theme.palette.secondary.main, 0.08)
                 : "transparent",
               color: !item.image?.url
-                ? theme.palette.text.secondary
+                ? theme.palette.secondary.main
                 : "transparent",
-              fontSize: "1rem",
-              fontWeight: 600,
+              fontSize: "0.9375rem",
+              fontWeight: 400,
             }}
           >
             {!item.image?.url && item.productName?.charAt(0)?.toUpperCase()}
           </Avatar>
 
           <Stack sx={{ minWidth: 0, flex: 1, gap: 1 }}>
-            <Stack
-              direction="row"
-              sx={{ alignItems: "center", justifyContent: "space-between" }}
-            >
-              <Stack
-                direction="row"
-                sx={{ alignItems: "center", gap: 1, minWidth: 0 }}
-              >
-                <Chip
-                  label={
-                    item.type === ProductType.SERVICE ? "Jasa" : "Sparepart"
-                  }
-                  size="small"
-                  variant="outlined"
-                  color={productTypeColorMap[item.type] || "default"}
-                />
-                <Typography variant="body2" fontWeight={600} noWrap>
-                  {item.productName}
+            <Stack direction="row" sx={{ alignItems: "flex-start", justifyContent: "space-between" }}>
+              <Stack sx={{ minWidth: 0, gap: 0.5 }}>
+                <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
+                  <Chip
+                    label={item.type === ProductType.SERVICE ? "Servis" : "Sparepart"}
+                    size="small"
+                    variant="outlined"
+                    color={item.type === ProductType.SERVICE ? "secondary" : "warning"}
+                    sx={{ fontWeight: 400, height: 22 }}
+                  />
+                  <Typography variant="body2" sx={{ fontWeight: 400 }} noWrap>
+                    {item.productName}
+                  </Typography>
+                </Stack>
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  {formatToIdr(item.unitPrice || 0)} × {item.quantity}
                 </Typography>
               </Stack>
 
-              <IconButton
-                size="small"
-                onClick={() => onRemove(item.productId)}
-                disabled={disabled}
-                sx={{
-                  ml: 1,
-                  "&:hover": {
-                    color: "error.main",
-                    bgcolor: alpha(theme.palette.error.main, 0.08),
-                  },
-                }}
-              >
-                <Trash2 size={14} />
-              </IconButton>
-            </Stack>
-
-            <Stack
-              direction="row"
-              sx={{ alignItems: "center", justifyContent: "space-between" }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                {formatToIdr(item.unitPrice || 0)} × {item.quantity}
-              </Typography>
-              <Typography variant="body2" fontWeight={600}>
-                {formatToIdr((item.unitPrice || 0) * item.quantity)}
-              </Typography>
+              <Stack sx={{ alignItems: "flex-end", gap: 0.5, flexShrink: 0, ml: 1 }}>
+                <IconButton
+                  size="small"
+                  onClick={() => onRemove(item.productId)}
+                  disabled={disabled}
+                  sx={{
+                    color: "text.secondary",
+                    "&:hover": {
+                      color: "error.main",
+                      bgcolor: alpha(theme.palette.error.main, 0.08),
+                    },
+                  }}
+                >
+                  <Trash2 size={14} strokeWidth={1.5} />
+                </IconButton>
+                <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                  {formatToIdr(itemTotal)}
+                </Typography>
+              </Stack>
             </Stack>
 
             {isSparepart && (
@@ -173,7 +174,7 @@ const CartItemCard = ({ item, onRemove, onQuantityChange, disabled }) => {
                   }
                   disabled={disabled}
                 />
-                <Typography variant="caption" color="text.disabled">
+                <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400 }}>
                   Stok: {maxLimit}
                 </Typography>
               </Stack>
@@ -185,19 +186,9 @@ const CartItemCard = ({ item, onRemove, onQuantityChange, disabled }) => {
   );
 };
 
-const PriceRow = ({
-  label,
-  value,
-  isPending,
-  skeletonWidth = 80,
-  bold,
-  color,
-}) => (
-  <Stack
-    direction="row"
-    sx={{ justifyContent: "space-between", alignItems: "center" }}
-  >
-    <Typography variant="body2" color="text.secondary">
+const PriceRow = ({ label, value, isPending, skeletonWidth = 80, bold, color }) => (
+  <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
+    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
       {label}
     </Typography>
     {isPending ? (
@@ -205,7 +196,7 @@ const PriceRow = ({
     ) : (
       <Typography
         variant={bold ? "subtitle1" : "body2"}
-        fontWeight={bold ? 700 : 500}
+        sx={{ fontWeight: 400, fontVariantNumeric: "tabular-nums" }}
         color={color}
       >
         {formatToIdr(value)}
@@ -215,6 +206,7 @@ const PriceRow = ({
 );
 
 const HeaderCart = ({ open, onClose }) => {
+  const theme = useTheme();
   const { isMobile } = useDevice();
   const [customerSearch, setCustomerSearch] = useState("");
   const debouncedCustomerSearch = useDebounce(customerSearch);
@@ -229,12 +221,21 @@ const HeaderCart = ({ open, onClose }) => {
     isCalculatePending,
     isSubmitting,
     calcData,
-    handleQuantityChange,
+    handleIncrement,
+    handleDecrement,
     handleRemoveItem,
     onSubmit,
   } = useHeaderCart(open, onClose);
 
   const isProcessing = isSubmitting || isCalculatePending;
+
+  const handleQuantityChange = (productId, currentQty, inc) => {
+    if (inc > 0) {
+      handleIncrement(productId);
+    } else {
+      handleDecrement(productId);
+    }
+  };
 
   return (
     <Dialog
@@ -243,6 +244,14 @@ const HeaderCart = ({ open, onClose }) => {
       maxWidth="sm"
       fullWidth
       fullScreen={isMobile}
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: isMobile ? 0 : `${theme.shape.borderRadius}px`,
+            border: isMobile ? "none" : `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
     >
       <Box
         component="form"
@@ -260,16 +269,16 @@ const HeaderCart = ({ open, onClose }) => {
             justifyContent: "space-between",
             alignItems: "center",
             px: 3,
-            py: 2.5,
-            borderBottom: `1px solid ${alpha(useTheme().palette.divider, 0.8)}`,
+            py: 2,
+            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
             flexShrink: 0,
           }}
         >
-          <Typography variant="h6" fontWeight={600}>
+          <Typography variant="h6" sx={{ fontWeight: 400 }}>
             Keranjang
           </Typography>
           <IconButton onClick={onClose} disabled={isProcessing}>
-            <X size={18} />
+            <X size={18} strokeWidth={1.5} />
           </IconButton>
         </Stack>
 
@@ -283,113 +292,119 @@ const HeaderCart = ({ open, onClose }) => {
                 gap: 2,
               }}
             >
-              <Typography variant="body1" color="text.secondary">
+              <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 400 }}>
                 Keranjang masih kosong
               </Typography>
-              <Typography variant="caption" color="text.disabled">
+              <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400 }}>
                 Tambahkan item untuk memulai transaksi
               </Typography>
             </Stack>
           ) : (
-            <Stack sx={{ gap: 4 }}>
-              <Stack sx={{ gap: 2.5 }}>
-                <Typography variant="subtitle2" fontWeight={600}>
-                  Pelanggan
-                </Typography>
+            <Stack sx={{ gap: 3 }}>
+              {/* Customer Section */}
+              <Card
+                sx={{
+                  border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                  boxShadow: "none",
+                  borderRadius: `${theme.shape.borderRadius}px`,
+                }}
+              >
+                <CardContent sx={{ p: 2.5, "&:last-child": { pb: 2.5 } }}>
+                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+                    Pelanggan
+                  </Typography>
 
-                <Controller
-                  name="customer"
-                  control={control}
-                  render={({ field }) => (
-                    <AsyncAutocomplete
-                      value={field.value}
-                      onChange={(val) => {
-                        field.onChange(val);
-                        setValue("vehicle", null);
-                      }}
-                      onInputChange={setCustomerSearch}
-                      queryKey={["customers-list"]}
-                      fetchOptions={async (search) => {
-                        const res = await getCustomers({
-                          page: 1,
-                          limit: 10,
-                          search,
-                        });
-                        return res?.data || [];
-                      }}
-                      getOptionLabel={(o) => o?.name || ""}
-                      placeholder="Cari pelanggan..."
-                      disabled={isProcessing}
-                      renderOption={(props, option) => {
-                        const { key, ...rest } = props;
-                        return (
-                          <Box key={key} component="li" {...rest}>
-                            <Stack>
-                              <Typography variant="body2" fontWeight={500}>
-                                {option.name}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                {option.phone || "—"}
-                              </Typography>
-                            </Stack>
-                          </Box>
-                        );
-                      }}
-                    />
-                  )}
-                />
-
-                {selectedCustomer && (
                   <Controller
-                    name="vehicle"
+                    name="customer"
                     control={control}
                     render={({ field }) => (
-                      <Autocomplete
-                        size="small"
-                        options={customerVehicles}
-                        getOptionLabel={(o) => o.plateNumber || o.brand || ""}
+                      <AsyncAutocomplete
                         value={field.value}
-                        onChange={(_, v) => field.onChange(v)}
-                        disabled={!customerVehicles.length || isProcessing}
-                        isOptionEqualToValue={(a, b) => a.id === b.id}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Pilih kendaraan"
-                          />
-                        )}
-                        renderOption={(props, option) => (
-                          <li {...props}>
-                            <Stack>
-                              <Typography variant="body2" fontWeight={500}>
-                                {option.plateNumber || option.brand}
-                              </Typography>
-                              {option.brand && option.model && (
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  {option.brand} {option.model}
+                        onChange={(val) => {
+                          field.onChange(val);
+                          setValue("vehicle", null);
+                        }}
+                        onInputChange={setCustomerSearch}
+                        queryKey={["customers-list"]}
+                        fetchOptions={async (search) => {
+                          const res = await getCustomers({
+                            page: 1,
+                            limit: 10,
+                            search,
+                          });
+                          return res?.data || [];
+                        }}
+                        getOptionLabel={(o) => o?.name || ""}
+                        placeholder="Cari pelanggan..."
+                        disabled={isProcessing}
+                        renderOption={(props, option) => {
+                          const { key, ...rest } = props;
+                          return (
+                            <Box key={key} component="li" {...rest}>
+                              <Stack>
+                                <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                                  {option.name}
                                 </Typography>
-                              )}
-                            </Stack>
-                          </li>
-                        )}
+                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                                  {option.phone || "—"}
+                                </Typography>
+                              </Stack>
+                            </Box>
+                          );
+                        }}
                       />
                     )}
                   />
-                )}
-              </Stack>
 
-              <Stack sx={{ gap: 2 }}>
-                <Typography variant="subtitle2" fontWeight={600}>
+                  {selectedCustomer && (
+                    <Box sx={{ mt: 2 }}>
+                      <Controller
+                        name="vehicle"
+                        control={control}
+                        render={({ field }) => (
+                          <Autocomplete
+                            size="small"
+                            options={customerVehicles}
+                            getOptionLabel={(o) => o.plateNumber || o.brand || ""}
+                            value={field.value}
+                            onChange={(_, v) => field.onChange(v)}
+                            disabled={!customerVehicles.length || isProcessing}
+                            isOptionEqualToValue={(a, b) => a.id === b.id}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                placeholder="Pilih kendaraan"
+                                sx={{ fontWeight: 400 }}
+                              />
+                            )}
+                            renderOption={(props, option) => (
+                              <li {...props}>
+                                <Stack>
+                                  <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                                    {option.plateNumber || option.brand}
+                                  </Typography>
+                                  {option.brand && option.model && (
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                                      {option.brand} {option.model}
+                                    </Typography>
+                                  )}
+                                </Stack>
+                              </li>
+                            )}
+                          />
+                        )}
+                      />
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Items Section */}
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
                   Item ({items.length})
                 </Typography>
-
-                <Stack sx={{ gap: 2 }}>
+                <Stack sx={{ gap: 1.5 }}>
                   {items.map((item, i) => (
                     <CartItemCard
                       key={item.productId || i}
@@ -400,7 +415,7 @@ const HeaderCart = ({ open, onClose }) => {
                     />
                   ))}
                 </Stack>
-              </Stack>
+              </Box>
             </Stack>
           )}
         </Box>
@@ -409,10 +424,10 @@ const HeaderCart = ({ open, onClose }) => {
           <Stack
             sx={{
               p: 3,
-              borderTop: 1,
-              borderColor: "divider",
+              borderTop: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
               gap: 2.5,
               flexShrink: 0,
+              bgcolor: alpha(theme.palette.secondary.main, 0.02),
             }}
           >
             <Stack sx={{ gap: 1.5 }}>
@@ -433,7 +448,7 @@ const HeaderCart = ({ open, onClose }) => {
                 isPending={isCalculatePending}
                 skeletonWidth={120}
                 bold
-                color="primary.main"
+                color="secondary.main"
               />
             </Stack>
 
@@ -443,7 +458,14 @@ const HeaderCart = ({ open, onClose }) => {
               variant="contained"
               size="large"
               disabled={!items.length || isProcessing}
-              sx={{ py: 1.5 }}
+              sx={{
+                py: 1.5,
+                fontWeight: 400,
+                borderRadius: `${theme.shape.borderRadius}px`,
+                "&:hover": {
+                  boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+                },
+              }}
             >
               {isSubmitting ? (
                 <>

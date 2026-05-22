@@ -33,6 +33,10 @@ const AvailableMechanics = AppLoadable(
   lazy(() => import("@views/tasks/pages/AvailableMechanics.jsx"))
 );
 
+const TaskHistory = AppLoadable(
+  lazy(() => import("@views/tasks/pages/TasksHistory.jsx"))
+);
+
 const Products = AppLoadable(
   lazy(() => import("@views/products/pages/Products.jsx"))
 );
@@ -79,7 +83,6 @@ const Users = AppLoadable(lazy(() => import("@views/users/pages/Users.jsx")));
 const Settings = AppLoadable(
   lazy(() => import("@views/settings/Settings.jsx"))
 );
-const TestView = AppLoadable(lazy(() => import("@views/test/Test.jsx")));
 
 const MainRoutes = {
   path: "/",
@@ -89,7 +92,7 @@ const MainRoutes = {
       index: true,
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN, Role.CASHIER, Role.MECHANIC]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN, Role.CASHIER, Role.MECHANIC]}>
             <Dashboard />
           </RoleRoutes>
         </PrivateRoutes>
@@ -99,7 +102,7 @@ const MainRoutes = {
       path: "dashboard",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN, Role.CASHIER, Role.MECHANIC]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN, Role.CASHIER, Role.MECHANIC]}>
             <Dashboard />
           </RoleRoutes>
         </PrivateRoutes>
@@ -109,7 +112,7 @@ const MainRoutes = {
       path: "pos",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.CASHIER]}>
+          <RoleRoutes allowedRoles={[Role.CASHIER]}>
             <POS />
           </RoleRoutes>
         </PrivateRoutes>
@@ -119,7 +122,7 @@ const MainRoutes = {
       path: "orders",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.CASHIER]}>
+          <RoleRoutes allowedRoles={[Role.CASHIER]}>
             <Orders />
           </RoleRoutes>
         </PrivateRoutes>
@@ -129,7 +132,7 @@ const MainRoutes = {
       path: "orders/history",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN, Role.CASHIER]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN, Role.CASHIER]}>
             <OrderHistory />
           </RoleRoutes>
         </PrivateRoutes>
@@ -139,7 +142,7 @@ const MainRoutes = {
       path: "customers",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN, Role.CASHIER]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN, Role.CASHIER]}>
             <Customers />
           </RoleRoutes>
         </PrivateRoutes>
@@ -149,7 +152,7 @@ const MainRoutes = {
       path: "vehicles",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN, Role.CASHIER]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN, Role.CASHIER]}>
             <Vehicles />
           </RoleRoutes>
         </PrivateRoutes>
@@ -159,7 +162,7 @@ const MainRoutes = {
       path: "tasks",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN]}>
             <Tasks />
           </RoleRoutes>
         </PrivateRoutes>
@@ -169,8 +172,18 @@ const MainRoutes = {
       path: "tasks/mechanic",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.MECHANIC]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN, Role.MECHANIC]}>
             <MechanicTasks />
+          </RoleRoutes>
+        </PrivateRoutes>
+      ),
+    },
+    {
+      path: "tasks/history",
+      element: (
+        <PrivateRoutes>
+          <RoleRoutes allowedRoles={[Role.ADMIN, Role.MECHANIC]}>
+            <TaskHistory />
           </RoleRoutes>
         </PrivateRoutes>
       ),
@@ -179,7 +192,7 @@ const MainRoutes = {
       path: "tasks/unassigned",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN, Role.CASHIER]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN, Role.CASHIER]}>
             <UnassignedTasks />
           </RoleRoutes>
         </PrivateRoutes>
@@ -189,7 +202,7 @@ const MainRoutes = {
       path: "tasks/mechanics/available",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN, Role.CASHIER]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN, Role.CASHIER]}>
             <AvailableMechanics />
           </RoleRoutes>
         </PrivateRoutes>
@@ -199,7 +212,7 @@ const MainRoutes = {
       path: "products",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN]}>
             <Products />
           </RoleRoutes>
         </PrivateRoutes>
@@ -209,7 +222,7 @@ const MainRoutes = {
       path: "stock/movements",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN]}>
             <StockMovements />
           </RoleRoutes>
         </PrivateRoutes>
@@ -219,7 +232,7 @@ const MainRoutes = {
       path: "payments",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN, Role.CASHIER]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN, Role.CASHIER]}>
             <Payments />
           </RoleRoutes>
         </PrivateRoutes>
@@ -229,7 +242,7 @@ const MainRoutes = {
       path: "expenses",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.CASHIER]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN, Role.CASHIER]}>
             <Expenses />
           </RoleRoutes>
         </PrivateRoutes>
@@ -239,7 +252,7 @@ const MainRoutes = {
       path: "expenses/history",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN]}>
             <ExpensesHistory />
           </RoleRoutes>
         </PrivateRoutes>
@@ -249,7 +262,7 @@ const MainRoutes = {
       path: "shifts",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.CASHIER]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN, Role.CASHIER]}>
             <Shifts />
           </RoleRoutes>
         </PrivateRoutes>
@@ -259,7 +272,7 @@ const MainRoutes = {
       path: "shifts/all",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN]}>
             <AllShifts />
           </RoleRoutes>
         </PrivateRoutes>
@@ -269,7 +282,7 @@ const MainRoutes = {
       path: "reports/sales",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN]}>
             <SalesReport />
           </RoleRoutes>
         </PrivateRoutes>
@@ -279,7 +292,7 @@ const MainRoutes = {
       path: "reports/profitloss",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN]}>
             <ProfitLoss />
           </RoleRoutes>
         </PrivateRoutes>
@@ -289,7 +302,7 @@ const MainRoutes = {
       path: "reports/inventory",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN]}>
             <InventoryReport />
           </RoleRoutes>
         </PrivateRoutes>
@@ -299,7 +312,7 @@ const MainRoutes = {
       path: "reports/mechanics",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN]}>
             <MechanicReport />
           </RoleRoutes>
         </PrivateRoutes>
@@ -309,7 +322,7 @@ const MainRoutes = {
       path: "reports/expenses",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN]}>
             <ExpenseReport />
           </RoleRoutes>
         </PrivateRoutes>
@@ -319,7 +332,7 @@ const MainRoutes = {
       path: "reports/payments",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN]}>
             <PaymentReport />
           </RoleRoutes>
         </PrivateRoutes>
@@ -329,7 +342,7 @@ const MainRoutes = {
       path: "users",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN]}>
             <Users />
           </RoleRoutes>
         </PrivateRoutes>
@@ -339,15 +352,11 @@ const MainRoutes = {
       path: "settings",
       element: (
         <PrivateRoutes>
-          <RoleRoutes allowedRoles={[Role.SUPERADMIN, Role.ADMIN]}>
+          <RoleRoutes allowedRoles={[Role.ADMIN]}>
             <Settings />
           </RoleRoutes>
         </PrivateRoutes>
       ),
-    },
-    {
-      path: "test",
-      element: <TestView />,
     },
   ],
 };

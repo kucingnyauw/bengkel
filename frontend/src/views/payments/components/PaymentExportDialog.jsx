@@ -9,7 +9,7 @@
  * @returns {JSX.Element} Dialog export pembayaran
  */
 import { useState } from "react";
-import { X } from "lucide-react";
+import { Calendar, X } from "lucide-react";
 
 import {
   Button,
@@ -26,17 +26,15 @@ import {
   Select,
   Stack,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { MobileDatePicker } from "@mui/x-date-pickers/MobileDatePicker";
 
 import { PaymentMethod } from "@shared/constant";
 import { exportToCsv, formatDateTime, formatToIdr } from "@shared/utils";
 import { usePaymentsQuery } from "@views/payments/hooks";
 
-/**
- * Konfigurasi header CSV
- * @type {string[]}
- */
 const csvHeaders = [
   "No. Order",
   "Metode",
@@ -52,6 +50,7 @@ const csvHeaders = [
 ];
 
 const PaymentExportDialog = ({ open, onClose }) => {
+  const theme = useTheme();
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [method, setMethod] = useState("");
@@ -114,68 +113,105 @@ const PaymentExportDialog = ({ open, onClose }) => {
   };
 
   return (
-    <Dialog open={open} onClose={isExporting ? undefined : onClose} maxWidth="xs" fullWidth>
+    <Dialog
+      open={open}
+      onClose={isExporting ? undefined : onClose}
+      maxWidth="xs"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 400,
         }}
       >
         Export Pembayaran
         <IconButton onClick={onClose} disabled={isExporting} size="small">
-          <X size={20} />
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
       <Divider />
 
       <DialogContent>
-        <Stack spacing={2.5}>
-          <Typography variant="body2" color="text.secondary">
-            Pilih filter untuk mengexport data pembayaran. Biarkan kosong untuk semua data.
-          </Typography>
-
+        <Stack sx={{ gap: 2.5 }}>
+     
           <MobileDatePicker
             label="Dari Tanggal"
             value={startDate}
             onChange={setStartDate}
-            slotProps={{ textField: { fullWidth: true } }}
+            slots={{
+              openPickerIcon: () => <Calendar size={16} strokeWidth={1.5} />,
+            }}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                sx: { fontWeight: 400 },
+              },
+            }}
           />
 
           <MobileDatePicker
             label="Sampai Tanggal"
             value={endDate}
             onChange={setEndDate}
-            slotProps={{ textField: { fullWidth: true } }}
+            slots={{
+              openPickerIcon: () => <Calendar size={16} strokeWidth={1.5} />,
+            }}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                sx: { fontWeight: 400 },
+              },
+            }}
           />
 
-          <FormControl>
-            <InputLabel>Metode</InputLabel>
+          <FormControl fullWidth>
+            <InputLabel sx={{ fontWeight: 400 }}>Metode</InputLabel>
             <Select
               value={method}
               label="Metode"
               onChange={(e) => setMethod(e.target.value)}
+              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="">Semua</MenuItem>
+              <MenuItem value="" sx={{ fontWeight: 400 }}>
+                Semua
+              </MenuItem>
               {Object.entries(PaymentMethod).map(([key, value]) => (
-                <MenuItem key={key} value={value}>
+                <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
                   {value}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
-          <FormControl>
-            <InputLabel>Status</InputLabel>
+          <FormControl fullWidth>
+            <InputLabel sx={{ fontWeight: 400 }}>Status</InputLabel>
             <Select
               value={status}
               label="Status"
               onChange={(e) => setStatus(e.target.value)}
+              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="">Semua</MenuItem>
-              <MenuItem value="PAID">Lunas</MenuItem>
-              <MenuItem value="REFUNDED">Refund</MenuItem>
+              <MenuItem value="" sx={{ fontWeight: 400 }}>
+                Semua
+              </MenuItem>
+              <MenuItem value="PAID" sx={{ fontWeight: 400 }}>
+                Lunas
+              </MenuItem>
+              <MenuItem value="REFUNDED" sx={{ fontWeight: 400 }}>
+                Refund
+              </MenuItem>
             </Select>
           </FormControl>
         </Stack>
@@ -193,15 +229,17 @@ const PaymentExportDialog = ({ open, onClose }) => {
           variant="outlined"
           onClick={handleReset}
           disabled={isExporting}
+          sx={{ fontWeight: 400 }}
         >
           Reset
         </Button>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" sx={{ gap: 1.5 }}>
           <Button
             color="inherit"
             variant="outlined"
             disabled={isExporting}
             onClick={onClose}
+            sx={{ fontWeight: 400 }}
           >
             Batal
           </Button>
@@ -212,6 +250,12 @@ const PaymentExportDialog = ({ open, onClose }) => {
             startIcon={
               isExporting ? <CircularProgress size={14} color="inherit" /> : null
             }
+            sx={{
+              fontWeight: 400,
+              "&:hover": {
+                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+              },
+            }}
           >
             {isExporting ? "Mengexport..." : "Export CSV"}
           </Button>

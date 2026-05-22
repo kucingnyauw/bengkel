@@ -1,5 +1,5 @@
 /**
- * TaskFilterDialog - Dialog filter untuk tugas dengan filter ID order dan status order.
+ * TaskFilterDialog - Dialog filter untuk tugas dengan filter ID order, status order, dan rentang tanggal.
  *
  * @component
  * @param {Object} props - Props komponen
@@ -11,10 +11,12 @@
  * @param {Object} props.tempFilters - Nilai filter sementara
  * @param {string} [props.tempFilters.orderId] - Filter ID order
  * @param {string} [props.tempFilters.orderStatus] - Filter status order
+ * @param {Date} [props.tempFilters.startDate] - Filter tanggal mulai
+ * @param {Date} [props.tempFilters.endDate] - Filter tanggal akhir
  *
  * @returns {JSX.Element} Dialog filter tugas
  */
-import { X } from "lucide-react";
+import { Calendar, X } from "lucide-react";
 
 import {
   Button,
@@ -30,7 +32,10 @@ import {
   Select,
   Stack,
   TextField,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import { MobileDatePicker } from "@mui/x-date-pickers/MobileDatePicker";
 
 import { OrderStatus } from "@shared/constant";
 import { normalizeEnumText } from "@shared/utils";
@@ -43,51 +48,109 @@ const TaskFilterDialog = ({
   onApply,
   onReset,
 }) => {
+  const theme = useTheme();
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="xs"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 400,
         }}
       >
         Filter Tugas
         <IconButton onClick={onClose} size="small">
-          <X size={20} />
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
       <Divider />
 
       <DialogContent>
-        <Stack spacing={2.5}>
+        <Stack sx={{ gap: 2.5 }}>
           <TextField
+            fullWidth
             label="Order ID"
-            value={tempFilters.orderId}
+            value={tempFilters.orderId || ""}
             onChange={(e) =>
               onFilterChange({ ...tempFilters, orderId: e.target.value })
             }
             placeholder="Masukkan ID Order"
+            slotProps={{
+              input: { sx: { fontWeight: 400 } },
+              inputLabel: { sx: { fontWeight: 400 } },
+            }}
           />
 
-          <FormControl>
-            <InputLabel>Status Order</InputLabel>
+          <FormControl fullWidth>
+            <InputLabel sx={{ fontWeight: 400 }}>Status Order</InputLabel>
             <Select
-              value={tempFilters.orderStatus}
+              value={tempFilters.orderStatus || ""}
               label="Status Order"
               onChange={(e) =>
                 onFilterChange({ ...tempFilters, orderStatus: e.target.value })
               }
+              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="">Semua</MenuItem>
+              <MenuItem value="" sx={{ fontWeight: 400 }}>
+                Semua
+              </MenuItem>
               {Object.entries(OrderStatus).map(([key, value]) => (
-                <MenuItem key={key} value={value}>
+                <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
                   {normalizeEnumText(value)}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
+
+          <MobileDatePicker
+            label="Dari Tanggal"
+            value={tempFilters.startDate || null}
+            onChange={(val) =>
+              onFilterChange({ ...tempFilters, startDate: val })
+            }
+            slots={{
+              openPickerIcon: () => <Calendar size={16} strokeWidth={1.5} />,
+            }}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                sx: { fontWeight: 400 },
+              },
+            }}
+          />
+
+          <MobileDatePicker
+            label="Sampai Tanggal"
+            value={tempFilters.endDate || null}
+            onChange={(val) =>
+              onFilterChange({ ...tempFilters, endDate: val })
+            }
+            slots={{
+              openPickerIcon: () => <Calendar size={16} strokeWidth={1.5} />,
+            }}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                sx: { fontWeight: 400 },
+              },
+            }}
+          />
         </Stack>
       </DialogContent>
 
@@ -98,14 +161,33 @@ const TaskFilterDialog = ({
           justifyContent: "space-between",
         }}
       >
-        <Button color="inherit" variant="outlined" onClick={onReset}>
+        <Button
+          color="inherit"
+          variant="outlined"
+          onClick={onReset}
+          sx={{ fontWeight: 400 }}
+        >
           Reset
         </Button>
-        <Stack direction="row" spacing={1}>
-          <Button color="inherit" variant="outlined" onClick={onClose}>
+        <Stack direction="row" sx={{ gap: 1.5 }}>
+          <Button
+            color="inherit"
+            variant="outlined"
+            onClick={onClose}
+            sx={{ fontWeight: 400 }}
+          >
             Batal
           </Button>
-          <Button variant="contained" onClick={onApply}>
+          <Button
+            variant="contained"
+            onClick={onApply}
+            sx={{
+              fontWeight: 400,
+              "&:hover": {
+                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+              },
+            }}
+          >
             Terapkan
           </Button>
         </Stack>

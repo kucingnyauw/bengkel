@@ -26,7 +26,9 @@ import {
   Stack,
   TextField,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 import { getProducts } from "@api/productApi.js";
 import { ProductType } from "@shared/constant";
@@ -35,6 +37,7 @@ import { AsyncAutocomplete } from "@components";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const StockAdjustmentDialog = ({ open, onClose }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const { control, handleSubmit, setValue, reset } = useStockForm();
 
@@ -84,24 +87,38 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
   }, [reset, onClose]);
 
   return (
-    <Dialog fullWidth maxWidth="xs" onClose={handleClose} open={open}>
+    <Dialog
+      fullWidth
+      maxWidth="xs"
+      onClose={isSubmitting ? undefined : handleClose}
+      open={open}
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 400,
         }}
       >
         Penyesuaian Stok
         <IconButton onClick={handleClose} disabled={isSubmitting} size="small">
-          <X size={20} />
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
       <Divider />
 
       <DialogContent>
-        <Stack spacing={2.5}>
+        <Stack sx={{ gap: 2.5 }}>
           <Controller
             name="product"
             control={control}
@@ -132,10 +149,10 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
                   return (
                     <Box key={key} component="li" {...rest}>
                       <Box>
-                        <Typography variant="body2" fontWeight={500}>
+                        <Typography variant="body2" sx={{ fontWeight: 400 }}>
                           {option.name}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
                           SKU: {option.sku || "—"} • Stok: {option.stock ?? 0}
                         </Typography>
                       </Box>
@@ -159,6 +176,7 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
             render={({ field, fieldState }) => (
               <TextField
                 {...field}
+                fullWidth
                 label="Jumlah Penyesuaian"
                 type="number"
                 error={!!fieldState.error}
@@ -168,6 +186,11 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
                 }
                 placeholder="Contoh: 10 atau -5"
                 disabled={isSubmitting}
+                slotProps={{
+                  input: { sx: { fontWeight: 400 } },
+                  inputLabel: { sx: { fontWeight: 400 } },
+                  formHelperText: { sx: { fontWeight: 400 } },
+                }}
               />
             )}
           />
@@ -179,13 +202,19 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
             render={({ field, fieldState }) => (
               <TextField
                 {...field}
+                fullWidth
                 label="Catatan"
                 multiline
-                rows={2}
+                rows={3}
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
                 placeholder="Alasan penyesuaian stok"
                 disabled={isSubmitting}
+                slotProps={{
+                  input: { sx: { fontWeight: 400 } },
+                  inputLabel: { sx: { fontWeight: 400 } },
+                  formHelperText: { sx: { fontWeight: 400 } },
+                }}
               />
             )}
           />
@@ -200,6 +229,7 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
           variant="outlined"
           disabled={isSubmitting}
           onClick={handleClose}
+          sx={{ fontWeight: 400 }}
         >
           Batal
         </Button>
@@ -210,6 +240,12 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
           startIcon={
             isSubmitting ? <CircularProgress size={14} color="inherit" /> : null
           }
+          sx={{
+            fontWeight: 400,
+            "&:hover": {
+              boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+            },
+          }}
         >
           {isSubmitting ? "Menyimpan..." : "Simpan"}
         </Button>

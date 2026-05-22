@@ -147,3 +147,12 @@ export const parseCurrencyInput = (value) => {
   const numeric = value.replace(/[^\d]/g, "");
   return Number(numeric || 0);
 };
+
+export const getGreeting = () => {
+  const hour = new Date().getHours();
+
+  if (hour >= 3 && hour < 10) return "Selamat Pagi";
+  if (hour >= 10 && hour < 15) return "Selamat Siang";
+  if (hour >= 15 && hour < 18) return "Selamat Sore";
+  return "Selamat Malam";
+};

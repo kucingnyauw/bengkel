@@ -12,6 +12,16 @@ jest.mock("#repository/orderRepository.js");
 jest.mock("#repository/shiftRepository.js");
 jest.mock("#repository/settingRepository.js");
 
+jest.mock("#shared/utils/cache.js", () => {
+  return jest.fn().mockImplementation(() => ({
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(undefined),
+    invalidate: jest.fn().mockResolvedValue(undefined),
+    invalidateAll: jest.fn().mockResolvedValue(undefined),
+    buildKey: jest.fn((key) => `order:${key}`),
+  }));
+});
+
 jest.mock("#lib/midtrans.js", () => ({
   __esModule: true,
   default: { charge: jest.fn() },
@@ -77,6 +87,7 @@ describe("PaymentService", () => {
   let mockMidtrans;
   let mockAxios;
   let mockGetIO;
+  let mockCache;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -86,6 +97,7 @@ describe("PaymentService", () => {
     mockMidtrans = require("#lib/midtrans.js").default;
     mockAxios = axios;
     mockGetIO = require("#app/io.js").getIO;
+    mockCache = service.cache;
   });
 
   // ============================================================
@@ -137,10 +149,11 @@ describe("PaymentService", () => {
       mockPaymentRepo.findByOrderId.mockResolvedValue(null);
     });
 
-    it("should create CASH payment and transition to QUEUED when service exists", async () => {
+    it("should create CASH payment, transition to QUEUED, and invalidate cache", async () => {
       const result = await service.createCashPayment(orderId, amountPaid);
       expect(result.id).toBe("pay1");
       expect(prisma.$transaction).toHaveBeenCalled();
+      expect(mockCache.invalidate).toHaveBeenCalledWith("history:ORD-001");
     });
 
     it("should transition to COMPLETED when only spareparts", async () => {
@@ -148,6 +161,7 @@ describe("PaymentService", () => {
       mockOrderRepo.findById.mockResolvedValue(orderNoService);
       await service.createCashPayment(orderId, amountPaid);
       expect(prisma.$transaction).toHaveBeenCalled();
+      expect(mockCache.invalidate).toHaveBeenCalledWith("history:ORD-001");
     });
 
     it("should throw 404 when order not found", async () => {
@@ -155,8 +169,13 @@ describe("PaymentService", () => {
       await expect(service.createCashPayment(orderId, amountPaid)).rejects.toThrow(ApiError);
     });
 
-    it("should throw 409 when order is COMPLETED/CLOSED", async () => {
+    it("should throw 409 when order is COMPLETED", async () => {
       mockOrderRepo.findById.mockResolvedValue({ ...baseOrder, status: "COMPLETED" });
+      await expect(service.createCashPayment(orderId, amountPaid)).rejects.toThrow(ApiError);
+    });
+
+    it("should throw 409 when order is CLOSED", async () => {
+      mockOrderRepo.findById.mockResolvedValue({ ...baseOrder, status: "CLOSED" });
       await expect(service.createCashPayment(orderId, amountPaid)).rejects.toThrow(ApiError);
     });
 
@@ -180,7 +199,17 @@ describe("PaymentService", () => {
     });
 
     it("should calculate change correctly", async () => {
-      await expect(service.createCashPayment(orderId, amountPaid)).resolves.toBeDefined();
+      const result = await service.createCashPayment(orderId, amountPaid);
+      expect(result).toBeDefined();
+    });
+
+    it("should throw 400 when amount paid is exactly less than total", async () => {
+      await expect(service.createCashPayment(orderId, 99999)).rejects.toThrow(ApiError);
+    });
+
+    it("should handle exact payment (no change)", async () => {
+      const result = await service.createCashPayment(orderId, 100000);
+      expect(result).toBeDefined();
     });
   });
 
@@ -220,8 +249,24 @@ describe("PaymentService", () => {
       expect(mockPaymentRepo.create).toHaveBeenCalled();
     });
 
+    it("should handle QRIS without qr code action", async () => {
+      mockMidtrans.charge.mockResolvedValue({
+        status_code: "201",
+        transaction_id: "trx-2",
+        actions: [],
+      });
+
+      const result = await service.createQrisPayment(orderId);
+      expect(result.qrCodeUrl).toBeNull();
+    });
+
     it("should throw 500 when midtrans charge fails", async () => {
       mockMidtrans.charge.mockResolvedValue({ status_code: "400", status_message: "error" });
+      await expect(service.createQrisPayment(orderId)).rejects.toThrow(ApiError);
+    });
+
+    it("should throw 500 when midtrans returns null", async () => {
+      mockMidtrans.charge.mockResolvedValue(null);
       await expect(service.createQrisPayment(orderId)).rejects.toThrow(ApiError);
     });
 
@@ -230,9 +275,37 @@ describe("PaymentService", () => {
       await expect(service.createQrisPayment(orderId)).rejects.toThrow(ApiError);
     });
 
-    it("should throw 409 when order not DRAFT", async () => {
+    it("should throw 404 when order not found", async () => {
+      mockOrderRepo.findById.mockResolvedValue(null);
+      await expect(service.createQrisPayment(orderId)).rejects.toThrow(ApiError);
+    });
+
+    it("should throw 409 when order is COMPLETED", async () => {
       mockOrderRepo.findById.mockResolvedValue({ ...order, status: "COMPLETED" });
       await expect(service.createQrisPayment(orderId)).rejects.toThrow(ApiError);
+    });
+
+    it("should throw 409 when order is CLOSED", async () => {
+      mockOrderRepo.findById.mockResolvedValue({ ...order, status: "CLOSED" });
+      await expect(service.createQrisPayment(orderId)).rejects.toThrow(ApiError);
+    });
+
+    it("should throw 409 when order is CANCELLED", async () => {
+      mockOrderRepo.findById.mockResolvedValue({ ...order, status: "CANCELLED" });
+      await expect(service.createQrisPayment(orderId)).rejects.toThrow(ApiError);
+    });
+
+    it("should throw 409 when order not DRAFT", async () => {
+      mockOrderRepo.findById.mockResolvedValue({ ...order, status: "QUEUED" });
+      await expect(service.createQrisPayment(orderId)).rejects.toThrow(ApiError);
+    });
+
+    it("should include tax in item details", async () => {
+      const orderWithTax = { ...order, tax: 15000 };
+      mockOrderRepo.findById.mockResolvedValue(orderWithTax);
+
+      await service.createQrisPayment(orderId);
+      expect(mockMidtrans.charge).toHaveBeenCalled();
     });
   });
 
@@ -261,6 +334,13 @@ describe("PaymentService", () => {
       mockPaymentRepo.findMany.mockResolvedValue(repoResult);
       const result = await service.getPayments({ page: 1 });
       expect(result).toEqual(repoResult);
+    });
+
+    it("should return empty payments", async () => {
+      const repoResult = { data: [], metadata: { total: 0 } };
+      mockPaymentRepo.findMany.mockResolvedValue(repoResult);
+      const result = await service.getPayments({});
+      expect(result.data).toEqual([]);
     });
   });
 
@@ -320,6 +400,25 @@ describe("PaymentService", () => {
       expect(result.status).toBe("PAID");
     });
 
+    it("should return status for CASH payment", async () => {
+      mockPaymentRepo.findByOrderId.mockResolvedValue({ method: "CASH", status: "PAID", amountPaid: 150000, change: 0, paidAt: new Date(), orderId: "o1" });
+      const result = await service.getPaymentStatus("o1");
+      expect(result.method).toBe("CASH");
+      expect(result.status).toBe("PAID");
+    });
+
+    it("should return status for REFUNDED payment", async () => {
+      mockPaymentRepo.findByOrderId.mockResolvedValue({ ...paymentQRIS, status: "REFUNDED" });
+      const result = await service.getPaymentStatus("o1");
+      expect(result.status).toBe("REFUNDED");
+    });
+
+    it("should handle Midtrans API error gracefully", async () => {
+      mockAxios.get.mockRejectedValue(new Error("Network error"));
+      const result = await service.getPaymentStatus("o1");
+      expect(result.note).toBe("Gagal mengambil status terbaru dari Midtrans");
+    });
+
     it("should throw 404 if order not found", async () => {
       mockOrderRepo.findById.mockResolvedValue(null);
       await expect(service.getPaymentStatus("o1")).rejects.toThrow(ApiError);
@@ -338,7 +437,7 @@ describe("PaymentService", () => {
     const payment = {
       id: "pay1",
       status: "PAID",
-      order: { id: "order-1", cashierId: "c1" },
+      order: { id: "order-1", cashierId: "c1", orderNumber: "ORD-001" },
     };
     const userId = "u1";
 
@@ -349,9 +448,15 @@ describe("PaymentService", () => {
       });
     });
 
-    it("should refund payment and cancel order", async () => {
+    it("should refund payment, cancel order, and invalidate cache", async () => {
       const result = await service.refundPayment("pay1", { reason: "Test" }, userId);
       expect(result).toBeDefined();
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(mockCache.invalidate).toHaveBeenCalledWith("history:ORD-001");
+    });
+
+    it("should use default reason when not provided", async () => {
+      await service.refundPayment("pay1", {}, userId);
       expect(prisma.$transaction).toHaveBeenCalled();
     });
 
@@ -362,6 +467,11 @@ describe("PaymentService", () => {
 
     it("should throw 409 when payment not PAID", async () => {
       mockPaymentRepo.findById.mockResolvedValue({ ...payment, status: "PENDING" });
+      await expect(service.refundPayment("pay1", {}, userId)).rejects.toThrow(ApiError);
+    });
+
+    it("should throw 409 when payment is REFUNDED", async () => {
+      mockPaymentRepo.findById.mockResolvedValue({ ...payment, status: "REFUNDED" });
       await expect(service.refundPayment("pay1", {}, userId)).rejects.toThrow(ApiError);
     });
   });
@@ -405,10 +515,17 @@ describe("PaymentService", () => {
       jest.restoreAllMocks();
     });
 
-    it("should process successful payment and emit socket", async () => {
+    it("should process successful payment, emit socket, and invalidate cache", async () => {
       await service.handleMidtransWebhook(validPayload);
       expect(prisma.$transaction).toHaveBeenCalled();
       expect(mockGetIO().emit).toHaveBeenCalledWith("payment:status", expect.objectContaining({ status: "PAID" }));
+      expect(mockCache.invalidate).toHaveBeenCalledWith("history:ORD-001");
+    });
+
+    it("should handle capture+accept transaction", async () => {
+      const capturePayload = { ...validPayload, transaction_status: "capture", fraud_status: "accept" };
+      await service.handleMidtransWebhook(capturePayload);
+      expect(prisma.$transaction).toHaveBeenCalled();
     });
 
     it("should throw 401 if signature invalid", async () => {
@@ -439,9 +556,45 @@ describe("PaymentService", () => {
       await expect(service.handleMidtransWebhook(badPayload)).rejects.toThrow(ApiError);
     });
 
-    it("should handle failed payment", async () => {
+    it("should handle failed payment (deny) and invalidate cache", async () => {
       const failedPayload = { ...validPayload, transaction_status: "deny", fraud_status: "accept" };
       await service.handleMidtransWebhook(failedPayload);
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(mockCache.invalidate).toHaveBeenCalledWith("history:ORD-001");
+    });
+
+    it("should handle failed payment (cancel) and invalidate cache", async () => {
+      const failedPayload = { ...validPayload, transaction_status: "cancel", fraud_status: "accept" };
+      await service.handleMidtransWebhook(failedPayload);
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(mockCache.invalidate).toHaveBeenCalledWith("history:ORD-001");
+    });
+
+    it("should handle failed payment (expire) and invalidate cache", async () => {
+      const failedPayload = { ...validPayload, transaction_status: "expire", fraud_status: "accept" };
+      await service.handleMidtransWebhook(failedPayload);
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(mockCache.invalidate).toHaveBeenCalledWith("history:ORD-001");
+    });
+
+    it("should handle failed payment (failure) and invalidate cache", async () => {
+      const failedPayload = { ...validPayload, transaction_status: "failure", fraud_status: "accept" };
+      await service.handleMidtransWebhook(failedPayload);
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(mockCache.invalidate).toHaveBeenCalledWith("history:ORD-001");
+    });
+
+    it("should handle pending transaction (no action needed)", async () => {
+      const pendingPayload = { ...validPayload, transaction_status: "pending", fraud_status: "accept" };
+      await service.handleMidtransWebhook(pendingPayload);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it("should handle socket emit error gracefully", async () => {
+      const ioMock = { emit: jest.fn().mockImplementation(() => { throw new Error("Socket error"); }) };
+      require("#app/io.js").getIO.mockReturnValue(ioMock);
+
+      await service.handleMidtransWebhook(validPayload);
       expect(prisma.$transaction).toHaveBeenCalled();
     });
   });

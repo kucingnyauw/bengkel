@@ -4,12 +4,14 @@ import StockRepository from "#repository/stockRepository.js";
 import ShiftRepository from "#repository/shiftRepository.js";
 import SettingRepository from "#repository/settingRepository.js";
 import OrderHistoryRepository from "#repository/orderHistoryRepository.js";
+import CacheManager from "#shared/utils/cache.js";
 import CodeGenerator from "#shared/utils/code.js";
 import ApiError from "#shared/utils/error.js";
 import Storage from "#shared/utils/storage.js";
 import prisma from "#app/database.js";
 import logger from "#app/logger.js";
 import axios from "axios";
+
 import { isProd } from "#config/env.js";
 
 class OrderService {
@@ -20,11 +22,12 @@ class OrderService {
     this.shiftRepo = new ShiftRepository();
     this.settingRepo = new SettingRepository();
     this.orderHistoryRepo = new OrderHistoryRepository();
+    this.cache = new CacheManager("order");
   }
 
   /**
    * Cek apakah items memiliki tipe SERVICE
-   * @param {Array} items - Daftar item
+   * @param {Array} items
    * @returns {boolean}
    * @private
    */
@@ -39,8 +42,8 @@ class OrderService {
 
   /**
    * Mendapatkan nilai setting dari database
-   * @param {string} key - Key setting
-   * @param {*} defaultValue - Nilai default
+   * @param {string} key
+   * @param {*} defaultValue
    * @returns {Promise<*>}
    * @private
    */
@@ -60,7 +63,7 @@ class OrderService {
 
   /**
    * Mendapatkan timestamp berdasarkan status
-   * @param {string} status - Status pesanan
+   * @param {string} status
    * @returns {Object}
    * @private
    */
@@ -74,10 +77,20 @@ class OrderService {
   }
 
   /**
+   * Invalidasi cache terkait order
+   * @param {string} orderNumber
+   * @returns {Promise<void>}
+   * @private
+   */
+  async #invalidateOrderCache(orderNumber) {
+    await this.cache.invalidate(`history:${orderNumber}`);
+  }
+
+  /**
    * Membatalkan transaksi di Midtrans
-   * @param {string} orderNumber - Nomor pesanan
+   * @param {string} orderNumber
    * @returns {Promise<Object|null>}
-   * @throws {ApiError} 500
+   * @throws {ApiError}
    * @private
    */
   async #cancelMidtransTransaction(orderNumber) {
@@ -119,9 +132,9 @@ class OrderService {
 
   /**
    * Validasi apakah pesanan dapat diedit
-   * @param {Object} order - Data pesanan
-   * @param {string} action - Aksi yang dilakukan
-   * @throws {ApiError} 404 | 409
+   * @param {Object} order
+   * @param {string} action
+   * @throws {ApiError}
    * @private
    */
   #validateOrderEditable(order, action = "diubah") {
@@ -143,9 +156,9 @@ class OrderService {
 
   /**
    * Validasi produk dan stok
-   * @param {Object} product - Data produk
-   * @param {number} quantity - Jumlah diminta
-   * @throws {ApiError} 404 | 400
+   * @param {Object} product
+   * @param {number} quantity
+   * @throws {ApiError}
    * @private
    */
   #validateProduct(product, quantity) {
@@ -166,10 +179,8 @@ class OrderService {
 
   /**
    * Menghitung subtotal dan memproses item pesanan
-   * @param {Array} items - Daftar item mentah
+   * @param {Array} items
    * @returns {Promise<{subtotal: number, processedItems: Array}>}
-   * @complexity Before: O(n) - Sequential product lookups
-   * @complexity After: O(log n) - Optimized with parallel product fetching
    * @private
    */
   async #calculateItems(items) {
@@ -203,9 +214,9 @@ class OrderService {
 
   /**
    * Mendapatkan shift aktif kasir
-   * @param {string} cashierId - ID kasir
+   * @param {string} cashierId
    * @returns {Promise<Object>}
-   * @throws {ApiError} 400
+   * @throws {ApiError}
    * @private
    */
   async #getActiveShift(cashierId) {
@@ -234,8 +245,8 @@ class OrderService {
 
   /**
    * Membuat pesanan dalam transaksi database
-   * @param {Object} tx - Prisma transaction client
-   * @param {Object} data - Data pesanan
+   * @param {Object} tx
+   * @param {Object} data
    * @returns {Promise<Object>}
    * @private
    */
@@ -296,11 +307,9 @@ class OrderService {
 
   /**
    * Mengurangi stok produk sparepart secara batch
-   * @param {Array} items - Daftar item sparepart
-   * @param {Object} tx - Prisma transaction client
+   * @param {Array} items
+   * @param {Object} tx
    * @returns {Promise<void>}
-   * @complexity Before: O(n) - Sequential updates
-   * @complexity After: O(n) - Batch operations in transaction
    * @private
    */
   async #decrementStock(items, tx) {
@@ -315,9 +324,9 @@ class OrderService {
 
   /**
    * Menambah penjualan shift
-   * @param {Object} tx - Prisma transaction client
-   * @param {string} shiftId - ID shift
-   * @param {number} amount - Jumlah penjualan
+   * @param {Object} tx
+   * @param {string} shiftId
+   * @param {number} amount
    * @returns {Promise<void>}
    * @private
    */
@@ -330,12 +339,10 @@ class OrderService {
 
   /**
    * Mencatat stok keluar untuk item sparepart secara batch
-   * @param {Array} sparepartItems - Daftar item sparepart
-   * @param {Object} order - Data pesanan
-   * @param {string} cashierId - ID kasir
+   * @param {Array} sparepartItems
+   * @param {Object} order
+   * @param {string} cashierId
    * @returns {Promise<void>}
-   * @complexity Before: O(n) - Sequential stock movements
-   * @complexity After: O(n) - Parallel stock recording
    * @private
    */
   async #processSparePartItems(sparepartItems, order, cashierId) {
@@ -359,7 +366,7 @@ class OrderService {
 
   /**
    * Mendapatkan item sparepart dari pesanan
-   * @param {string} orderId - ID pesanan
+   * @param {string} orderId
    * @returns {Promise<Array>}
    * @private
    */
@@ -373,8 +380,8 @@ class OrderService {
 
   /**
    * Mengembalikan stok sparepart yang dibatalkan secara batch
-   * @param {Array} sparepartItems - Daftar item sparepart
-   * @param {Object} tx - Prisma transaction client
+   * @param {Array} sparepartItems
+   * @param {Object} tx
    * @returns {Promise<void>}
    * @private
    */
@@ -390,7 +397,7 @@ class OrderService {
 
   /**
    * Menambahkan signed URL ke gambar produk dalam satu pesanan
-   * @param {Object} order - Data pesanan
+   * @param {Object} order
    * @returns {Promise<Object>}
    * @private
    */
@@ -412,7 +419,7 @@ class OrderService {
 
   /**
    * Menambahkan signed URL ke multiple pesanan
-   * @param {Array} orders - Daftar pesanan
+   * @param {Array} orders
    * @returns {Promise<Array>}
    * @private
    */
@@ -423,10 +430,8 @@ class OrderService {
 
   /**
    * Menghitung estimasi total pesanan
-   * @param {Array} items - Daftar item mentah
-   * @returns {Promise<Object>} Subtotal, tax, total, dan detail item
-   * @complexity Before: O(n) - Sequential product lookups
-   * @complexity After: O(log n) - Parallel product fetching with batch processing
+   * @param {Array} items
+   * @returns {Promise<Object>}
    */
   async calculateTotal(items) {
     const productIds = items.map((item) => item.productId);
@@ -471,14 +476,12 @@ class OrderService {
 
   /**
    * Membuat pesanan baru (DRAFT)
-   * @param {string} cashierId - ID kasir
-   * @param {Object} payload - Data pesanan
-   * @param {string} [payload.customerId] - ID customer
-   * @param {string} [payload.vehicleId] - ID kendaraan
-   * @param {Array} payload.items - Item pesanan (wajib)
-   * @returns {Promise<Object>} Pesanan yang berhasil dibuat
-   * @complexity Before: O(n) - Sequential operations
-   * @complexity After: O(log n) - Parallel operations with batch processing
+   * @param {string} cashierId
+   * @param {Object} payload
+   * @param {string} [payload.customerId]
+   * @param {string} [payload.vehicleId]
+   * @param {Array} payload.items
+   * @returns {Promise<Object>}
    */
   async createOrder(cashierId, payload) {
     const { customerId, vehicleId, items } = payload;
@@ -547,9 +550,9 @@ class OrderService {
 
   /**
    * Mendapatkan pesanan berdasarkan ID atau nomor pesanan
-   * @param {string} identifier - ID atau nomor pesanan
+   * @param {string} identifier
    * @returns {Promise<Object>}
-   * @throws {ApiError} 404
+   * @throws {ApiError}
    */
   async getOrder(identifier) {
     const order =
@@ -574,7 +577,7 @@ class OrderService {
 
   /**
    * Mendapatkan pesanan aktif untuk kasir tertentu
-   * @param {string} cashierId - ID kasir
+   * @param {string} cashierId
    * @param {Object} [query={}]
    * @returns {Promise<{data: Array, metadata: Object}>}
    */
@@ -586,11 +589,11 @@ class OrderService {
 
   /**
    * Memperbarui status pesanan
-   * @param {string} orderId - ID pesanan
-   * @param {string} status - Status baru
-   * @param {string} userId - ID user
+   * @param {string} orderId
+   * @param {string} status
+   * @param {string} userId
    * @returns {Promise<Object>}
-   * @throws {ApiError} 404 | 409
+   * @throws {ApiError}
    */
   async updateOrderStatus(orderId, status, userId) {
     const order = await this.orderRepo.findById(orderId);
@@ -600,7 +603,13 @@ class OrderService {
     const hasService = this.#hasServiceItem(order.items);
 
     if (status === "CANCELLED") {
-      return this.#handleCancellation(order, changedById, hasService);
+      const result = await this.#handleCancellation(
+        order,
+        changedById,
+        hasService
+      );
+      await this.#invalidateOrderCache(order.orderNumber);
+      return result;
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -636,15 +645,17 @@ class OrderService {
       return result;
     });
 
+    await this.#invalidateOrderCache(order.orderNumber);
+
     logger.info("Status pesanan diperbarui", { orderId, newStatus: status });
     return updated;
   }
 
   /**
    * Menangani pembatalan pesanan
-   * @param {Object} order - Data pesanan
-   * @param {string} changedById - ID user
-   * @param {boolean} hasService - Apakah ada item SERVICE
+   * @param {Object} order
+   * @param {string} changedById
+   * @param {boolean} hasService
    * @returns {Promise<Object>}
    * @private
    */
@@ -708,12 +719,12 @@ class OrderService {
 
   /**
    * Membatalkan pesanan
-   * @param {string} orderId - ID pesanan
-   * @param {Object} payload - Data pembatalan
-   * @param {string} payload.reason - Alasan pembatalan
-   * @param {string} userId - ID user
+   * @param {string} orderId
+   * @param {Object} payload
+   * @param {string} payload.reason
+   * @param {string} userId
    * @returns {Promise<void>}
-   * @throws {ApiError} 404 | 409
+   * @throws {ApiError}
    */
   async cancelOrder(orderId, payload, userId) {
     const { reason } = payload;
@@ -771,6 +782,8 @@ class OrderService {
       await tx.payment.deleteMany({ where: { orderId } });
     });
 
+    await this.#invalidateOrderCache(order.orderNumber);
+
     logger.warn("Pesanan dibatalkan", {
       orderId,
       orderNumber: order.orderNumber,
@@ -780,10 +793,10 @@ class OrderService {
 
   /**
    * Menutup pesanan (COMPLETED → CLOSED)
-   * @param {string} orderId - ID pesanan
-   * @param {string} userId - ID user
+   * @param {string} orderId
+   * @param {string} userId
    * @returns {Promise<Object>}
-   * @throws {ApiError} 404 | 409
+   * @throws {ApiError}
    */
   async closeOrder(orderId, userId) {
     const order = await this.orderRepo.findById(orderId);
@@ -830,32 +843,36 @@ class OrderService {
       return result;
     });
 
+    await this.#invalidateOrderCache(order.orderNumber);
+
     logger.info("Pesanan ditutup", { orderId, orderNumber: order.orderNumber });
     return updated;
   }
 
   /**
-   * Melacak riwayat lengkap pesanan
-   * @param {string} orderNumber - Nomor pesanan
+   * Melacak riwayat lengkap pesanan dengan caching
+   * @param {string} orderNumber
    * @returns {Promise<Object>}
-   * @throws {ApiError} 404
+   * @throws {ApiError}
    */
   async trackOrderHistory(orderNumber) {
+    const cacheKey = `history:${orderNumber}`;
+    const cached = await this.cache.get(cacheKey);
+    if (cached) {
+      logger.info("Cache hit untuk order history", { orderNumber });
+      return cached;
+    }
+
     const order = await this.orderHistoryRepo.findByOrderNumber(orderNumber);
-    if (!order)
+    if (!order) {
       throw ApiError.notFound({
         message: `Pesanan dengan nomor '${orderNumber}' tidak ditemukan.`,
       });
+    }
 
     await this.#addSignedUrlsToOrder(order);
 
-    logger.info("Melacak riwayat pesanan", {
-      orderNumber,
-      status: order.status,
-      historyCount: order.histories?.length || 0,
-    });
-
-    return {
+    const result = {
       orderNumber: order.orderNumber,
       currentStatus: order.status,
       total: order.total,
@@ -874,19 +891,30 @@ class OrderService {
         changedBy: h.changedBy?.fullName || "System",
       })),
     };
+
+    await this.cache.set(cacheKey, result, 300);
+
+    logger.info("Melacak riwayat pesanan (cached)", {
+      orderNumber,
+      status: order.status,
+      historyCount: order.histories?.length || 0,
+    });
+
+    return result;
   }
 
   /**
    * Soft delete pesanan
-   * @param {string} orderId - ID pesanan
+   * @param {string} orderId
    * @returns {Promise<void>}
-   * @throws {ApiError} 404
+   * @throws {ApiError}
    */
   async softDeleteOrder(orderId) {
     const order = await this.orderRepo.findById(orderId);
     if (!order)
       throw ApiError.notFound({ message: "Pesanan tidak ditemukan." });
     await this.orderRepo.softDelete(orderId);
+    await this.#invalidateOrderCache(order.orderNumber);
     logger.info("Pesanan di-soft delete", {
       orderId,
       orderNumber: order.orderNumber,
@@ -895,15 +923,16 @@ class OrderService {
 
   /**
    * Restore pesanan
-   * @param {string} orderId - ID pesanan
+   * @param {string} orderId
    * @returns {Promise<void>}
-   * @throws {ApiError} 404
+   * @throws {ApiError}
    */
   async restoreOrder(orderId) {
     const order = await this.orderRepo.findById(orderId);
     if (!order)
       throw ApiError.notFound({ message: "Pesanan tidak ditemukan." });
     await this.orderRepo.restore(orderId);
+    await this.#invalidateOrderCache(order.orderNumber);
     logger.info("Pesanan direstore", {
       orderId,
       orderNumber: order.orderNumber,

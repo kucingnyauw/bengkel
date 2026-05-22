@@ -5,13 +5,12 @@ import { faker } from "@faker-js/faker/locale/id_ID";
 
 const prisma = new PrismaClient();
 
-const SUPERADMIN_EMAIL = "rifkyf589@gmail.com";
+// Email admin (sesuai schema hanya ada ADMIN, CASHIER, MECHANIC)
+const ADMIN_EMAIL = "rifkyf589@gmail.com";
 
 /**
  * Menghasilkan nomor pesanan unik berdasarkan tanggal
  * Format: ORD-YYYYMMDD-XXXX
- * @param {Date} date - Tanggal pesanan
- * @returns {string} Nomor pesanan
  */
 const generateOrderNumber = (date) => {
   const yyyy = date.getFullYear();
@@ -51,9 +50,9 @@ const defaultSettings = [
   { key: "stock_low_threshold", value: "5" },
 ];
 
+// User data - hanya ADMIN, CASHIER, MECHANIC
 const userData = [
-  { email: SUPERADMIN_EMAIL, fullName: "Super Admin", phone: "081234567890", role: "SUPERADMIN", isActive: true },
-  { email: "admin@bengkel.com", fullName: faker.person.fullName(), phone: faker.phone.number(), role: "ADMIN", isActive: true },
+  { email: ADMIN_EMAIL, fullName: "Admin Utama", phone: "081234567890", role: "ADMIN", isActive: true },
   { email: "kasir1@bengkel.com", fullName: faker.person.fullName(), phone: faker.phone.number(), role: "CASHIER", isActive: true },
   { email: "kasir2@bengkel.com", fullName: faker.person.fullName(), phone: faker.phone.number(), role: "CASHIER", isActive: true },
   { email: "kasir3@bengkel.com", fullName: faker.person.fullName(), phone: faker.phone.number(), role: "CASHIER", isActive: false },
@@ -66,15 +65,15 @@ const userData = [
 
 /**
  * Membersihkan semua data di tabel database
- * @returns {Promise<void>}
  */
 async function cleanDatabase() {
   console.log("🧹 Membersihkan database...\n");
   const modelNames = [
-    "orderStatusHistory", "mechanicAssignment", "stockMovement", "payment",
-    "orderItem", "order", "expense", "shift", "productPriceHistory",
-    "product", "vehicle", "customer", "notification", "setting", "user",
+    "notification", "orderStatusHistory", "mechanicAssignment", "stockMovement", 
+    "payment", "orderItem", "order", "expense", "shift", 
+    "productPriceHistory", "product", "vehicle", "customer", "setting", "file", "user",
   ];
+  
   for (const model of modelNames) {
     if (prisma[model]) {
       await prisma[model].deleteMany();
@@ -84,73 +83,7 @@ async function cleanDatabase() {
 }
 
 /**
- * Membuat order beserta items, payment, dan history
- */
-const createOrderWithItems = async (
-  status, orderDate, itemsOptions, extraFields = {}, historyOverrides, assignedCashier, assignedCustomer, activeShift
-) => {
-  const orderNumber = generateOrderNumber(orderDate);
-  let subtotal = 0;
-  const itemsData = [];
-
-  for (let j = 0; j < itemsOptions.count; j++) {
-    const product = faker.helpers.arrayElement(itemsOptions.pool);
-    const qty = product.type === "SERVICE" ? 1 : faker.number.int({ min: 1, max: 2 });
-    const itemSubtotal = product.price * qty;
-    subtotal += itemSubtotal;
-
-    itemsData.push({
-      productId: product.id,
-      productNameSnapshot: product.name,
-      quantity: qty,
-      unitPrice: product.price,
-      unitCostSnapshot: product.cost,
-      subtotal: itemSubtotal,
-    });
-  }
-
-  const tax = Math.round(subtotal * 0.11);
-  const total = subtotal + tax;
-
-  const order = await prisma.order.create({
-    data: {
-      orderNumber, status, subtotal, tax, total,
-      cashierId: assignedCashier.id,
-      shiftId: activeShift.id,
-      customerId: assignedCustomer.id,
-      createdAt: orderDate,
-      ...extraFields,
-    },
-  });
-
-  for (const item of itemsData) {
-    await prisma.orderItem.create({ data: { orderId: order.id, ...item } });
-  }
-
-  if (["QUEUED", "IN_PROGRESS", "COMPLETED", "CLOSED"].includes(status)) {
-    await prisma.payment.create({
-      data: {
-        orderId: order.id,
-        method: faker.helpers.arrayElement(["CASH", "QRIS"]),
-        amountPaid: total,
-        change: 0,
-        status: "PAID",
-        paidAt: orderDate,
-      },
-    });
-  }
-
-  for (const h of historyOverrides) {
-    await prisma.orderStatusHistory.create({
-      data: { orderId: order.id, status: h.status, changedById: h.changedById, note: h.note },
-    });
-  }
-  return order;
-};
-
-/**
  * Fungsi utama seeding database
- * @returns {Promise<void>}
  */
 async function seed() {
   await cleanDatabase();
@@ -174,7 +107,6 @@ async function seed() {
     const created = await prisma.user.create({ data: user });
     createdUsers.push(created);
   }
-  const superAdmin = createdUsers.find((u) => u.role === "SUPERADMIN");
   const admin = createdUsers.find((u) => u.role === "ADMIN");
   const cashiers = createdUsers.filter((u) => u.role === "CASHIER" && u.isActive);
   const mechanics = createdUsers.filter((u) => u.role === "MECHANIC" && u.isActive);
@@ -190,7 +122,10 @@ async function seed() {
 
   for (let i = 0; i < 30; i++) {
     const customer = await prisma.customer.create({
-      data: { name: faker.person.fullName(), phone: faker.phone.number() },
+      data: { 
+        name: faker.person.fullName(), 
+        phone: faker.phone.number() 
+      },
     });
     dbCustomers.push(customer);
 
@@ -200,7 +135,10 @@ async function seed() {
         data: {
           plateNumber: `B ${faker.number.int({ min: 1000, max: 9999 })} ${faker.string.alpha({ length: { min: 2, max: 3 }, casing: "upper" })}`,
           brand: "Vespa",
-          model: faker.helpers.arrayElement(["Sprint 150", "Primavera 150", "GTS Super 300", "PX 150", "S 125", "LX 125"]),
+          model: faker.helpers.arrayElement([
+            "Sprint 150", "Primavera 150", "GTS Super 300", 
+            "PX 150", "S 125", "LX 125"
+          ]),
           customerId: customer.id,
         },
       });
@@ -236,7 +174,12 @@ async function seed() {
 
     // Price history
     await prisma.productPriceHistory.create({
-      data: { productId: p.id, price: p.price, cost: p.cost, effectiveFrom: faker.date.recent({ days: 30 }) },
+      data: { 
+        productId: p.id, 
+        price: p.price, 
+        cost: p.cost, 
+        effectiveFrom: faker.date.recent({ days: 30 }) 
+      },
     });
 
     // Stock movement initial
@@ -246,7 +189,7 @@ async function seed() {
         type: "IN",
         sourceType: "PURCHASE",
         quantity: stock,
-        recordedById: superAdmin.id,
+        recordedById: admin.id,
         note: "Stok awal",
         createdAt: faker.date.recent({ days: 30 }),
       },
@@ -273,7 +216,12 @@ async function seed() {
 
     // Price history
     await prisma.productPriceHistory.create({
-      data: { productId: p.id, price: p.price, cost: p.cost, effectiveFrom: faker.date.recent({ days: 30 }) },
+      data: { 
+        productId: p.id, 
+        price: p.price, 
+        cost: p.cost, 
+        effectiveFrom: faker.date.recent({ days: 30 }) 
+      },
     });
   }
 
@@ -317,7 +265,7 @@ async function seed() {
   });
   shifts.push(activeShift);
 
-  // Shift tertutup untuk hari-hari sebelumnya (7 hari)
+  // Shift tertutup untuk 7 hari terakhir
   for (let i = 1; i <= 7; i++) {
     const shiftDate = new Date(now);
     shiftDate.setDate(shiftDate.getDate() - i);
@@ -374,7 +322,7 @@ async function seed() {
     expenseCount++;
   }
 
-  // Expenses untuk shift tertutup (7 hari terakhir)
+  // Expenses untuk shift tertutup
   for (let i = 1; i < shifts.length; i++) {
     const numExpenses = faker.number.int({ min: 2, max: 5 });
     for (let j = 0; j < numExpenses; j++) {
@@ -399,43 +347,111 @@ async function seed() {
   console.log(`   ✅ ${expenseCount} expenses\n`);
 
   // ==========================================
-  // 7-9. Orders dengan berbagai status
+  // 7-8. Orders dengan berbagai status
   // ==========================================
-  console.log("📋 [7/10] Membuat Orders (DRAFT)...");
+  console.log("📋 [7/10] Membuat Orders untuk shift tertutup...");
   let totalOrders = 0;
   let totalItems = 0;
   let totalPayments = 0;
   let totalHistories = 0;
+  let totalAssignments = 0;
+  let totalMovements = 0;
 
   const closedShifts = shifts.filter(s => s.status === "CLOSED");
-  const statuses = [
-    { name: "DRAFT", orderCount: { min: 3, max: 5 }, itemCount: { min: 1, max: 3 } },
-    { name: "QUEUED", orderCount: { min: 8, max: 12 }, itemCount: { min: 1, max: 4 } },
-    { name: "IN_PROGRESS", orderCount: { min: 5, max: 8 }, itemCount: { min: 2, max: 5 } },
-    { name: "COMPLETED", orderCount: { min: 6, max: 10 }, itemCount: { min: 2, max: 6 } },
-    { name: "CLOSED", orderCount: { min: 10, max: 15 }, itemCount: { min: 1, max: 5 } },
-    { name: "CANCELLED", orderCount: { min: 1, max: 3 }, itemCount: { min: 1, max: 2 } },
+
+  // Definisikan flow status yang valid
+  const statusFlowMap = {
+    DRAFT: {
+      histories: [
+        { status: "DRAFT", note: "Order dibuat" }
+      ],
+      hasPayment: false,
+      timestamps: {}
+    },
+    QUEUED: {
+      histories: [
+        { status: "DRAFT", note: "Order dibuat" },
+        { status: "QUEUED", note: "Order masuk antrian" }
+      ],
+      hasPayment: true,
+      timestamps: { diagnosedAt: true }
+    },
+    IN_PROGRESS: {
+      histories: [
+        { status: "DRAFT", note: "Order dibuat" },
+        { status: "QUEUED", note: "Order masuk antrian" },
+        { status: "IN_PROGRESS", note: "Pengerjaan dimulai" }
+      ],
+      hasPayment: true,
+      timestamps: { diagnosedAt: true, startedAt: true }
+    },
+    COMPLETED: {
+      histories: [
+        { status: "DRAFT", note: "Order dibuat" },
+        { status: "QUEUED", note: "Order masuk antrian" },
+        { status: "IN_PROGRESS", note: "Pengerjaan dimulai" },
+        { status: "COMPLETED", note: "Pengerjaan selesai" }
+      ],
+      hasPayment: true,
+      timestamps: { diagnosedAt: true, startedAt: true, completedAt: true }
+    },
+    CLOSED: {
+      histories: [
+        { status: "DRAFT", note: "Order dibuat" },
+        { status: "QUEUED", note: "Order masuk antrian" },
+        { status: "IN_PROGRESS", note: "Pengerjaan dimulai" },
+        { status: "COMPLETED", note: "Pengerjaan selesai" },
+        { status: "CLOSED", note: "Order ditutup" }
+      ],
+      hasPayment: true,
+      timestamps: { diagnosedAt: true, startedAt: true, completedAt: true, closedAt: true }
+    },
+    CANCELLED: {
+      histories: [
+        { status: "DRAFT", note: "Order dibuat" },
+        { status: "CANCELLED", note: "Order dibatalkan" }
+      ],
+      hasPayment: false,
+      timestamps: {}
+    }
+  };
+
+  const statusConfigs = [
+    { status: "DRAFT", count: { min: 3, max: 5 }, itemCount: { min: 1, max: 3 } },
+    { status: "QUEUED", count: { min: 8, max: 12 }, itemCount: { min: 1, max: 4 } },
+    { status: "IN_PROGRESS", count: { min: 5, max: 8 }, itemCount: { min: 2, max: 5 } },
+    { status: "COMPLETED", count: { min: 6, max: 10 }, itemCount: { min: 2, max: 6 } },
+    { status: "CLOSED", count: { min: 10, max: 15 }, itemCount: { min: 1, max: 5 } },
+    { status: "CANCELLED", count: { min: 1, max: 3 }, itemCount: { min: 1, max: 2 } },
   ];
 
-  // Orders untuk shift tertutup
-  for (const statusConfig of statuses) {
-    const count = faker.number.int(statusConfig.orderCount);
-    
-    for (let i = 0; i < count; i++) {
-      const shift = faker.helpers.arrayElement(closedShifts);
+  // Helper function untuk membuat order dengan konsistensi data
+  async function createConsistentOrder(statusConfig, shift) {
+    const { status, count, itemCount } = statusConfig;
+    const flowConfig = statusFlowMap[status];
+    const numOrders = faker.number.int(count);
+    let localOrders = 0;
+    let localItems = 0;
+    let localPayments = 0;
+    let localHistories = 0;
+    let localAssignments = 0;
+    let localMovements = 0;
+
+    for (let i = 0; i < numOrders; i++) {
       const customer = faker.helpers.arrayElement(dbCustomers);
-      const customerVehicles = await prisma.vehicle.findMany({ where: { customerId: customer.id } });
+      const customerVehicles = await prisma.vehicle.findMany({ 
+        where: { customerId: customer.id } 
+      });
       const vehicle = customerVehicles.length > 0 ? faker.helpers.arrayElement(customerVehicles) : null;
       
-      const itemCount = faker.number.int(statusConfig.itemCount);
+      const numItems = faker.number.int(itemCount);
       const items = [];
       let orderSubtotal = 0;
 
       // Pilih kombinasi sparepart dan service
-      const serviceCount = faker.number.int({ min: 0, max: 2 });
-      const sparepartCount = itemCount - serviceCount;
-
-      for (let j = 0; j < itemCount; j++) {
+      const serviceCount = faker.number.int({ min: 0, max: Math.min(2, numItems) });
+      
+      for (let j = 0; j < numItems; j++) {
         const isService = j < serviceCount;
         const pool = isService ? services : spareparts;
         const product = faker.helpers.arrayElement(pool);
@@ -450,36 +466,40 @@ async function seed() {
           unitPrice: product.price,
           unitCostSnapshot: product.cost,
           subtotal: itemSubtotal,
+          isService: product.type === "SERVICE",
         });
       }
 
       const tax = Math.round(orderSubtotal * 0.11);
       const total = orderSubtotal + tax;
-      const orderDate = faker.date.between({ from: shift.openedAt, to: shift.closedAt || shift.openedAt });
+      const orderDate = faker.date.between({ 
+        from: shift.openedAt, 
+        to: shift.closedAt || shift.openedAt 
+      });
       
-      // Tentukan timestamps berdasarkan status
+      // Tentukan timestamps berdasarkan flow config
       let diagnosedAt = null;
       let startedAt = null;
       let completedAt = null;
       let closedAt = null;
 
-      if (["QUEUED", "IN_PROGRESS", "COMPLETED", "CLOSED"].includes(statusConfig.name)) {
+      if (flowConfig.timestamps.diagnosedAt) {
         diagnosedAt = new Date(orderDate.getTime() + faker.number.int({ min: 5, max: 30 }) * 60000);
       }
-      if (["IN_PROGRESS", "COMPLETED", "CLOSED"].includes(statusConfig.name)) {
+      if (flowConfig.timestamps.startedAt && diagnosedAt) {
         startedAt = new Date(diagnosedAt.getTime() + faker.number.int({ min: 15, max: 60 }) * 60000);
       }
-      if (["COMPLETED", "CLOSED"].includes(statusConfig.name)) {
+      if (flowConfig.timestamps.completedAt && startedAt) {
         completedAt = new Date(startedAt.getTime() + faker.number.int({ min: 30, max: 180 }) * 60000);
       }
-      if (statusConfig.name === "CLOSED") {
+      if (flowConfig.timestamps.closedAt && completedAt) {
         closedAt = new Date(completedAt.getTime() + faker.number.int({ min: 5, max: 30 }) * 60000);
       }
 
       const order = await prisma.order.create({
         data: {
           orderNumber: generateOrderNumber(orderDate),
-          status: statusConfig.name,
+          status,
           subtotal: orderSubtotal,
           tax,
           total,
@@ -495,58 +515,67 @@ async function seed() {
           updatedAt: closedAt || completedAt || startedAt || diagnosedAt || orderDate,
         },
       });
+      localOrders++;
 
       // Create order items
       for (const item of items) {
         const orderItem = await prisma.orderItem.create({ 
           data: { 
-            orderId: order.id, 
-            ...item 
+            orderId: order.id,
+            productId: item.productId,
+            productNameSnapshot: item.productNameSnapshot,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            unitCostSnapshot: item.unitCostSnapshot,
+            subtotal: item.subtotal,
           } 
         });
-        totalItems++;
+        localItems++;
 
-        // Stock movement untuk sparepart
-        const product = products.find(p => p.id === item.productId);
-        if (product && product.type === "SPAREPART" && ["IN_PROGRESS", "COMPLETED", "CLOSED"].includes(statusConfig.name)) {
-          await prisma.stockMovement.create({
-            data: {
-              productId: product.id,
-              type: "OUT",
-              sourceType: "SALE",
-              quantity: -item.quantity,
-              orderItemId: orderItem.id,
-              recordedById: shift.cashierId,
-              note: `Penjualan dari order ${order.orderNumber}`,
-              createdAt: startedAt || orderDate,
-            },
-          });
+        // Stock movement HANYA untuk status yang sudah IN_PROGRESS atau lebih
+        if (["IN_PROGRESS", "COMPLETED", "CLOSED"].includes(status)) {
+          const product = products.find(p => p.id === item.productId);
+          
+          if (product && product.type === "SPAREPART") {
+            await prisma.stockMovement.create({
+              data: {
+                productId: product.id,
+                type: "OUT",
+                sourceType: "SALE",
+                quantity: item.quantity,
+                orderItemId: orderItem.id,
+                recordedById: shift.cashierId,
+                note: `Penjualan dari order ${order.orderNumber}`,
+                createdAt: startedAt || orderDate,
+              },
+            });
+            localMovements++;
 
-          // Update stock
-          await prisma.product.update({
-            where: { id: product.id },
-            data: { stock: { decrement: item.quantity } },
-          });
-        }
+            // Update stock
+            await prisma.product.update({
+              where: { id: product.id },
+              data: { stock: { decrement: item.quantity } },
+            });
+          }
 
-        // Mechanic assignment untuk service
-        if (product && product.type === "SERVICE" && ["IN_PROGRESS", "COMPLETED", "CLOSED"].includes(statusConfig.name)) {
-          const mechanic = faker.helpers.arrayElement(mechanics);
-          await prisma.mechanicAssignment.create({
-            data: {
-              orderItemId: orderItem.id,
-              mechanicId: mechanic.id,
-              startAt: startedAt || orderDate,
-              endAt: completedAt || null,
-            },
-          });
+          // Mechanic assignment HANYA untuk service
+          if (product && product.type === "SERVICE") {
+            const mechanic = faker.helpers.arrayElement(mechanics);
+            await prisma.mechanicAssignment.create({
+              data: {
+                orderItemId: orderItem.id,
+                mechanicId: mechanic.id,
+                startAt: startedAt || orderDate,
+                endAt: completedAt || null,
+              },
+            });
+            localAssignments++;
+          }
         }
       }
 
-      totalOrders++;
-
-      // Payment
-      if (["QUEUED", "IN_PROGRESS", "COMPLETED", "CLOSED"].includes(statusConfig.name)) {
+      // Payment HANYA jika flowConfig mengharuskan
+      if (flowConfig.hasPayment) {
         await prisma.payment.create({
           data: {
             orderId: order.id,
@@ -557,135 +586,70 @@ async function seed() {
             paidAt: diagnosedAt || orderDate,
           },
         });
-        totalPayments++;
+        localPayments++;
       }
 
       // Order status history
-      const statusFlow = {
-        DRAFT: [{ status: "DRAFT", changedById: shift.cashierId, note: "Order dibuat" }],
-        QUEUED: [
-          { status: "DRAFT", changedById: shift.cashierId, note: "Order dibuat" },
-          { status: "QUEUED", changedById: shift.cashierId, note: "Order masuk antrian" },
-        ],
-        IN_PROGRESS: [
-          { status: "DRAFT", changedById: shift.cashierId, note: "Order dibuat" },
-          { status: "QUEUED", changedById: shift.cashierId, note: "Order masuk antrian" },
-          { status: "IN_PROGRESS", changedById: faker.helpers.arrayElement(mechanics).id, note: "Pengerjaan dimulai" },
-        ],
-        COMPLETED: [
-          { status: "DRAFT", changedById: shift.cashierId, note: "Order dibuat" },
-          { status: "QUEUED", changedById: shift.cashierId, note: "Order masuk antrian" },
-          { status: "IN_PROGRESS", changedById: faker.helpers.arrayElement(mechanics).id, note: "Pengerjaan dimulai" },
-          { status: "COMPLETED", changedById: faker.helpers.arrayElement(mechanics).id, note: "Pengerjaan selesai" },
-        ],
-        CLOSED: [
-          { status: "DRAFT", changedById: shift.cashierId, note: "Order dibuat" },
-          { status: "QUEUED", changedById: shift.cashierId, note: "Order masuk antrian" },
-          { status: "IN_PROGRESS", changedById: faker.helpers.arrayElement(mechanics).id, note: "Pengerjaan dimulai" },
-          { status: "COMPLETED", changedById: faker.helpers.arrayElement(mechanics).id, note: "Pengerjaan selesai" },
-          { status: "CLOSED", changedById: shift.cashierId, note: "Order ditutup" },
-        ],
-        CANCELLED: [
-          { status: "DRAFT", changedById: shift.cashierId, note: "Order dibuat" },
-          { status: "CANCELLED", changedById: shift.cashierId, note: "Order dibatalkan" },
-        ],
-      };
+      for (const history of flowConfig.histories) {
+        // Tentukan changedBy berdasarkan status
+        let changedById;
+        if (history.status === "IN_PROGRESS" || history.status === "COMPLETED") {
+          changedById = faker.helpers.arrayElement(mechanics).id;
+        } else {
+          changedById = shift.cashierId;
+        }
 
-      const histories = statusFlow[statusConfig.name] || statusFlow.DRAFT;
-      for (const h of histories) {
         await prisma.orderStatusHistory.create({
           data: {
             orderId: order.id,
-            status: h.status,
-            changedById: h.changedById,
-            note: h.note,
+            status: history.status,
+            changedById,
+            note: history.note,
             createdAt: orderDate,
           },
         });
-        totalHistories++;
+        localHistories++;
       }
     }
+
+    return { localOrders, localItems, localPayments, localHistories, localAssignments, localMovements };
   }
 
-  // Orders untuk shift aktif (hari ini)
+  // Proses semua order untuk shift tertutup
+  for (const config of statusConfigs) {
+    const shift = faker.helpers.arrayElement(closedShifts);
+    const result = await createConsistentOrder(config, shift);
+    totalOrders += result.localOrders;
+    totalItems += result.localItems;
+    totalPayments += result.localPayments;
+    totalHistories += result.localHistories;
+    totalAssignments += result.localAssignments;
+    totalMovements += result.localMovements;
+  }
+
+  console.log(`   ✅ Orders untuk shift tertutup selesai`);
+
+  // Orders untuk shift aktif (hari ini) - hanya status awal
   console.log("📋 [8/10] Membuat Orders untuk shift aktif...");
-  const todayStatuses = ["DRAFT", "QUEUED", "IN_PROGRESS", "COMPLETED"];
-  
-  for (const status of todayStatuses) {
-    const count = faker.number.int({ min: 1, max: 3 });
-    
-    for (let i = 0; i < count; i++) {
-      const customer = faker.helpers.arrayElement(dbCustomers);
-      const itemCount = faker.number.int({ min: 1, max: 4 });
-      const items = [];
-      let orderSubtotal = 0;
+  const todayStatusConfigs = [
+    { status: "DRAFT", count: { min: 2, max: 4 }, itemCount: { min: 1, max: 3 } },
+    { status: "QUEUED", count: { min: 2, max: 4 }, itemCount: { min: 1, max: 3 } },
+    { status: "IN_PROGRESS", count: { min: 1, max: 3 }, itemCount: { min: 1, max: 3 } },
+  ];
 
-      for (let j = 0; j < itemCount; j++) {
-        const isService = faker.datatype.boolean();
-        const pool = isService ? services : spareparts;
-        const product = faker.helpers.arrayElement(pool);
-        const qty = isService ? 1 : faker.number.int({ min: 1, max: 2 });
-        const itemSubtotal = product.price * qty;
-        orderSubtotal += itemSubtotal;
-
-        items.push({
-          productId: product.id,
-          productNameSnapshot: product.name,
-          quantity: qty,
-          unitPrice: product.price,
-          unitCostSnapshot: product.cost,
-          subtotal: itemSubtotal,
-        });
-      }
-
-      const tax = Math.round(orderSubtotal * 0.11);
-      const total = orderSubtotal + tax;
-      const orderDate = faker.date.between({ 
-        from: activeShift.openedAt, 
-        to: new Date() 
-      });
-      
-      const order = await prisma.order.create({
-        data: {
-          orderNumber: generateOrderNumber(orderDate),
-          status,
-          subtotal: orderSubtotal,
-          tax,
-          total,
-          cashierId: activeShift.cashierId,
-          shiftId: activeShift.id,
-          customerId: customer.id,
-          createdAt: orderDate,
-        },
-      });
-
-      for (const item of items) {
-        await prisma.orderItem.create({ 
-          data: { 
-            orderId: order.id, 
-            ...item 
-          } 
-        });
-        totalItems++;
-      }
-      totalOrders++;
-
-      // Status history
-      await prisma.orderStatusHistory.create({
-        data: {
-          orderId: order.id,
-          status,
-          changedById: activeShift.cashierId,
-          note: `Order ${status.toLowerCase()}`,
-          createdAt: orderDate,
-        },
-      });
-      totalHistories++;
-    }
+  for (const config of todayStatusConfigs) {
+    const result = await createConsistentOrder(config, activeShift);
+    totalOrders += result.localOrders;
+    totalItems += result.localItems;
+    totalPayments += result.localPayments;
+    totalHistories += result.localHistories;
+    totalAssignments += result.localAssignments;
+    totalMovements += result.localMovements;
   }
-  
-  console.log(`   ✅ ${totalOrders} orders, ${totalItems} items`);
-  console.log(`   ✅ ${totalPayments} payments, ${totalHistories} histories\n`);
+
+  console.log(`   ✅ ${totalOrders} total orders, ${totalItems} items`);
+  console.log(`   ✅ ${totalPayments} payments, ${totalHistories} histories`);
+  console.log(`   ✅ ${totalAssignments} mechanic assignments, ${totalMovements} stock movements\n`);
 
   // ==========================================
   // 9. Notifications
@@ -693,25 +657,22 @@ async function seed() {
   console.log("🔔 [9/10] Membuat Notifications...");
   let notificationCount = 0;
 
-  // Notifikasi stok rendah untuk admin dan superadmin
-  const adminUsers = [superAdmin, admin];
+  // Notifikasi stok rendah untuk admin
   for (const product of lowStockProducts.slice(0, 5)) {
-    for (const user of adminUsers) {
-      await prisma.notification.create({
-        data: {
-          title: "Stok Rendah",
-          message: `Produk ${product.name} stok tinggal ${product.stock} unit`,
-          type: product.stock === 0 ? "ERROR" : "WARNING",
-          userId: user.id,
-          isRead: faker.datatype.boolean(),
-          createdAt: faker.date.recent({ days: 2 }),
-        },
-      });
-      notificationCount++;
-    }
+    await prisma.notification.create({
+      data: {
+        title: "Stok Rendah",
+        message: `Produk ${product.name} stok tinggal ${product.stock} unit`,
+        type: product.stock === 0 ? "ERROR" : "WARNING",
+        userId: admin.id,
+        isRead: faker.datatype.boolean(),
+        createdAt: faker.date.recent({ days: 2 }),
+      },
+    });
+    notificationCount++;
   }
 
-  // Notifikasi umum untuk semua user
+  // Notifikasi umum untuk semua user aktif
   const notificationMessages = [
     { title: "Selamat Datang", message: "Selamat datang di sistem bengkel Vespa", type: "INFO" },
     { title: "Target Tercapai", message: "Target servis harian tercapai", type: "SUCCESS" },
@@ -757,7 +718,7 @@ async function seed() {
 
   console.log("\n📋 Data siap digunakan!");
   console.log(`   • Shift aktif: Kasir ${cashiers[0].fullName}`);
-  console.log(`   • Login Super Admin: ${SUPERADMIN_EMAIL}`);
+  console.log(`   • Login Admin: ${ADMIN_EMAIL}`);
   console.log("\n🎉 Selesai!\n");
 }
 

@@ -90,11 +90,16 @@ const Orders = () => {
 
   const canPay = (row) => row.status === "DRAFT" && !row.payment;
 
-  const canCancel = (status) => !["COMPLETED", "CLOSED", "CANCELLED"].includes(status);
+  const canCancel = (status) =>
+    !["COMPLETED", "CLOSED", "CANCELLED"].includes(status);
 
   const getItemTypeChip = (row) => {
-    const hasService = row.items?.some((item) => item.product?.type === "SERVICE");
-    const hasSparepart = row.items?.some((item) => item.product?.type === "SPAREPART");
+    const hasService = row.items?.some(
+      (item) => item.product?.type === "SERVICE"
+    );
+    const hasSparepart = row.items?.some(
+      (item) => item.product?.type === "SPAREPART"
+    );
 
     if (hasService && hasSparepart) {
       return (
@@ -129,7 +134,11 @@ const Orders = () => {
         />
       );
     }
-    return <Typography variant="caption" color="text.disabled">—</Typography>;
+    return (
+      <Typography variant="caption" color="text.disabled">
+        —
+      </Typography>
+    );
   };
 
   const getPaymentChip = (row) => {
@@ -226,18 +235,19 @@ const Orders = () => {
             +{row.totalItems - 1} item lainnya
           </Typography>
         )}
-        <Typography variant="caption" display="block" color="text.secondary" fontWeight={400}>
+        <Typography
+          variant="caption"
+          display="block"
+          color="text.secondary"
+          fontWeight={400}
+        >
           {row.totalItems} item
         </Typography>
       </Box>,
 
-      <Box key={`type-${row.id}`}>
-        {getItemTypeChip(row)}
-      </Box>,
+      <Box key={`type-${row.id}`}>{getItemTypeChip(row)}</Box>,
 
-      <Box key={`payment-${row.id}`}>
-        {getPaymentChip(row)}
-      </Box>,
+      <Box key={`payment-${row.id}`}>{getPaymentChip(row)}</Box>,
 
       <Box key={`customer-${row.id}`}>
         <Typography variant="body2" fontWeight={400}>
@@ -248,13 +258,24 @@ const Orders = () => {
         </Typography>
       </Box>,
 
-      <Typography key={`date-${row.id}`} variant="body2" color="text.secondary" fontWeight={400}>
+      <Typography
+        key={`date-${row.id}`}
+        variant="body2"
+        color="text.secondary"
+        fontWeight={400}
+      >
         {formatDateTime(row.createdAt)}
       </Typography>,
 
       <Stack key={`action-${row.id}`} direction="row" spacing={0.5}>
         <Tooltip
-          title={canPay(row) ? "Proses Pembayaran" : row.payment ? "Sudah dibayar" : "Belum bisa bayar"}
+          title={
+            canPay(row)
+              ? "Proses Pembayaran"
+              : row.payment
+              ? "Sudah dibayar"
+              : "Belum bisa bayar"
+          }
         >
           <Box component="span" sx={{ display: "inline-flex" }}>
             <IconButton
@@ -433,7 +454,7 @@ const Orders = () => {
       />
 
       <OrderCancelDialog
-        data={dialog.data}
+        order={dialog.data}
         onClose={closeDialog}
         open={dialog.open && dialog.type === "cancel"}
       />

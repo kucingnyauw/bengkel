@@ -1,10 +1,9 @@
 import UserRepository from "#repository/userRepository.js";
 import ShiftRepository from "#repository/shiftRepository.js";
+import NotificationRepository from "#repository/notificationRepository.js";
 import ApiError from "#shared/utils/error.js";
 import logger from "#app/logger.js";
 import supabase from "#lib/supabase.js";
-
-
 
 /**
  * Service untuk mengelola logika bisnis user
@@ -14,12 +13,14 @@ class UserService {
   constructor() {
     this.userRepo = new UserRepository();
     this.shiftRepo = new ShiftRepository();
+    this.notifRepo = new NotificationRepository();
   }
 
   /**
    * Mengirim Magic Link ke email user
-   * @param {string} email - Email tujuan
+   * @param {string} email
    * @returns {Promise<void>}
+   * @throws {ApiError}
    * @private
    */
   async #sendMagicLink(email) {
@@ -27,43 +28,118 @@ class UserService {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${process.env.BASE_URL}/auth/callback`,
+          emailRedirectTo: `${process.env.APP_URL}/auth/callback`,
         },
       });
 
       if (error) {
+        if (error.code === "over_email_send_rate_limit") {
+          throw ApiError.tooManyRequests({
+            message: "Terlalu banyak permintaan pengiriman email. Silakan coba lagi dalam beberapa saat.",
+          });
+        }
+
         logger.warn("Gagal mengirim Magic Link", {
           email,
           error: error.message,
+          code: error.code,
         });
-      } else {
-        logger.info("Magic Link dikirim", { email });
+        throw ApiError.internal({
+          message: "Gagal mengirim email verifikasi. Silakan coba lagi.",
+        });
       }
+
+      logger.info("Magic Link dikirim", { email });
     } catch (err) {
+      if (err instanceof ApiError) throw err;
+
+      if (err?.code === "over_email_send_rate_limit" || err?.status === 429) {
+        throw ApiError.tooManyRequests({
+          message: "Terlalu banyak permintaan pengiriman email. Silakan coba lagi dalam beberapa saat.",
+        });
+      }
+
       logger.error("Error saat mengirim Magic Link", {
         email,
+        error: err.message,
+      });
+      throw ApiError.internal({
+        message: "Gagal mengirim email verifikasi.",
+      });
+    }
+  }
+
+  /**
+   * Mengirim notifikasi ke user
+   * @param {string} userId
+   * @param {string} title
+   * @param {string} message
+   * @param {string} [type="INFO"]
+   * @returns {Promise<void>}
+   * @private
+   */
+  async #sendNotification(userId, title, message, type = "INFO") {
+    if (!userId) return;
+    try {
+      await this.notifRepo.create({ title, message, type, userId });
+    } catch (err) {
+      logger.warn("Gagal mengirim notifikasi user", {
+        userId,
         error: err.message,
       });
     }
   }
 
   /**
-   * Membuat user baru (hanya CASHIER & MECHANIC) + kirim Magic Link
-   * @param {Object} payload - Data user
-   * @param {string} payload.fullName - Nama lengkap
-   * @param {string} payload.email - Email
-   * @param {string} payload.phone - Nomor telepon
-   * @param {string} payload.role - Role user (CASHIER/MECHANIC)
-   * @returns {Promise<Object>} User yang berhasil dibuat
+   * Validasi role yang diizinkan untuk dibuat
+   * @param {string} role
+   * @throws {ApiError}
+   * @private
+   */
+  #validateCreatableRole(role) {
+    const allowedRoles = ["CASHIER", "MECHANIC"];
+    if (!allowedRoles.includes(role)) {
+      throw ApiError.forbidden({
+        message: `Tidak dapat membuat user dengan role ${role}. Role yang diizinkan: ${allowedRoles.join(", ")}.`,
+      });
+    }
+  }
+
+  /**
+   * Validasi role yang diizinkan untuk diupdate
+   * @param {string} currentRole
+   * @param {string} newRole
+   * @throws {ApiError}
+   * @private
+   */
+  #validateUpdatableRole(currentRole, newRole) {
+    if (currentRole === "ADMIN" && newRole !== "ADMIN") {
+      throw ApiError.forbidden({
+        message: "Tidak dapat mengubah role Admin.",
+      });
+    }
+
+    const allowedRoles = ["CASHIER", "MECHANIC"];
+    if (newRole && !allowedRoles.includes(newRole) && newRole !== "ADMIN") {
+      throw ApiError.forbidden({
+        message: `Role '${newRole}' tidak valid. Role yang diizinkan: ${allowedRoles.join(", ")}.`,
+      });
+    }
+  }
+
+  /**
+   * Membuat user baru (hanya CASHIER & MECHANIC)
+   * @param {Object} payload
+   * @param {string} payload.fullName
+   * @param {string} payload.email
+   * @param {string} payload.phone
+   * @param {string} payload.role
+   * @returns {Promise<Object>}
    */
   async createUser(payload) {
     const { fullName, email, phone, role } = payload;
 
-    if (role === "ADMIN" || role === "SUPERADMIN") {
-      throw ApiError.forbidden({
-        message: "Tidak dapat membuat user dengan role Admin atau Superadmin.",
-      });
-    }
+    this.#validateCreatableRole(role);
 
     if (email) {
       const emailExists = await this.userRepo.isEmailExists(email);
@@ -92,8 +168,25 @@ class UserService {
     });
 
     if (email) {
-      await this.#sendMagicLink(email);
+      try {
+        await this.#sendMagicLink(email);
+      } catch (err) {
+        logger.warn("Gagal mengirim Magic Link saat createUser, user tetap dibuat", {
+          userId: user.id,
+          email,
+          error: err.message,
+        });
+      }
     }
+
+    const roleLabel = role === "CASHIER" ? "Kasir" : "Mekanik";
+
+    await this.#sendNotification(
+      user.id,
+      "Selamat Datang!",
+      `Halo ${fullName}, akun Anda telah berhasil dibuat sebagai ${roleLabel}. Selamat bergabung di Bengkel POS.`,
+      "SUCCESS"
+    );
 
     logger.info(`User dibuat: ${user.fullName}`, {
       userId: user.id,
@@ -104,8 +197,9 @@ class UserService {
 
   /**
    * Generate ulang Magic Link untuk user yang belum terautentikasi
-   * @param {string} userId - ID user
-   * @returns {Promise<Object>} Info pengiriman Magic Link
+   * @param {string} userId
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
    */
   async resendMagicLink(userId) {
     const user = await this.userRepo.findById(userId);
@@ -141,8 +235,8 @@ class UserService {
 
   /**
    * Mendapatkan user berdasarkan ID
-   * @param {string} userId - ID user
-   * @returns {Promise<Object>} Data user
+   * @param {string} userId
+   * @returns {Promise<Object>}
    */
   async getUserById(userId) {
     const user = await this.userRepo.findById(userId);
@@ -156,8 +250,8 @@ class UserService {
 
   /**
    * Mendapatkan user berdasarkan email
-   * @param {string} email - Email user
-   * @returns {Promise<Object>} Data user
+   * @param {string} email
+   * @returns {Promise<Object>}
    */
   async getUserByEmail(email) {
     const user = await this.userRepo.findByEmail(email);
@@ -171,8 +265,8 @@ class UserService {
 
   /**
    * Mendapatkan user berdasarkan nomor telepon
-   * @param {string} phone - Nomor telepon
-   * @returns {Promise<Object>} Data user
+   * @param {string} phone
+   * @returns {Promise<Object>}
    */
   async getUserByPhone(phone) {
     const user = await this.userRepo.findByPhone(phone);
@@ -186,8 +280,8 @@ class UserService {
 
   /**
    * Mendapatkan daftar user dengan filter dan paginasi
-   * @param {Object} [query={}] - Parameter query
-   * @returns {Promise<{data: Array, metadata: Object}>} Daftar user
+   * @param {Object} [query={}]
+   * @returns {Promise<{data: Array, metadata: Object}>}
    */
   async getUsers(query = {}) {
     const result = await this.userRepo.findMany(query);
@@ -205,8 +299,8 @@ class UserService {
 
   /**
    * Mendapatkan daftar karyawan (CASHIER & MECHANIC)
-   * @param {Object} [query={}] - Parameter query
-   * @returns {Promise<{data: Array, metadata: Object}>} Daftar karyawan
+   * @param {Object} [query={}]
+   * @returns {Promise<{data: Array, metadata: Object}>}
    */
   async getEmployees(query = {}) {
     const result = await this.userRepo.findEmployees(query);
@@ -221,7 +315,7 @@ class UserService {
 
   /**
    * Mendapatkan daftar admin
-   * @returns {Promise<Array>} Daftar admin
+   * @returns {Promise<Array>}
    */
   async getAdmins() {
     const admins = await this.userRepo.findByRole("ADMIN");
@@ -231,8 +325,8 @@ class UserService {
 
   /**
    * Mendapatkan user berdasarkan role
-   * @param {string} role - Role user
-   * @returns {Promise<Array>} Daftar user
+   * @param {string} role
+   * @returns {Promise<Array>}
    */
   async getUsersByRole(role) {
     return this.userRepo.findByRole(role);
@@ -240,9 +334,9 @@ class UserService {
 
   /**
    * Memperbarui data user
-   * @param {string} userId - ID user
-   * @param {Object} payload - Data yang akan diupdate
-   * @returns {Promise<Object>} User yang sudah diupdate
+   * @param {string} userId
+   * @param {Object} payload
+   * @returns {Promise<Object>}
    */
   async updateUser(userId, payload) {
     const user = await this.userRepo.findById(userId);
@@ -250,6 +344,10 @@ class UserService {
       throw ApiError.notFound({
         message: `Gagal memperbarui. User dengan ID '${userId}' tidak ditemukan.`,
       });
+    }
+
+    if (payload.role !== undefined) {
+      this.#validateUpdatableRole(user.role, payload.role);
     }
 
     if (payload.phone && payload.phone !== user.phone) {
@@ -311,7 +409,7 @@ class UserService {
 
   /**
    * Menghapus user
-   * @param {string} userId - ID user
+   * @param {string} userId
    * @returns {Promise<void>}
    */
   async deleteUser(userId) {
@@ -348,8 +446,8 @@ class UserService {
 
   /**
    * Validasi email user untuk autentikasi (guard Supabase)
-   * @param {string} email - Email user
-   * @returns {Promise<Object>} Data user
+   * @param {string} email
+   * @returns {Promise<Object>}
    */
   async validateUserEmail(email) {
     const user = await this.userRepo.findByEmail(email);
@@ -377,9 +475,9 @@ class UserService {
 
   /**
    * Mengecek ketersediaan email
-   * @param {string} email - Email yang dicek
-   * @param {string} [excludeId] - ID user yang dikecualikan
-   * @returns {Promise<Object>} Status ketersediaan email
+   * @param {string} email
+   * @param {string} [excludeId]
+   * @returns {Promise<Object>}
    */
   async checkEmailExists(email, excludeId = null) {
     const user = await this.userRepo.isEmailExists(email, excludeId);
@@ -403,9 +501,9 @@ class UserService {
 
   /**
    * Mengecek ketersediaan nomor telepon
-   * @param {string} phone - Nomor telepon yang dicek
-   * @param {string} [excludeId] - ID user yang dikecualikan
-   * @returns {Promise<Object>} Status ketersediaan nomor telepon
+   * @param {string} phone
+   * @param {string} [excludeId]
+   * @returns {Promise<Object>}
    */
   async checkPhoneExists(phone, excludeId = null) {
     const user = await this.userRepo.isPhoneExists(phone, excludeId);

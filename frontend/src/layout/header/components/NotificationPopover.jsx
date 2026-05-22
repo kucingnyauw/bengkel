@@ -15,14 +15,14 @@
  * @param {Function} props.onMarkAllRead - Mark all as read handler
  * @param {Function} props.onDeleteAll - Delete all handler
  * @param {Function} props.onDelete - Delete single handler
+ * @param {Function} props.onRefresh - Refresh handler
  * @param {number} props.unreadCount - Total unread count from API
  *
  * @returns {JSX.Element} Rendered notification popover
  */
 import { useRef, useCallback, useState, useEffect } from "react";
-import { X, Trash2 } from "lucide-react";
+import { CheckCheck, RotateCcw, Trash2, X } from "lucide-react";
 import {
-  Avatar,
   Box,
   Button,
   Chip,
@@ -35,6 +35,7 @@ import {
   Popover,
   Skeleton,
   Stack,
+  Tooltip,
   Typography,
   keyframes,
   useTheme,
@@ -53,7 +54,7 @@ const NotificationSkeleton = () => (
   <Stack sx={{ gap: 1 }}>
     {[1, 2, 3, 4].map((i) => (
       <Stack key={i} direction="row" sx={{ px: 3, py: 2.5, gap: 2 }}>
-        <Skeleton variant="circular" width={40} height={40} />
+        <Skeleton variant="circular" width={8} height={8} />
         <Box sx={{ flex: 1 }}>
           <Skeleton width="60%" height={14} />
           <Skeleton width="80%" height={12} sx={{ mt: 1 }} />
@@ -63,19 +64,8 @@ const NotificationSkeleton = () => (
   </Stack>
 );
 
-const getNotifIcon = (type) => {
-  switch (type) {
-    case "WARNING":
-      return "⚠️";
-    case "ERROR":
-      return "🔴";
-    case "INFO":
-      return "ℹ️";
-    case "SUCCESS":
-      return "✅";
-    default:
-      return "📢";
-  }
+const getNotifColor = (type) => {
+  return notificationTypeColorMap[type] || "default";
 };
 
 const NotificationPopover = ({
@@ -91,6 +81,7 @@ const NotificationPopover = ({
   onMarkAllRead,
   onDeleteAll,
   onDelete,
+  onRefresh,
   unreadCount = 0,
 }) => {
   const theme = useTheme();
@@ -102,8 +93,7 @@ const NotificationPopover = ({
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [deletingIds, setDeletingIds] = useState([]);
 
-  const allNotifications =
-    notifications?.pages?.flatMap((page) => page.data) || [];
+  const allNotifications = notifications?.pages?.flatMap((page) => page.data) || [];
   const isAnyDeleting = deletingIds.length > 0 || isDeletingAll;
 
   useEffect(() => {
@@ -117,15 +107,10 @@ const NotificationPopover = ({
   }, [allNotifications.length]);
 
   useEffect(() => {
-    if (
-      !isFetchingNextPage &&
-      prevScrollHeight.current > 0 &&
-      scrollRef.current
-    ) {
+    if (!isFetchingNextPage && prevScrollHeight.current > 0 && scrollRef.current) {
       requestAnimationFrame(() => {
         if (scrollRef.current) {
-          const diff =
-            scrollRef.current.scrollHeight - prevScrollHeight.current;
+          const diff = scrollRef.current.scrollHeight - prevScrollHeight.current;
           scrollRef.current.scrollTop += diff;
           prevScrollHeight.current = 0;
         }
@@ -137,11 +122,7 @@ const NotificationPopover = ({
     (e) => {
       const target = e.currentTarget;
       const { scrollTop, scrollHeight, clientHeight } = target;
-      if (
-        scrollHeight - scrollTop <= clientHeight + 100 &&
-        hasNextPage &&
-        !isFetchingNextPage
-      ) {
+      if (scrollHeight - scrollTop <= clientHeight + 100 && hasNextPage && !isFetchingNextPage) {
         prevScrollHeight.current = scrollHeight;
         onFetchNextPage();
       }
@@ -187,14 +168,15 @@ const NotificationPopover = ({
           paper: {
             sx: {
               mt: 1.5,
-              width: 400,
+              width: 420,
               maxHeight: `calc(100vh - ${theme.spacing(12)})`,
               borderRadius: `${theme.shape.borderRadius}px`,
-              border: `1px solid ${theme.palette.divider}`,
-              boxShadow: theme.shadows[4],
+              border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+              boxShadow: `0 12px 40px ${alpha(theme.palette.common.black, 0.12)}`,
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
+              bgcolor: theme.palette.background.paper,
             },
           },
         }}
@@ -206,199 +188,240 @@ const NotificationPopover = ({
             justifyContent: "space-between",
             alignItems: "center",
             px: 3,
-            py: 4,
-            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+            py: 2,
+            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
             flexShrink: 0,
-            background: `linear-gradient(135deg, ${alpha(
-              theme.palette.text.primary,
-              0.02
-            )} 0%, ${alpha(theme.palette.text.primary, 0.01)} 100%)`,
+            bgcolor: theme.palette.background.paper,
           }}
         >
           <Stack direction="row" sx={{ gap: 1.5, alignItems: "center" }}>
-            <Typography variant="subtitle1" fontWeight={600}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
               Notifikasi
             </Typography>
             {unreadCount > 0 && (
               <Chip
-                label={unreadCount}
+                label={`${unreadCount} baru`}
                 size="small"
-                color="primary"
-                variant="outlined"
+                color="secondary"
+                variant="soft"
                 sx={{
-                  bgcolor: alpha(theme.palette.primary.main, 0.06),
-                  borderColor: alpha(theme.palette.primary.main, 0.3),
                   height: 22,
-                  minWidth: 22,
-                  "& .MuiChip-label": {
-                    px: 0.75,
-                    fontSize: "0.625rem",
-                    fontWeight: 600,
-                  },
+                  fontWeight: 400,
+                  fontSize: "0.6875rem",
+                  px: 0.5,
+                  "& .MuiChip-label": { px: 1 },
                 }}
               />
             )}
           </Stack>
-          <IconButton size="small" onClick={onClose} disabled={isAnyDeleting}>
-            <X size={16} />
-          </IconButton>
+          <Stack direction="row" sx={{ gap: 0.5 }}>
+            {onRefresh && (
+              <Tooltip title="Refresh">
+                <IconButton
+                  size="small"
+                  onClick={onRefresh}
+                  disabled={isAnyDeleting}
+                  sx={{
+                    "&:hover": {
+                      color: "secondary.main",
+                      bgcolor: alpha(theme.palette.secondary.main, 0.08),
+                    },
+                  }}
+                >
+                  <RotateCcw size={16} strokeWidth={1.5} />
+                </IconButton>
+              </Tooltip>
+            )}
+            {unreadCount > 0 && (
+              <Tooltip title="Tandai semua dibaca">
+                <IconButton
+                  size="small"
+                  onClick={onMarkAllRead}
+                  disabled={isAnyDeleting}
+                  sx={{
+                    "&:hover": {
+                      color: "secondary.main",
+                      bgcolor: alpha(theme.palette.secondary.main, 0.08),
+                    },
+                  }}
+                >
+                  <CheckCheck size={16} strokeWidth={1.5} />
+                </IconButton>
+              </Tooltip>
+            )}
+            <IconButton size="small" onClick={onClose} disabled={isAnyDeleting}>
+              <X size={18} strokeWidth={1.5} />
+            </IconButton>
+          </Stack>
         </Box>
 
         {/* Content */}
         <Box
           ref={scrollRef}
           onScroll={handleScroll}
-          sx={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}
+          sx={{
+            flex: 1,
+            overflowY: "auto",
+            overflowX: "hidden",
+            bgcolor: theme.palette.background.paper,
+          }}
         >
           {isLoading || isDeletingAll ? (
             <NotificationSkeleton />
           ) : allNotifications.length === 0 ? (
-            <Box sx={{ py: 8, textAlign: "center" }}>
-              <Typography color="text.disabled">
+            <Box sx={{ py: 10, textAlign: "center" }}>
+              <Box
+                sx={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: "50%",
+                  bgcolor: alpha(theme.palette.secondary.main, 0.06),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  mx: "auto",
+                  mb: 2,
+                }}
+              >
+                <CheckCheck size={24} strokeWidth={1.5} style={{ opacity: 0.3 }} />
+              </Box>
+              <Typography color="text.secondary" sx={{ fontWeight: 400 }}>
                 Belum ada notifikasi
+              </Typography>
+              <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400 }}>
+                Notifikasi akan muncul di sini
               </Typography>
             </Box>
           ) : (
             allNotifications.map((notif, index) => {
               const isDeleting = deletingIds.includes(notif.id);
+              const notifColor = getNotifColor(notif.type);
+
               return (
                 <Box
                   key={notif.id}
+                  onClick={() => handleNotifClick(notif)}
                   sx={{
                     px: 3,
-                    py: 2.5,
+                    py: 2,
                     cursor: isAnyDeleting ? "default" : "pointer",
-                    transition: theme.transitions.create([
-                      "background-color",
-                      "opacity",
-                    ]),
+                    transition: theme.transitions.create(["background-color", "opacity"]),
                     bgcolor: notif.isRead
                       ? "transparent"
-                      : alpha(theme.palette.text.primary, 0.03),
+                      : alpha(theme.palette.secondary.main, 0.04),
+                    borderLeft: notif.isRead
+                      ? `3px solid transparent`
+                      : `3px solid ${theme.palette[notifColor]?.main || theme.palette.secondary.main}`,
                     borderBottom:
                       index < allNotifications.length - 1
-                        ? `1px solid ${alpha(theme.palette.divider, 0.5)}`
+                        ? `1px solid ${alpha(theme.palette.divider, 0.4)}`
                         : 0,
                     opacity: isDeleting ? 0.4 : 1,
-                    animation: newItemIds.includes(notif.id)
-                      ? `${fadeInUp} 0.35s ease-out`
-                      : "none",
+                    animation: newItemIds.includes(notif.id) ? `${fadeInUp} 0.35s ease-out` : "none",
                     "&:hover": {
                       bgcolor: isAnyDeleting
                         ? undefined
-                        : alpha(theme.palette.text.primary, 0.05),
+                        : alpha(theme.palette.secondary.main, 0.06),
                     },
                   }}
                 >
-                  <Stack direction="row" sx={{ gap: 2 }}>
-                    <Avatar
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        bgcolor: alpha(theme.palette.text.primary, 0.06),
-                        fontSize: "1rem",
-                        flexShrink: 0,
-                        opacity: isDeleting ? 0.5 : 1,
-                      }}
-                    >
-                      {getNotifIcon(notif.type)}
-                    </Avatar>
+                  <Stack direction="row" sx={{ gap: 2, alignItems: "flex-start" }}>
+                    {!notif.isRead && (
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          bgcolor: theme.palette[notifColor]?.main || theme.palette.secondary.main,
+                          flexShrink: 0,
+                          mt: 0.8,
+                        }}
+                      />
+                    )}
 
-                    <Box
-                      sx={{
-                        flex: 1,
-                        minWidth: 0,
-                        opacity: isDeleting ? 0.5 : 1,
-                      }}
-                    >
-                      <Box onClick={() => handleNotifClick(notif)}>
-                        <Stack
-                          direction="row"
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
+                        <Typography
+                          variant="body2"
                           sx={{
-                            justifyContent: "space-between",
-                            alignItems: "flex-start",
-                            gap: 1,
+                            fontWeight: 400,
+                            flex: 1,
+                            minWidth: 0,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
                           }}
                         >
-                          <Stack sx={{ gap: 0.5, flex: 1, minWidth: 0 }}>
-                            <Typography
-                              variant="body2"
-                              fontWeight={notif.isRead ? 500 : 600}
-                              noWrap
-                            >
-                              {notif.title}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{
-                                display: "-webkit-box",
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: "vertical",
-                                overflow: "hidden",
-                                lineHeight: 1.5,
-                              }}
-                            >
-                              {notif.message}
-                            </Typography>
-                          </Stack>
-                          <Typography
-                            variant="caption"
-                            color="text.disabled"
-                            sx={{ flexShrink: 0, mt: 0.25 }}
-                          >
-                            {formatRelativeTime(notif.createdAt)}
-                          </Typography>
-                        </Stack>
-                      </Box>
+                          {notif.title}
+                        </Typography>
+                        <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400, flexShrink: 0, mt: 0.1 }}>
+                          {formatRelativeTime(notif.createdAt)}
+                        </Typography>
+                      </Stack>
 
-                      <Stack direction="row" sx={{ gap: 0.75, mt: 1.5 }}>
-                        {!notif.isRead && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          lineHeight: 1.5,
+                          mt: 0.5,
+                          fontWeight: 400,
+                        }}
+                      >
+                        {notif.message}
+                      </Typography>
+
+                      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mt: 1 }}>
+                        <Stack direction="row" sx={{ gap: 0.75 }}>
                           <Chip
-                            label="Baru"
+                            label={notif.type}
                             size="small"
-                            variant="filled"
-                            color="primary"
+                            variant="outlined"
+                            color={notifColor}
                             sx={{
-                              height: 20,
+                              height: 18,
                               fontSize: "0.625rem",
-                              fontWeight: 600,
+                              fontWeight: 400,
                               "& .MuiChip-label": { px: 0.75 },
                             }}
                           />
-                        )}
-                        <Chip
-                          label={notif.type}
+                          {!notif.isRead && (
+                            <Chip
+                              label="Baru"
+                              size="small"
+                              variant="soft"
+                              color="secondary"
+                              sx={{
+                                height: 18,
+                                fontSize: "0.625rem",
+                                fontWeight: 400,
+                                px: 0.5,
+                                "& .MuiChip-label": { px: 1 },
+                              }}
+                            />
+                          )}
+                        </Stack>
+                        <IconButton
                           size="small"
-                          variant="outlined"
-                          color={
-                            notificationTypeColorMap[notif.type] || "default"
-                          }
+                          onClick={(e) => handleDelete(e, notif.id)}
+                          disabled={isAnyDeleting}
                           sx={{
-                            height: 20,
-                            fontSize: "0.625rem",
-                            "& .MuiChip-label": { px: 0.75 },
+                            p: 0.25,
+                            opacity: isDeleting ? 0.3 : 1,
+                            "&:hover": {
+                              color: "error.main",
+                              bgcolor: alpha(theme.palette.error.main, 0.08),
+                            },
                           }}
-                        />
+                        >
+                          <Trash2 size={12} strokeWidth={1.5} />
+                        </IconButton>
                       </Stack>
                     </Box>
-
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleDelete(e, notif.id)}
-                      disabled={isAnyDeleting}
-                      sx={{
-                        flexShrink: 0,
-                        mt: 0.5,
-                        opacity: isDeleting ? 0.3 : 1,
-                        "&:hover": {
-                          color: "error.main",
-                          bgcolor: alpha(theme.palette.error.main, 0.08),
-                        },
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </IconButton>
                   </Stack>
                 </Box>
               );
@@ -407,30 +430,17 @@ const NotificationPopover = ({
           {isFetchingNextPage && <NotificationSkeleton />}
         </Box>
 
-        {/* Footer Actions */}
+        {/* Footer */}
         {allNotifications.length > 0 && !isDeletingAll && (
           <Box
             sx={{
-              borderTop: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+              borderTop: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
               px: 3,
-              py: 4,
+              py: 2,
               flexShrink: 0,
-              display: "flex",
-              gap: 1,
+              bgcolor: theme.palette.background.paper,
             }}
           >
-            {unreadCount > 0 && (
-              <Button
-                size="small"
-                variant="outlined"
-                color="inherit"
-                fullWidth
-                disabled={isAnyDeleting}
-                onClick={onMarkAllRead}
-              >
-                Tandai Dibaca
-              </Button>
-            )}
             <Button
               size="small"
               variant="contained"
@@ -438,6 +448,7 @@ const NotificationPopover = ({
               fullWidth
               disabled={isAnyDeleting}
               onClick={handleDeleteAll}
+              sx={{ fontWeight: 400 }}
             >
               Hapus Semua
             </Button>
@@ -451,41 +462,33 @@ const NotificationPopover = ({
         onClose={handleCloseDetail}
         maxWidth="xs"
         fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: `${theme.shape.borderRadius}px`,
+              border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+            },
+          },
+        }}
       >
         <DialogTitle
           sx={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            px: 3,
-            pt: 2.5,
-            pb: 2,
+            fontWeight: 400,
           }}
         >
-          <Stack direction="row" sx={{ gap: 2, alignItems: "center" }}>
-            <Avatar
-              sx={{
-                width: 40,
-                height: 40,
-                bgcolor: alpha(theme.palette.text.primary, 0.06),
-                fontSize: "1rem",
-              }}
-            >
-              {selectedNotif ? getNotifIcon(selectedNotif.type) : "📢"}
-            </Avatar>
+          <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
             {selectedNotif?.title}
-          </Stack>
-          <IconButton onClick={handleCloseDetail}>
-            <X size={18} />
+          </Typography>
+          <IconButton onClick={handleCloseDetail} size="small">
+            <X size={18} strokeWidth={1.5} />
           </IconButton>
         </DialogTitle>
         <Divider />
-        <DialogContent sx={{ p: 3 }}>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ lineHeight: 1.7 }}
-          >
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7, fontWeight: 400 }}>
             {selectedNotif?.message}
           </Typography>
           {selectedNotif?.createdAt && (
@@ -493,25 +496,19 @@ const NotificationPopover = ({
               <Chip
                 label={selectedNotif.type}
                 size="small"
-                color={
-                  notificationTypeColorMap[selectedNotif.type] || "default"
-                }
+                color={getNotifColor(selectedNotif.type)}
                 variant="outlined"
-                sx={{ height: 20, fontSize: "0.625rem" }}
+                sx={{ height: 20, fontSize: "0.625rem", fontWeight: 400 }}
               />
-              <Typography variant="caption" color="text.disabled">
+              <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400 }}>
                 {formatRelativeTime(selectedNotif.createdAt)}
               </Typography>
             </Stack>
           )}
         </DialogContent>
         <Divider />
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button
-            color="inherit"
-            variant="outlined"
-            onClick={handleCloseDetail}
-          >
+        <DialogActions>
+          <Button color="inherit" variant="outlined" onClick={handleCloseDetail} sx={{ fontWeight: 400 }}>
             Tutup
           </Button>
         </DialogActions>

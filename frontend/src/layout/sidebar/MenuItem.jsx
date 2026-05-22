@@ -289,7 +289,7 @@ const MenuItem = memo(function MenuItem({
       placement="right"
       enterDelay={400}
       leaveDelay={100}
-      componentsProps={{
+      slotProps={{
         tooltip: {
           sx: {
             border: `1px solid ${alpha(theme.palette.secondary.main, 0.3)}`,

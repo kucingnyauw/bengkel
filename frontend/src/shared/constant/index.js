@@ -1,4 +1,4 @@
-export { STALE_TIME, DEBOUNCE_DELAY, MIN_ITEM_QUANTITY } from "./constant";
+export { STALE_TIME, DEBOUNCE_DELAY, MAX_ITEM_QUANTITY, MIN_ITEM_QUANTITY } from "./constant";
 export {
   Role,
   ProductType,

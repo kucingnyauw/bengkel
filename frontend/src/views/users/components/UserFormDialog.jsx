@@ -11,14 +11,13 @@
  * @param {string} [props.user.role] - Role user (CASHIER/MECHANIC)
  * @param {boolean} [props.user.isActive] - Status aktif user
  * @param {Function} props.onClose - Handler tutup dialog
- * @param {Function} props.onSubmit - Handler submit form
- * @param {boolean} props.isPending - Status loading
  * @param {boolean} props.open - Status dialog terbuka
  *
  * @returns {JSX.Element} Dialog form user
  */
 import { useEffect, useCallback } from "react";
 import { Controller } from "react-hook-form";
+import { useDispatch } from "react-redux";
 import { X } from "lucide-react";
 
 import {
@@ -39,18 +38,23 @@ import {
   Stack,
   Switch,
   TextField,
+  Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 import { useUserForm } from "@views/users/hooks";
+import { useCreateUserMutation, useUpdateUserMutation } from "@views/users/hooks";
+import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const UserFormDialog = ({
   open,
   user,
   onClose,
-  onSubmit,
-  isPending,
   type = "create",
 }) => {
+  const theme = useTheme();
+  const dispatch = useDispatch();
   const isEdit = type === "edit";
 
   const {
@@ -60,9 +64,60 @@ const UserFormDialog = ({
     formState: { errors, isDirty },
   } = useUserForm();
 
-  /**
-   * Handle tutup dialog dan reset form
-   */
+  const createMutation = useCreateUserMutation({
+    onSuccess: (data) => {
+      dispatch(
+        showNotification({
+          message: `Undangan telah dikirim ke ${data?.email || "karyawan baru"}`,
+          type: "success",
+          title: "Berhasil",
+          variant: "snackbar",
+          autoHide: 3000,
+        })
+      );
+      handleClose();
+    },
+    onFailed: (error) => {
+      dispatch(
+        showNotification({
+          message: error?.message || "Gagal mengirim undangan",
+          type: "error",
+          title: "Error",
+          variant: "snackbar",
+          autoHide: 5000,
+        })
+      );
+    },
+  });
+
+  const updateMutation = useUpdateUserMutation({
+    onSuccess: (data) => {
+      dispatch(
+        showNotification({
+          message: `Karyawan "${data?.fullName || user?.fullName}" berhasil diperbarui`,
+          type: "success",
+          title: "Berhasil",
+          variant: "snackbar",
+          autoHide: 3000,
+        })
+      );
+      handleClose();
+    },
+    onFailed: (error) => {
+      dispatch(
+        showNotification({
+          message: error?.message || "Gagal memperbarui karyawan",
+          type: "error",
+          title: "Error",
+          variant: "snackbar",
+          autoHide: 5000,
+        })
+      );
+    },
+  });
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
+
   const handleClose = useCallback(() => {
     reset();
     onClose?.();
@@ -90,18 +145,51 @@ const UserFormDialog = ({
     }
   }, [open, user, isEdit, reset]);
 
+  const onSubmit = (formData) => {
+    if (isEdit && user) {
+      updateMutation.mutate({
+        id: user.id,
+        fullName: formData.fullName,
+        phone: formData.phone || undefined,
+        role: formData.role,
+        isActive: formData.isActive,
+      });
+    } else {
+      createMutation.mutate({
+        email: formData.email,
+        fullName: formData.fullName,
+        phone: formData.phone || undefined,
+        role: formData.role,
+      });
+    }
+  };
+
   return (
-    <Dialog open={open} onClose={isPending ? undefined : handleClose} maxWidth="xs" fullWidth>
+    <Dialog
+      open={open}
+      onClose={isPending ? undefined : handleClose}
+      maxWidth="xs"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 400,
         }}
       >
         {isEdit ? "Edit Karyawan" : "Tambah Karyawan"}
         <IconButton onClick={handleClose} disabled={isPending} size="small">
-          <X size={20} />
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
@@ -109,7 +197,7 @@ const UserFormDialog = ({
 
       <Box component="form" onSubmit={handleSubmit(onSubmit)}>
         <DialogContent>
-          <Stack spacing={2.5}>
+          <Stack sx={{ gap: 2.5 }}>
             <Controller
               name="email"
               control={control}
@@ -123,12 +211,18 @@ const UserFormDialog = ({
               render={({ field }) => (
                 <TextField
                   {...field}
+                  fullWidth
                   autoFocus={!isEdit}
                   label="Email"
                   placeholder="Masukkan alamat email"
                   disabled={isEdit}
                   error={!!errors.email}
                   helperText={errors.email?.message}
+                  slotProps={{
+                    input: { sx: { fontWeight: 400 } },
+                    inputLabel: { sx: { fontWeight: 400 } },
+                    formHelperText: { sx: { fontWeight: 400 } },
+                  }}
                 />
               )}
             />
@@ -140,12 +234,18 @@ const UserFormDialog = ({
               render={({ field }) => (
                 <TextField
                   {...field}
+                  fullWidth
                   autoFocus={isEdit}
                   label="Nama Lengkap"
                   placeholder="Masukkan nama lengkap"
                   error={!!errors.fullName}
                   helperText={errors.fullName?.message}
                   disabled={isPending}
+                  slotProps={{
+                    input: { sx: { fontWeight: 400 } },
+                    inputLabel: { sx: { fontWeight: 400 } },
+                    formHelperText: { sx: { fontWeight: 400 } },
+                  }}
                 />
               )}
             />
@@ -156,9 +256,14 @@ const UserFormDialog = ({
               render={({ field }) => (
                 <TextField
                   {...field}
+                  fullWidth
                   label="Nomor Telepon"
                   placeholder="08123456789"
                   disabled={isPending}
+                  slotProps={{
+                    input: { sx: { fontWeight: 400 } },
+                    inputLabel: { sx: { fontWeight: 400 } },
+                  }}
                 />
               )}
             />
@@ -168,11 +273,15 @@ const UserFormDialog = ({
               control={control}
               rules={{ required: "Role wajib dipilih" }}
               render={({ field }) => (
-                <FormControl error={!!errors.role} disabled={isPending}>
-                  <InputLabel>Role</InputLabel>
-                  <Select {...field} label="Role">
-                    <MenuItem value="CASHIER">Kasir</MenuItem>
-                    <MenuItem value="MECHANIC">Mekanik</MenuItem>
+                <FormControl fullWidth error={!!errors.role} disabled={isPending}>
+                  <InputLabel sx={{ fontWeight: 400 }}>Role</InputLabel>
+                  <Select {...field} label="Role" sx={{ fontWeight: 400 }}>
+                    <MenuItem value="CASHIER" sx={{ fontWeight: 400 }}>
+                      Kasir
+                    </MenuItem>
+                    <MenuItem value="MECHANIC" sx={{ fontWeight: 400 }}>
+                      Mekanik
+                    </MenuItem>
                   </Select>
                 </FormControl>
               )}
@@ -191,7 +300,11 @@ const UserFormDialog = ({
                         disabled={isPending}
                       />
                     }
-                    label={field.value ? "Aktif" : "Nonaktif"}
+                    label={
+                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                        {field.value ? "Aktif" : "Nonaktif"}
+                      </Typography>
+                    }
                   />
                 )}
               />
@@ -207,6 +320,7 @@ const UserFormDialog = ({
             variant="outlined"
             disabled={isPending}
             onClick={handleClose}
+            sx={{ fontWeight: 400 }}
           >
             Batal
           </Button>
@@ -217,6 +331,12 @@ const UserFormDialog = ({
             startIcon={
               isPending ? <CircularProgress size={14} color="inherit" /> : null
             }
+            sx={{
+              fontWeight: 400,
+              "&:hover": {
+                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+              },
+            }}
           >
             {isPending
               ? "Menyimpan..."

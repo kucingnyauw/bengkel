@@ -68,6 +68,14 @@ const getTasksQuerySchema = Joi.object({
   search: Joi.string().max(100).optional().allow("").messages({
     "string.max": "Pencarian maksimal 100 karakter",
   }),
+  startDate: Joi.date().iso().optional().messages({
+    "date.base": "Format tanggal mulai tidak valid",
+    "date.format": "Format tanggal mulai harus ISO (YYYY-MM-DD)",
+  }),
+  endDate: Joi.date().iso().optional().messages({
+    "date.base": "Format tanggal akhir tidak valid",
+    "date.format": "Format tanggal akhir harus ISO (YYYY-MM-DD)",
+  }),
 });
 
 const assignmentIdParamSchema = Joi.object({

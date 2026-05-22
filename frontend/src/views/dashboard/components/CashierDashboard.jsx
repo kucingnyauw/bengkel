@@ -48,8 +48,8 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
         {
           data: [completed, pending],
           backgroundColor: [
-            alpha(theme.palette.text.primary, 0.8),
-            alpha(theme.palette.text.primary, 0.2),
+            alpha(theme.palette.secondary.main, 0.8),
+            alpha(theme.palette.secondary.main, 0.2),
           ],
           borderWidth: 0,
         },
@@ -114,24 +114,24 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
         <Box
           sx={{
             position: "absolute",
-            right: theme.spacing(-6),
-            top: theme.spacing(-6),
-            width: theme.spacing(20),
-            height: theme.spacing(20),
+            right: -24,
+            top: -24,
+            width: 80,
+            height: 80,
             borderRadius: "50%",
-            backgroundColor: alpha(theme.palette.text.primary, 0.03),
+            backgroundColor: alpha(theme.palette.secondary.main, 0.04),
             zIndex: 0,
           }}
         />
         <Box
           sx={{
             position: "absolute",
-            right: theme.spacing(-3),
-            bottom: theme.spacing(-3),
-            width: theme.spacing(14),
-            height: theme.spacing(14),
+            right: -12,
+            bottom: -12,
+            width: 56,
+            height: 56,
             borderRadius: "50%",
-            backgroundColor: alpha(theme.palette.text.primary, 0.04),
+            backgroundColor: alpha(theme.palette.secondary.main, 0.06),
             zIndex: 0,
           }}
         />
@@ -147,10 +147,10 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
           }}
         >
           <Box>
-            <Typography variant="h5" fontWeight={700}>
+            <Typography variant="h5" sx={{ fontWeight: 400 }}>
               Dashboard Kasir
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
               Ringkasan transaksi dan shift Anda hari ini
             </Typography>
           </Box>
@@ -158,14 +158,13 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
             <Chip
               label={formatDate(new Date(), { dateStyle: "full" })}
               variant="outlined"
-              size="small"
+              size="medium"
               sx={{
                 borderColor: alpha(theme.palette.divider, 0.8),
                 bgcolor: alpha(theme.palette.background.paper, 0.5),
-                px: 0.5,
-                py: 0.5,
-                height: 28,
-                "& .MuiChip-label": { px: 1, fontSize: "0.75rem" },
+                height: 32,
+                fontWeight: 400,
+                "& .MuiChip-label": { px: 1.5, fontSize: "0.8125rem" },
               }}
             />
             <Tooltip title="Refresh data">
@@ -174,17 +173,21 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
                 sx={{
                   border: "1px solid",
                   borderColor: alpha(theme.palette.divider, 0.8),
+                  borderRadius: `${theme.shape.borderRadius}px`,
                   color: theme.palette.text.secondary,
                   bgcolor: alpha(theme.palette.background.paper, 0.6),
-                  backdropFilter: "blur(4px)",
+                  transition: theme.transitions.create(
+                    ["background-color", "border-color", "color"],
+                    { duration: theme.transitions.duration.shorter }
+                  ),
                   "&:hover": {
-                    bgcolor: alpha(theme.palette.text.primary, 0.06),
-                    borderColor: theme.palette.text.primary,
-                    color: theme.palette.text.primary,
+                    bgcolor: alpha(theme.palette.secondary.main, 0.06),
+                    borderColor: alpha(theme.palette.secondary.main, 0.4),
+                    color: theme.palette.secondary.main,
                   },
                 }}
               >
-                <RotateCcw size={18} />
+                <RotateCcw size={18} strokeWidth={1.5} />
               </IconButton>
             </Tooltip>
           </Stack>
@@ -194,21 +197,21 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
       {/* Summary Cards */}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 3 }}>
         <SummaryCard
-          color="primary"
+          color="secondary"
           icon={ShoppingCart}
           subtitle={`${data?.todaySales?.pendingOrders || 0} menunggu`}
           title="Pesanan Hari Ini"
           value={data?.todaySales?.todayOrders || 0}
         />
         <SummaryCard
-          color="primary"
+          color="secondary"
           icon={DollarSign}
           subtitle="Total pemasukan"
           title="Pendapatan Hari Ini"
           value={formatToIdr(data?.todaySales?.todaySales || 0)}
         />
         <SummaryCard
-          color="primary"
+          color="secondary"
           icon={Clock}
           subtitle={data?.activeShift ? `Saldo awal ${formatToIdr(data.activeShift.startingCash)}` : "Buka shift untuk mulai"}
           title="Status Shift"
@@ -218,27 +221,31 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
 
       {/* Active Shift Info */}
       {data?.activeShift && (
-        <Card>
+        <Card
+          sx={{
+            border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+            boxShadow: "none",
+          }}
+        >
           <Box sx={{ px: 3, py: 2.5 }}>
             <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
               <Box>
-                <Typography variant="h6" fontWeight={600}>
+                <Typography variant="h6" sx={{ fontWeight: 400 }}>
                   Informasi Shift
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
                   Detail shift yang sedang berjalan
                 </Typography>
               </Box>
               <Chip
                 label="Aktif"
                 size="small"
-                variant="outlined"
+                variant="soft"
+                color="success"
                 sx={{
-                  borderColor: alpha(theme.palette.text.primary, 0.3),
-                  color: theme.palette.text.primary,
-                  bgcolor: alpha(theme.palette.text.primary, 0.06),
                   height: 24,
-                  "& .MuiChip-label": { px: 1, fontSize: "0.6875rem", fontWeight: 600 },
+                  fontWeight: 400,
+                  "& .MuiChip-label": { px: 1, fontSize: "0.6875rem" },
                 }}
               />
             </Stack>
@@ -255,16 +262,15 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
                 <Box
                   key={idx}
                   sx={{
-                    p: 2.5,
+                    p: 2,
                     borderRadius: `${theme.shape.borderRadius}px`,
                     border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                    bgcolor: alpha(theme.palette.background.paper, 0.4),
                   }}
                 >
-                  <Typography variant="caption" color="text.secondary" textTransform="uppercase" fontWeight={600}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400, textTransform: "uppercase" }}>
                     {item.label}
                   </Typography>
-                  <Typography variant="body2" fontWeight={600} sx={{ mt: 1 }}>
+                  <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 400 }}>
                     {item.value}
                   </Typography>
                 </Box>
@@ -277,12 +283,18 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
       {/* Order Progress & Recent Orders */}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3 }}>
         {/* Order Progress */}
-        <Card sx={{ height: "100%" }}>
+        <Card
+          sx={{
+            height: "100%",
+            border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+            boxShadow: "none",
+          }}
+        >
           <Box sx={{ px: 3, py: 2.5 }}>
-            <Typography variant="h6" fontWeight={600}>
+            <Typography variant="h6" sx={{ fontWeight: 400 }}>
               Progress Order
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
               Perbandingan order selesai & pending
             </Typography>
           </Box>
@@ -295,34 +307,32 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
               <Box
                 sx={{
                   flex: 1,
-                  p: 2.5,
+                  p: 2,
                   borderRadius: `${theme.shape.borderRadius}px`,
                   border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                  bgcolor: alpha(theme.palette.text.primary, 0.03),
                   textAlign: "center",
                 }}
               >
-                <Typography variant="h4" fontWeight={700}>
+                <Typography variant="h4" sx={{ fontWeight: 400 }}>
                   {data?.todaySales?.todayOrders || 0}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
                   Selesai
                 </Typography>
               </Box>
               <Box
                 sx={{
                   flex: 1,
-                  p: 2.5,
+                  p: 2,
                   borderRadius: `${theme.shape.borderRadius}px`,
                   border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                  bgcolor: alpha(theme.palette.text.primary, 0.02),
                   textAlign: "center",
                 }}
               >
-                <Typography variant="h4" fontWeight={700} color="text.secondary">
+                <Typography variant="h4" color="text.secondary" sx={{ fontWeight: 400 }}>
                   {data?.todaySales?.pendingOrders || 0}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
                   Pending
                 </Typography>
               </Box>
@@ -331,19 +341,25 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
         </Card>
 
         {/* Recent Orders */}
-        <Card sx={{ height: "100%" }}>
+        <Card
+          sx={{
+            height: "100%",
+            border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+            boxShadow: "none",
+          }}
+        >
           <Box sx={{ px: 3, py: 2.5 }}>
-            <Typography variant="h6" fontWeight={600}>
+            <Typography variant="h6" sx={{ fontWeight: 400 }}>
               Pesanan Terbaru
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
               {data?.recentOrders?.length || 0} pesanan terakhir
             </Typography>
           </Box>
           <Divider />
           <Box sx={{ p: 3, flex: 1, display: "flex", flexDirection: "column" }}>
             {data?.recentOrders?.length > 0 ? (
-              <Stack sx={{ gap: 2, flex: 1 }}>
+              <Stack sx={{ gap: 1.5, flex: 1 }}>
                 {data.recentOrders.map((order) => (
                   <Stack
                     key={order.id}
@@ -355,9 +371,8 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
                       p: 2,
                       borderRadius: `${theme.shape.borderRadius}px`,
                       border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                      bgcolor: alpha(theme.palette.background.paper, 0.4),
                       transition: theme.transitions.create("background-color"),
-                      "&:hover": { bgcolor: alpha(theme.palette.text.primary, 0.03) },
+                      "&:hover": { bgcolor: alpha(theme.palette.secondary.main, 0.04) },
                     }}
                   >
                     <Stack direction="row" sx={{ gap: 2, alignItems: "center", minWidth: 0 }}>
@@ -366,20 +381,21 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
                           width: 36,
                           height: 36,
                           borderRadius: `${theme.shape.borderRadius}px`,
-                          bgcolor: alpha(theme.palette.text.primary, 0.06),
+                          bgcolor: alpha(theme.palette.secondary.main, 0.08),
+                          color: theme.palette.secondary.main,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           flexShrink: 0,
                         }}
                       >
-                        <Receipt size={16} style={{ opacity: 0.5 }} />
+                        <Receipt size={16} strokeWidth={1.5} />
                       </Box>
                       <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="body2" fontWeight={500} noWrap>
+                        <Typography variant="body2" sx={{ fontWeight: 400 }} noWrap>
                           {order.orderNumber}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
                           {order.customer?.name || "Pelanggan Umum"}
                         </Typography>
                       </Box>
@@ -390,8 +406,9 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
                         color={statusColorMap[order.status] || "default"}
                         size="small"
                         variant="outlined"
+                        sx={{ fontWeight: 400 }}
                       />
-                      <Typography variant="body2" fontWeight={600} noWrap>
+                      <Typography variant="body2" sx={{ fontWeight: 400 }} noWrap>
                         {formatToIdr(order.total)}
                       </Typography>
                     </Stack>
@@ -400,27 +417,12 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
               </Stack>
             ) : (
               <Stack sx={{ alignItems: "center", justifyContent: "center", flex: 1, gap: 2 }}>
-                <Box
-                  sx={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: "50%",
-                    bgcolor: alpha(theme.palette.text.primary, 0.06),
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Receipt size={28} style={{ opacity: 0.3 }} />
-                </Box>
-                <Box sx={{ textAlign: "center" }}>
-                  <Typography variant="subtitle1" fontWeight={600}>
-                    Belum Ada Pesanan
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Pesanan baru akan muncul di sini
-                  </Typography>
-                </Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
+                  Belum Ada Pesanan
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  Pesanan baru akan muncul di sini
+                </Typography>
               </Stack>
             )}
           </Box>
@@ -431,7 +433,6 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
 };
 
 CashierDashboard.propTypes = {
-  /** Dashboard data */
   data: PropTypes.shape({
     activeShift: PropTypes.shape({
       currentCashSales: PropTypes.number,
@@ -454,9 +455,7 @@ CashierDashboard.propTypes = {
       todaySales: PropTypes.number,
     }),
   }),
-  /** Loading state */
   isLoading: PropTypes.bool,
-  /** Refetch data handler */
   refetch: PropTypes.func,
 };
 

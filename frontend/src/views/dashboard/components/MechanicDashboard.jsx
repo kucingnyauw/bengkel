@@ -19,6 +19,12 @@ import {
   IconButton,
   Skeleton,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Tooltip,
   Typography,
   useTheme,
@@ -30,8 +36,6 @@ import { formatDate, formatToIdr, normalizeEnumText } from "@shared/utils";
 import { OrderStatus, statusColorMap } from "@shared/constant";
 import { BarChart, SummaryCard } from "@components";
 
-const CHART_HEIGHT = 200;
-
 const MechanicDashboard = ({ data, isLoading, refetch }) => {
   const theme = useTheme();
 
@@ -42,7 +46,7 @@ const MechanicDashboard = ({ data, isLoading, refetch }) => {
         {
           data: [data.overallStats.completedTasks || 0],
           label: "Selesai",
-          backgroundColor: alpha(theme.palette.text.primary, 0.8),
+          backgroundColor: alpha(theme.palette.secondary.main, 0.8),
           borderRadius: theme.shape.borderRadius,
           borderSkipped: false,
           stack: "stack1",
@@ -50,7 +54,7 @@ const MechanicDashboard = ({ data, isLoading, refetch }) => {
         {
           data: [data.overallStats.pendingTasks || 0],
           label: "Pending",
-          backgroundColor: alpha(theme.palette.text.primary, 0.2),
+          backgroundColor: alpha(theme.palette.secondary.main, 0.2),
           borderRadius: theme.shape.borderRadius,
           borderSkipped: false,
           stack: "stack1",
@@ -87,7 +91,7 @@ const MechanicDashboard = ({ data, isLoading, refetch }) => {
           <Card sx={{ p: 3, minHeight: 420 }}>
             <Skeleton width={180} height={28} />
             <Skeleton width={240} height={16} sx={{ mt: 1 }} />
-            <Skeleton variant="rounded" width="100%" height={CHART_HEIGHT} sx={{ mt: 3 }} />
+            <Skeleton variant="rounded" width="100%" height={200} sx={{ mt: 3 }} />
             <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, mt: 3 }}>
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} variant="rounded" width="100%" height={80} />
@@ -97,9 +101,7 @@ const MechanicDashboard = ({ data, isLoading, refetch }) => {
           <Card sx={{ p: 3, minHeight: 420 }}>
             <Skeleton width={180} height={28} />
             <Skeleton width={240} height={16} sx={{ mt: 1 }} />
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} variant="rounded" width="100%" height={80} sx={{ mt: 2 }} />
-            ))}
+            <Skeleton variant="rounded" width="100%" height={300} sx={{ mt: 2 }} />
           </Card>
         </Box>
       </Stack>
@@ -113,24 +115,24 @@ const MechanicDashboard = ({ data, isLoading, refetch }) => {
         <Box
           sx={{
             position: "absolute",
-            right: theme.spacing(-6),
-            top: theme.spacing(-6),
-            width: theme.spacing(20),
-            height: theme.spacing(20),
+            right: -24,
+            top: -24,
+            width: 80,
+            height: 80,
             borderRadius: "50%",
-            backgroundColor: alpha(theme.palette.text.primary, 0.03),
+            backgroundColor: alpha(theme.palette.secondary.main, 0.04),
             zIndex: 0,
           }}
         />
         <Box
           sx={{
             position: "absolute",
-            right: theme.spacing(-3),
-            bottom: theme.spacing(-3),
-            width: theme.spacing(14),
-            height: theme.spacing(14),
+            right: -12,
+            bottom: -12,
+            width: 56,
+            height: 56,
             borderRadius: "50%",
-            backgroundColor: alpha(theme.palette.text.primary, 0.04),
+            backgroundColor: alpha(theme.palette.secondary.main, 0.06),
             zIndex: 0,
           }}
         />
@@ -146,10 +148,10 @@ const MechanicDashboard = ({ data, isLoading, refetch }) => {
           }}
         >
           <Box>
-            <Typography variant="h5" fontWeight={700}>
+            <Typography variant="h5" sx={{ fontWeight: 400 }}>
               Dashboard Mekanik
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
               Pantau tugas dan performa Anda hari ini
             </Typography>
           </Box>
@@ -157,14 +159,13 @@ const MechanicDashboard = ({ data, isLoading, refetch }) => {
             <Chip
               label={formatDate(new Date(), { dateStyle: "full" })}
               variant="outlined"
-              size="small"
+              size="medium"
               sx={{
                 borderColor: alpha(theme.palette.divider, 0.8),
                 bgcolor: alpha(theme.palette.background.paper, 0.5),
-                px: 0.5,
-                py: 0.5,
-                height: 28,
-                "& .MuiChip-label": { px: 1, fontSize: "0.75rem" },
+                height: 32,
+                fontWeight: 400,
+                "& .MuiChip-label": { px: 1.5, fontSize: "0.8125rem" },
               }}
             />
             <Tooltip title="Refresh data">
@@ -173,17 +174,21 @@ const MechanicDashboard = ({ data, isLoading, refetch }) => {
                 sx={{
                   border: "1px solid",
                   borderColor: alpha(theme.palette.divider, 0.8),
+                  borderRadius: `${theme.shape.borderRadius}px`,
                   color: theme.palette.text.secondary,
                   bgcolor: alpha(theme.palette.background.paper, 0.6),
-                  backdropFilter: "blur(4px)",
+                  transition: theme.transitions.create(
+                    ["background-color", "border-color", "color"],
+                    { duration: theme.transitions.duration.shorter }
+                  ),
                   "&:hover": {
-                    bgcolor: alpha(theme.palette.text.primary, 0.06),
-                    borderColor: theme.palette.text.primary,
-                    color: theme.palette.text.primary,
+                    bgcolor: alpha(theme.palette.secondary.main, 0.06),
+                    borderColor: alpha(theme.palette.secondary.main, 0.4),
+                    color: theme.palette.secondary.main,
                   },
                 }}
               >
-                <RotateCcw size={18} />
+                <RotateCcw size={18} strokeWidth={1.5} />
               </IconButton>
             </Tooltip>
           </Stack>
@@ -193,21 +198,21 @@ const MechanicDashboard = ({ data, isLoading, refetch }) => {
       {/* Summary Cards */}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 3 }}>
         <SummaryCard
-          color="primary"
+          color="secondary"
           icon={Clock}
           subtitle={`${data?.todayTasks?.completed || 0} selesai hari ini`}
           title="Tugas Menunggu"
           value={data?.todayTasks?.pending || 0}
         />
         <SummaryCard
-          color="primary"
+          color="secondary"
           icon={Wrench}
           subtitle="Keseluruhan tugas"
           title="Total Tugas"
           value={data?.overallStats?.totalTasks || 0}
         />
         <SummaryCard
-          color="primary"
+          color="secondary"
           icon={DollarSign}
           subtitle="Pendapatan hari ini"
           title="Pendapatan"
@@ -218,23 +223,29 @@ const MechanicDashboard = ({ data, isLoading, refetch }) => {
       {/* Task Progress & Pending Tasks */}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "5fr 7fr" }, gap: 3 }}>
         {/* Task Progress */}
-        <Card sx={{ height: "100%" }}>
+        <Card
+          sx={{
+            height: "100%",
+            border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+            boxShadow: "none",
+          }}
+        >
           <Box sx={{ px: 3, py: 2.5 }}>
-            <Typography variant="h6" fontWeight={600}>
+            <Typography variant="h6" sx={{ fontWeight: 400 }}>
               Progress Tugas
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
               Perbandingan tugas selesai & pending
             </Typography>
           </Box>
           <Divider />
           <Box sx={{ p: 3 }}>
-            {data?.overallStats && (data.overallStats.totalTasks > 0) ? (
+            {data?.overallStats && data.overallStats.totalTasks > 0 ? (
               <>
                 <Box sx={{ mb: 3 }}>
                   <BarChart
                     datasets={taskChartData.datasets}
-                    height={CHART_HEIGHT}
+                    height={200}
                     labels={taskChartData.labels}
                     legend={false}
                     stacked
@@ -249,17 +260,16 @@ const MechanicDashboard = ({ data, isLoading, refetch }) => {
                     <Box
                       key={idx}
                       sx={{
-                        p: 2.5,
+                        p: 2,
                         borderRadius: `${theme.shape.borderRadius}px`,
                         border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                        bgcolor: alpha(theme.palette.background.paper, 0.4),
                         textAlign: "center",
                       }}
                     >
-                      <Typography variant="h4" fontWeight={700}>
+                      <Typography variant="h4" sx={{ fontWeight: 400 }}>
                         {item.value}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
                         {item.label}
                       </Typography>
                     </Box>
@@ -268,112 +278,115 @@ const MechanicDashboard = ({ data, isLoading, refetch }) => {
               </>
             ) : (
               <Stack sx={{ alignItems: "center", justifyContent: "center", minHeight: 300, gap: 2 }}>
-                <Box
-                  sx={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: "50%",
-                    bgcolor: alpha(theme.palette.text.primary, 0.06),
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Wrench size={28} style={{ opacity: 0.3 }} />
-                </Box>
-                <Box sx={{ textAlign: "center" }}>
-                  <Typography variant="subtitle1" fontWeight={600}>
-                    Belum Ada Data
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Data tugas akan muncul di sini
-                  </Typography>
-                </Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
+                  Belum Ada Data
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  Data tugas akan muncul di sini
+                </Typography>
               </Stack>
             )}
           </Box>
         </Card>
 
-        {/* Pending Tasks */}
-        <Card sx={{ height: "100%" }}>
+        {/* Pending Tasks Table */}
+        <Card
+          sx={{
+            height: "100%",
+            border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+            boxShadow: "none",
+          }}
+        >
           <Box sx={{ px: 3, py: 2.5 }}>
-            <Typography variant="h6" fontWeight={600}>
+            <Typography variant="h6" sx={{ fontWeight: 400 }}>
               Tugas Menunggu
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
               {data?.pendingTasks?.length || 0} tugas perlu diselesaikan
             </Typography>
           </Box>
           <Divider />
-          <Box sx={{ p: 3, flex: 1, display: "flex", flexDirection: "column" }}>
-            {data?.pendingTasks?.length > 0 ? (
-              <Stack sx={{ gap: 2, flex: 1 }}>
-                {data.pendingTasks.map((task) => (
-                  <Stack
-                    key={task.assignmentId}
-                    direction="row"
-                    sx={{
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 2,
-                      p: 2,
-                      borderRadius: `${theme.shape.borderRadius}px`,
-                      border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                      bgcolor: alpha(theme.palette.background.paper, 0.4),
-                      transition: theme.transitions.create("background-color"),
-                      "&:hover": { bgcolor: alpha(theme.palette.text.primary, 0.03) },
-                    }}
-                  >
-                    <Stack sx={{ minWidth: 0 }}>
-                      <Typography variant="body2" fontWeight={500} noWrap>
-                        {task.serviceName}
+          {data?.pendingTasks?.length > 0 ? (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase" }}>
+                        Layanan
                       </Typography>
-                      <Stack direction="row" sx={{ gap: 1, alignItems: "center", mt: 0.5, flexWrap: "wrap" }}>
-                        <Typography variant="caption" color="text.secondary">
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase" }}>
+                        No. Order
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase" }}>
+                        Kendaraan
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase" }}>
+                        Status
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {data.pendingTasks.map((task, index) => (
+                    <TableRow
+                      key={task.assignmentId}
+                      hover
+                      sx={{
+                        "&:hover": { bgcolor: alpha(theme.palette.secondary.main, 0.04) },
+                        "& td": {
+                          borderBottom:
+                            index < data.pendingTasks.length - 1
+                              ? `1px solid ${alpha(theme.palette.divider, 0.5)}`
+                              : 0,
+                        },
+                      }}
+                    >
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                          {task.serviceName}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
                           {task.orderNumber}
                         </Typography>
-                        {task.plateNumber && (
-                          <Typography variant="caption" color="text.disabled">
-                            • {task.plateNumber}
-                          </Typography>
-                        )}
-                      </Stack>
-                    </Stack>
-                    <Chip
-                      label={normalizeEnumText(OrderStatus[task.status] || task.status)}
-                      color={statusColorMap[task.status] || "default"}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Stack>
-                ))}
-              </Stack>
-            ) : (
-              <Stack sx={{ alignItems: "center", justifyContent: "center", flex: 1, gap: 2 }}>
-                <Box
-                  sx={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: "50%",
-                    bgcolor: alpha(theme.palette.text.primary, 0.06),
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Wrench size={28} style={{ opacity: 0.3 }} />
-                </Box>
-                <Box sx={{ textAlign: "center" }}>
-                  <Typography variant="subtitle1" fontWeight={600}>
-                    Semua Tugas Selesai
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Tidak ada tugas yang menunggu
-                  </Typography>
-                </Box>
-              </Stack>
-            )}
-          </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                          {task.plateNumber || "—"}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          label={normalizeEnumText(OrderStatus[task.status] || task.status)}
+                          color={statusColorMap[task.status] || "default"}
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontWeight: 400 }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Stack sx={{ alignItems: "center", justifyContent: "center", flex: 1, py: 8, gap: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
+                Semua Tugas Selesai
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                Tidak ada tugas yang menunggu
+              </Typography>
+            </Stack>
+          )}
         </Card>
       </Box>
     </Stack>
@@ -381,7 +394,6 @@ const MechanicDashboard = ({ data, isLoading, refetch }) => {
 };
 
 MechanicDashboard.propTypes = {
-  /** Dashboard data */
   data: PropTypes.shape({
     overallStats: PropTypes.shape({
       completedTasks: PropTypes.number,
@@ -405,9 +417,7 @@ MechanicDashboard.propTypes = {
       pending: PropTypes.number,
     }),
   }),
-  /** Loading state */
   isLoading: PropTypes.bool,
-  /** Refetch data handler */
   refetch: PropTypes.func,
 };
 

@@ -5,18 +5,27 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { selectCartItems } from "@store/cart/cartSelector.js";
 import {
-  updateItemQuantity,
+  incrementQuantity,
+  decrementQuantity,
   removeItem,
   clearCart,
 } from "@store/cart/cartSlices.js";
 import { createOrder, calculateTotal } from "@api/orderApi.js";
-import { DEBOUNCE_DELAY, MIN_ITEM_QUANTITY } from "@shared/constant";
+import { showNotification } from "@store/notifications/notificationsSlice.js";
 
+/**
+ * Hook untuk Header Cart dengan race condition handling
+ * @param {boolean} open - Status drawer terbuka
+ * @param {Function} onClose - Callback tutup drawer
+ * @returns {Object} Cart state dan handlers
+ */
 export const useHeaderCart = (open, onClose) => {
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
   const items = useSelector(selectCartItems);
-  const calculateRequestIdRef = useRef(0);
+  const requestIdRef = useRef(0);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   const { control, handleSubmit, watch, setValue, reset } = useForm({
     defaultValues: { customer: null, vehicle: null },
@@ -37,61 +46,81 @@ export const useHeaderCart = (open, onClose) => {
     mutate: calculateTotalMutate,
     data: calculateTotalData,
     isPending: isCalculatePending,
-  } = useMutation({
-    mutationFn: calculateTotal,
-  });
+  } = useMutation({ mutationFn: calculateTotal });
 
   useEffect(() => {
     if (!calculatePayload.length) return;
-    const requestId = ++calculateRequestIdRef.current;
-    const timer = setTimeout(() => {
-      if (requestId === calculateRequestIdRef.current)
-        calculateTotalMutate(calculatePayload);
-    }, DEBOUNCE_DELAY);
-    return () => clearTimeout(timer);
+    const currentRequestId = ++requestIdRef.current;
+    calculateTotalMutate(calculatePayload, {
+      onSuccess: (data) => {
+        if (currentRequestId !== requestIdRef.current) return;
+      },
+    });
   }, [calculatePayload, calculateTotalMutate]);
 
   useEffect(() => {
-    if (!open) calculateRequestIdRef.current = 0;
-  }, [open]);
+    if (!open) {
+      requestIdRef.current = 0;
+      reset();
+    }
+  }, [open, reset]);
 
   const createOrderMutation = useMutation({
     mutationFn: createOrder,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["orders-active"] });
       dispatch(clearCart());
+      dispatch(
+        showNotification({
+          message: `Pesanan #${data?.orderNumber || "baru"} berhasil dibuat`,
+          type: "success",
+          title: "Berhasil",
+          variant: "snackbar",
+          autoHide: 3000,
+        })
+      );
       onClose();
       reset();
     },
-  });
-
-  const handleQuantityChange = useCallback(
-    (productId, quantity, increment) => {
+  
+    onError: (error) => {
       dispatch(
-        updateItemQuantity({
-          productId,
-          quantity: Math.max(MIN_ITEM_QUANTITY, quantity + increment),
+        showNotification({
+          message: error.message || "Gagal membuat pesanan",
+          type: "error",
+          title: "Error",
+          variant: "snackbar",
+          autoHide: 5000,
         })
       );
     },
+  });
+
+  const handleIncrement = useCallback(
+    (productId) => dispatch(incrementQuantity(productId)),
     [dispatch]
   );
-
+  const handleDecrement = useCallback(
+    (productId) => dispatch(decrementQuantity(productId)),
+    [dispatch]
+  );
   const handleRemoveItem = useCallback(
     (productId) => dispatch(removeItem(productId)),
     [dispatch]
   );
 
   const onSubmit = (data) => {
-    if (!items.length) return;
+    const currentItems = itemsRef.current;
+    if (!currentItems.length) return;
     createOrderMutation.mutate({
       ...(data.customer?.id && { customerId: data.customer.id }),
       ...(data.vehicle?.id && { vehicleId: data.vehicle.id }),
-      items: items.map(({ productId, quantity }) => ({ productId, quantity })),
+      items: currentItems.map(({ productId, quantity }) => ({
+        productId,
+        quantity,
+      })),
     });
   };
-
-  const calcData = calculateTotalData || {};
 
   return {
     control,
@@ -102,8 +131,9 @@ export const useHeaderCart = (open, onClose) => {
     items,
     isCalculatePending,
     isSubmitting: createOrderMutation.isPending,
-    calcData,
-    handleQuantityChange,
+    calcData: calculateTotalData || {},
+    handleIncrement,
+    handleDecrement,
     handleRemoveItem,
     onSubmit,
   };

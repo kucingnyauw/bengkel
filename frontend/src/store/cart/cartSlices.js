@@ -1,11 +1,50 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { MIN_ITEM_QUANTITY, MAX_ITEM_QUANTITY } from "@shared/constant";
+
+const CART_STORAGE_KEY = "workshop_cart";
+
+/**
+ * Load cart state from localStorage
+ */
+const loadCartFromStorage = () => {
+  try {
+    const stored = localStorage.getItem(CART_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return {
+        items: parsed.items || [],
+        customerId: parsed.customerId || null,
+        vehicleId: parsed.vehicleId || null,
+      };
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return {
+    items: [],
+    customerId: null,
+    vehicleId: null,
+  };
+};
+
+/**
+ * Save cart state to localStorage
+ */
+const saveCartToStorage = (state) => {
+  try {
+    const toSave = {
+      items: state.items,
+      customerId: state.customerId,
+      vehicleId: state.vehicleId,
+    };
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(toSave));
+  } catch {
+    // Ignore storage errors
+  }
+};
 
 /**
  * Helper untuk membuat objek item cart baru.
- * Memusatkan logika penentuan quantity & maxQuantity berdasarkan tipe produk.
- *
- * @param {Object} payload - Data item dari action.
- * @returns {Object} Objek item cart yang sudah dinormalisasi.
  */
 const createCartItem = (payload) => {
   const isService = payload.type === "SERVICE";
@@ -14,9 +53,7 @@ const createCartItem = (payload) => {
     productName: payload.productName,
     unitPrice: payload.unitPrice,
     type: payload.type,
-    quantity: isService
-      ? 1
-      : Math.min(payload.quantity || 1, payload.maxQuantity),
+    quantity: isService ? 1 : Math.min(payload.quantity || 1, payload.maxQuantity),
     maxQuantity: isService ? 1 : payload.maxQuantity,
     productStock: payload.productStock ?? 0,
     mechanicId: isService ? payload.mechanicId || null : null,
@@ -25,12 +62,7 @@ const createCartItem = (payload) => {
   };
 };
 
-const initialState = {
-  items: [],
-  customerId: null,
-  vehicleId: null,
-  isItemAdded: false,
-};
+const initialState = loadCartFromStorage();
 
 const cartSlice = createSlice({
   name: "cart",
@@ -46,22 +78,39 @@ const cartSlice = createSlice({
         const existingItem = state.items[existingIndex];
         if (existingItem.type === "SPAREPART") {
           const newQuantity = existingItem.quantity + newItem.quantity;
-          existingItem.quantity = Math.min(
-            newQuantity,
-            existingItem.maxQuantity
-          );
+          existingItem.quantity = Math.min(newQuantity, existingItem.maxQuantity);
         }
       } else {
         state.items.push(newItem);
       }
-      state.isItemAdded = true;
+      saveCartToStorage(state);
     },
 
     updateItemQuantity: (state, action) => {
       const { productId, quantity } = action.payload;
       const item = state.items.find((i) => i.productId === productId);
       if (item && item.type !== "SERVICE") {
-        item.quantity = Math.min(item.maxQuantity, Math.max(1, quantity || 1));
+        item.quantity = Math.min(
+          item.maxQuantity,
+          Math.max(MIN_ITEM_QUANTITY, Math.min(quantity || 1, MAX_ITEM_QUANTITY))
+        );
+        saveCartToStorage(state);
+      }
+    },
+
+    incrementQuantity: (state, action) => {
+      const item = state.items.find((i) => i.productId === action.payload);
+      if (item && item.type !== "SERVICE" && item.quantity < item.maxQuantity && item.quantity < MAX_ITEM_QUANTITY) {
+        item.quantity += 1;
+        saveCartToStorage(state);
+      }
+    },
+
+    decrementQuantity: (state, action) => {
+      const item = state.items.find((i) => i.productId === action.payload);
+      if (item && item.type !== "SERVICE" && item.quantity > MIN_ITEM_QUANTITY) {
+        item.quantity -= 1;
+        saveCartToStorage(state);
       }
     },
 
@@ -70,45 +119,51 @@ const cartSlice = createSlice({
       const item = state.items.find((i) => i.productId === productId);
       if (item && item.type === "SERVICE") {
         item.mechanicId = mechanicId || null;
+        saveCartToStorage(state);
       }
     },
 
     removeItem: (state, action) => {
-      state.items = state.items.filter(
-        (item) => item.productId !== action.payload
-      );
-    },
-
-    resetItemAdded: (state) => {
-      state.isItemAdded = false;
+      state.items = state.items.filter((item) => item.productId !== action.payload);
+      saveCartToStorage(state);
     },
 
     setCustomer: (state, action) => {
       state.customerId = action.payload;
+      saveCartToStorage(state);
     },
 
     setVehicle: (state, action) => {
       state.vehicleId = action.payload;
+      saveCartToStorage(state);
     },
 
     clearCustomer: (state) => {
       state.customerId = null;
+      saveCartToStorage(state);
     },
 
     clearVehicle: (state) => {
       state.vehicleId = null;
+      saveCartToStorage(state);
     },
 
-    clearCart: () => initialState,
+    clearCart: (state) => {
+      state.items = [];
+      state.customerId = null;
+      state.vehicleId = null;
+      saveCartToStorage(state);
+    },
   },
 });
 
 export const {
   addItem,
   updateItemQuantity,
+  incrementQuantity,
+  decrementQuantity,
   updateItemMechanic,
   removeItem,
-  resetItemAdded,
   setCustomer,
   setVehicle,
   clearCustomer,

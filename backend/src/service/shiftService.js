@@ -1,5 +1,8 @@
 import ShiftRepository from "#repository/shiftRepository.js";
 import SettingRepository from "#repository/settingRepository.js";
+import NotificationRepository from "#repository/notificationRepository.js";
+import UserRepository from "#repository/userRepository.js";
+import Currency from "#shared/utils/currency.js";
 import ApiError from "#shared/utils/error.js";
 import Storage from "#shared/utils/storage.js";
 import prisma from "#app/database.js";
@@ -13,12 +16,14 @@ class ShiftService {
   constructor() {
     this.shiftRepo = new ShiftRepository();
     this.settingRepo = new SettingRepository();
+    this.notifRepo = new NotificationRepository();
+    this.userRepo = new UserRepository();
   }
 
   /**
    * Mendapatkan nilai setting
-   * @param {string} key - Key setting
-   * @param {*} defaultValue - Nilai default
+   * @param {string} key
+   * @param {*} defaultValue
    * @returns {Promise<*>}
    * @private
    */
@@ -37,19 +42,67 @@ class ShiftService {
   }
 
   /**
+   * Mengirim notifikasi ke kasir
+   * @param {string} userId
+   * @param {string} title
+   * @param {string} message
+   * @param {string} [type="INFO"]
+   * @returns {Promise<void>}
+   * @private
+   */
+  async #sendNotification(userId, title, message, type = "INFO") {
+    if (!userId) return;
+    try {
+      await this.notifRepo.create({ title, message, type, userId });
+    } catch (err) {
+      logger.warn("Gagal mengirim notifikasi shift", {
+        userId,
+        error: err.message,
+      });
+    }
+  }
+
+  /**
+   * Mengirim notifikasi ke semua admin
+   * @param {string} title
+   * @param {string} message
+   * @param {string} [type="WARNING"]
+   * @returns {Promise<void>}
+   * @private
+   */
+  async #notifyAdmins(title, message, type = "WARNING") {
+    try {
+      const admins = await this.userRepo.findByRole("ADMIN");
+
+      const activeAdmins = admins.filter((a) => a.isActive);
+
+      if (activeAdmins.length > 0) {
+        await Promise.all(
+          activeAdmins.map((admin) =>
+            this.notifRepo.create({ title, message, type, userId: admin.id })
+          )
+        );
+      }
+    } catch (err) {
+      logger.warn("Gagal mengirim notifikasi ke admin", {
+        error: err.message,
+      });
+    }
+  }
+
+  /**
    * Membuka shift baru untuk kasir
-   * @param {string} cashierId - ID kasir
-   * @param {number} startingCash - Saldo awal kas
-   * @returns {Promise<Object>} Shift yang berhasil dibuka
-   * @throws {ApiError} 409 - Kasir sudah memiliki shift aktif
-   * @throws {ApiError} 400 - Saldo awal kurang dari minimal
+   * @param {string} cashierId
+   * @param {number} startingCash
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
    */
   async openShift(cashierId, startingCash) {
     const minStartingCash = await this.#getMinStartingCash();
 
     if (startingCash < minStartingCash) {
       throw ApiError.badRequest({
-        message: `Gagal membuka shift. Saldo awal minimal Rp ${minStartingCash.toLocaleString()}.`,
+        message: `Gagal membuka shift. Saldo awal minimal ${Currency.toIDR(minStartingCash)}.`,
       });
     }
 
@@ -63,6 +116,18 @@ class ShiftService {
 
     const shift = await this.shiftRepo.create({ cashierId, startingCash });
 
+    const cashier = await this.userRepo.findById(cashierId);
+
+    await this.#sendNotification(
+      cashierId,
+      "Shift Dibuka",
+      `Shift baru berhasil dibuka.\n\n` +
+      `Kasir: ${cashier?.fullName || "-"}\n` +
+      `Saldo Awal: ${Currency.toIDR(startingCash)}\n` +
+      `Waktu: ${new Date(shift.openedAt).toLocaleString("id-ID")}`,
+      "INFO"
+    );
+
     logger.info("Shift berhasil dibuka", {
       shiftId: shift.id,
       cashierId,
@@ -74,16 +139,11 @@ class ShiftService {
   }
 
   /**
-   * Menutup shift.
-   * Hanya blokir jika masih ada order DRAFT (belum dibayar).
-   * Order QUEUED/IN_PROGRESS (sudah bayar, sedang/tunggu pengerjaan) tidak menghalangi
-   * karena pengerjaan service bisa berlanjut di shift berikutnya.
-   *
-   * @param {string} shiftId - ID shift
-   * @param {number} endingCash - Jumlah kas aktual di akhir shift
-   * @returns {Promise<Object>} Shift yang sudah ditutup
-   * @throws {ApiError} 404 - Shift tidak ditemukan
-   * @throws {ApiError} 409 - Shift sudah ditutup atau masih ada order DRAFT
+   * Menutup shift
+   * @param {string} shiftId
+   * @param {number} endingCash
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
    */
   async closeShift(shiftId, endingCash) {
     const shift = await this.shiftRepo.findById(shiftId);
@@ -123,6 +183,37 @@ class ShiftService {
       discrepancy,
     });
 
+    const cashier = await this.userRepo.findById(shift.cashierId);
+    const duration = this.#formatShiftDuration(shift.openedAt, closedShift.closedAt);
+
+    await this.#sendNotification(
+      shift.cashierId,
+      "Shift Ditutup",
+      `Shift berhasil ditutup.\n\n` +
+      `Kasir: ${cashier?.fullName || "-"}\n` +
+      `Durasi: ${duration}\n` +
+      `Saldo Awal: ${Currency.toIDR(shift.startingCash)}\n` +
+      `Total Penjualan: ${Currency.toIDR(shift.cashSales)}\n` +
+      `Kas Masuk: ${Currency.toIDR(shift.cashIn)}\n` +
+      `Kas Keluar: ${Currency.toIDR(shift.cashOut)}\n` +
+      `Saldo Akhir: ${Currency.toIDR(endingCash)}\n` +
+      `Selisih: ${Currency.toIDR(discrepancy)}`,
+      discrepancy === 0 ? "SUCCESS" : "WARNING"
+    );
+
+    if (Math.abs(discrepancy) >= 50000) {
+      await this.#notifyAdmins(
+        "Selisih Shift Signifikan",
+        `Shift kasir ${cashier?.fullName || "-"} memiliki selisih besar.\n\n` +
+        `Shift ID: ${shiftId}\n` +
+        `Selisih: ${Currency.toIDR(discrepancy)}\n` +
+        `Saldo Awal: ${Currency.toIDR(shift.startingCash)}\n` +
+        `Saldo Akhir: ${Currency.toIDR(endingCash)}\n` +
+        `Expected: ${Currency.toIDR(expectedCash)}`,
+        "WARNING"
+      );
+    }
+
     logger.info("Shift berhasil ditutup", {
       shiftId,
       cashierId: shift.cashierId,
@@ -136,9 +227,26 @@ class ShiftService {
   }
 
   /**
+   * Format durasi shift
+   * @param {Date} openedAt
+   * @param {Date} closedAt
+   * @returns {string}
+   * @private
+   */
+  #formatShiftDuration(openedAt, closedAt) {
+    const diff = new Date(closedAt) - new Date(openedAt);
+    const hours = Math.floor(diff / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
+
+    if (hours > 0 && minutes > 0) return `${hours} jam ${minutes} menit`;
+    if (hours > 0) return `${hours} jam`;
+    return `${minutes} menit`;
+  }
+
+  /**
    * Mendapatkan shift aktif kasir
-   * @param {string} cashierId - ID kasir
-   * @returns {Promise<Object|null>} Shift aktif atau null
+   * @param {string} cashierId
+   * @returns {Promise<Object|null>}
    */
   async getActiveShift(cashierId) {
     const shift = await this.shiftRepo.findActiveByCashier(cashierId);
@@ -156,9 +264,9 @@ class ShiftService {
 
   /**
    * Mendapatkan shift berdasarkan ID
-   * @param {string} shiftId - ID shift
-   * @returns {Promise<Object>} Detail shift
-   * @throws {ApiError} 404 - Shift tidak ditemukan
+   * @param {string} shiftId
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
    */
   async getShiftById(shiftId) {
     const shift = await this.shiftRepo.findById(shiftId);
@@ -180,14 +288,8 @@ class ShiftService {
 
   /**
    * Mendapatkan daftar shift dengan filter dan paginasi
-   * @param {Object} [query={}] - Parameter query
-   * @param {number} [query.page]
-   * @param {number} [query.limit]
-   * @param {string} [query.status]
-   * @param {string} [query.cashierId]
-   * @param {string|Date} [query.startDate]
-   * @param {string|Date} [query.endDate]
-   * @returns {Promise<{data: Array, metadata: Object}>} Daftar shift
+   * @param {Object} [query={}]
+   * @returns {Promise<{data: Array, metadata: Object}>}
    */
   async getShifts(query = {}) {
     const result = await this.shiftRepo.findMany(query);
@@ -203,10 +305,10 @@ class ShiftService {
 
   /**
    * Mencatat penjualan tunai ke dalam shift
-   * @param {string} shiftId - ID shift
-   * @param {number} amount - Jumlah penjualan
-   * @returns {Promise<Object>} Shift yang sudah diupdate
-   * @throws {ApiError} 404 | 409
+   * @param {string} shiftId
+   * @param {number} amount
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
    */
   async recordCashSale(shiftId, amount) {
     const shift = await this.shiftRepo.findById(shiftId);
@@ -233,9 +335,9 @@ class ShiftService {
 
   /**
    * Mendapatkan daftar shift berdasarkan ID kasir
-   * @param {string} cashierId - ID kasir
-   * @param {Object} [query={}] - Parameter query tambahan
-   * @returns {Promise<{data: Array, metadata: Object}>} Daftar shift kasir
+   * @param {string} cashierId
+   * @param {Object} [query={}]
+   * @returns {Promise<{data: Array, metadata: Object}>}
    */
   async getShiftListByCashierId(cashierId, query = {}) {
     const result = await this.shiftRepo.findMany({ ...query, cashierId });
@@ -251,11 +353,11 @@ class ShiftService {
 
   /**
    * Mencatat kas masuk ke dalam shift
-   * @param {string} shiftId - ID shift
-   * @param {number} amount - Jumlah kas masuk
-   * @param {string} [note] - Catatan
-   * @returns {Promise<Object>} Shift yang sudah diupdate
-   * @throws {ApiError} 404 | 409
+   * @param {string} shiftId
+   * @param {number} amount
+   * @param {string} [note]
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
    */
   async recordCashIn(shiftId, amount, note) {
     const shift = await this.shiftRepo.findById(shiftId);
@@ -272,6 +374,16 @@ class ShiftService {
       cashIn: amount,
     });
 
+    await this.#sendNotification(
+      shift.cashierId,
+      "Kas Masuk Dicatat",
+      `Kas masuk berhasil dicatat.\n\n` +
+      `Jumlah: ${Currency.toIDR(amount)}\n` +
+      `Total Kas Masuk: ${Currency.toIDR(updatedShift.cashIn)}` +
+      (note ? `\nCatatan: ${note}` : ""),
+      "INFO"
+    );
+
     logger.info("Kas masuk dicatat", {
       shiftId,
       amount,
@@ -283,11 +395,11 @@ class ShiftService {
 
   /**
    * Mencatat kas keluar ke dalam shift
-   * @param {string} shiftId - ID shift
-   * @param {number} amount - Jumlah kas keluar
-   * @param {string} [note] - Catatan
-   * @returns {Promise<Object>} Shift yang sudah diupdate
-   * @throws {ApiError} 404 | 409
+   * @param {string} shiftId
+   * @param {number} amount
+   * @param {string} [note]
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
    */
   async recordCashOut(shiftId, amount, note) {
     const shift = await this.shiftRepo.findById(shiftId);
@@ -304,6 +416,16 @@ class ShiftService {
       cashOut: amount,
     });
 
+    await this.#sendNotification(
+      shift.cashierId,
+      "Kas Keluar Dicatat",
+      `Kas keluar berhasil dicatat.\n\n` +
+      `Jumlah: ${Currency.toIDR(amount)}\n` +
+      `Total Kas Keluar: ${Currency.toIDR(updatedShift.cashOut)}` +
+      (note ? `\nCatatan: ${note}` : ""),
+      "INFO"
+    );
+
     logger.info("Kas keluar dicatat", {
       shiftId,
       amount,
@@ -315,10 +437,10 @@ class ShiftService {
 
   /**
    * Validasi shift untuk pembuatan order
-   * @param {string} shiftId - ID shift
-   * @param {string} cashierId - ID kasir
-   * @returns {Promise<Object>} Shift yang valid
-   * @throws {ApiError} 404 | 409 | 403
+   * @param {string} shiftId
+   * @param {string} cashierId
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
    */
   async validateShiftForOrder(shiftId, cashierId) {
     const shift = await this.shiftRepo.findById(shiftId);
@@ -341,17 +463,17 @@ class ShiftService {
 
   /**
    * Mengecek apakah kasir memiliki shift aktif
-   * @param {string} cashierId - ID kasir
-   * @returns {Promise<boolean>} Status shift aktif
+   * @param {string} cashierId
+   * @returns {Promise<boolean>}
    */
   async hasActiveShift(cashierId) {
     return this.shiftRepo.hasActiveShift(cashierId);
   }
 
   /**
-   * Mendapatkan saran starting cash berdasarkan settings atau shift sebelumnya
-   * @param {string} cashierId - ID kasir
-   * @returns {Promise<Object>} Saran starting cash
+   * Mendapatkan saran starting cash
+   * @param {string} cashierId
+   * @returns {Promise<Object>}
    */
   async getStartingCashSuggestion(cashierId) {
     const minStartingCash = await this.#getMinStartingCash();
@@ -361,7 +483,7 @@ class ShiftService {
       return {
         suggestedStartingCash: minStartingCash,
         source: "settings",
-        message: `Tidak ada shift sebelumnya. Menggunakan default dari pengaturan: Rp ${minStartingCash.toLocaleString()}`,
+        message: `Tidak ada shift sebelumnya. Menggunakan default dari pengaturan: ${Currency.toIDR(minStartingCash)}`,
         lastShift: null,
       };
     }
@@ -381,10 +503,10 @@ class ShiftService {
   }
 
   /**
-   * Menghitung expected cash shift berdasarkan data aktual sistem
-   * @param {string} shiftId - ID shift
-   * @returns {Promise<Object>} Detail kalkulasi expected cash
-   * @throws {ApiError} 404 - Shift tidak ditemukan
+   * Menghitung expected cash shift
+   * @param {string} shiftId
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
    */
   async getExpectedCash(shiftId) {
     const result = await this.shiftRepo.calculateExpectedCash(shiftId);

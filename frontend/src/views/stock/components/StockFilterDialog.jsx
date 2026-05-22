@@ -17,7 +17,7 @@
  *
  * @returns {JSX.Element} Dialog filter mutasi stok
  */
-import { X } from "lucide-react";
+import { Calendar, X } from "lucide-react";
 
 import {
   Box,
@@ -34,7 +34,9 @@ import {
   Select,
   Stack,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 
 import { StockMovementType, StockSourceType } from "@shared/constant";
@@ -50,55 +52,77 @@ const StockFilterDialog = ({
   onApply,
   onReset,
 }) => {
+  const theme = useTheme();
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="xs"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 400,
         }}
       >
         Filter Mutasi Stok
         <IconButton onClick={onClose} size="small">
-          <X size={20} />
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
       <Divider />
 
       <DialogContent>
-        <Stack spacing={2.5}>
-          <FormControl>
-            <InputLabel>Tipe</InputLabel>
+        <Stack sx={{ gap: 2.5 }}>
+          <FormControl fullWidth>
+            <InputLabel sx={{ fontWeight: 400 }}>Tipe</InputLabel>
             <Select
-              value={tempFilters.type}
+              value={tempFilters.type || ""}
               label="Tipe"
               onChange={(e) =>
                 onFilterChange({ ...tempFilters, type: e.target.value })
               }
+              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="">Semua</MenuItem>
+              <MenuItem value="" sx={{ fontWeight: 400 }}>
+                Semua
+              </MenuItem>
               {Object.entries(StockMovementType).map(([key, value]) => (
-                <MenuItem key={key} value={value}>
+                <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
                   {normalizeEnumText(value)}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
-          <FormControl>
-            <InputLabel>Sumber</InputLabel>
+          <FormControl fullWidth>
+            <InputLabel sx={{ fontWeight: 400 }}>Sumber</InputLabel>
             <Select
-              value={tempFilters.sourceType}
+              value={tempFilters.sourceType || ""}
               label="Sumber"
               onChange={(e) =>
                 onFilterChange({ ...tempFilters, sourceType: e.target.value })
               }
+              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="">Semua</MenuItem>
+              <MenuItem value="" sx={{ fontWeight: 400 }}>
+                Semua
+              </MenuItem>
               {Object.entries(StockSourceType).map(([key, value]) => (
-                <MenuItem key={key} value={value}>
+                <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
                   {normalizeEnumText(value)}
                 </MenuItem>
               ))}
@@ -131,10 +155,10 @@ const StockFilterDialog = ({
               return (
                 <Box key={key} component="li" {...rest}>
                   <Box>
-                    <Typography variant="body2" fontWeight={500}>
+                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
                       {option.name}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
                       SKU: {option.sku || "—"} • Stok: {option.stock ?? 0}
                     </Typography>
                   </Box>
@@ -149,7 +173,15 @@ const StockFilterDialog = ({
             onChange={(val) =>
               onFilterChange({ ...tempFilters, startDate: val })
             }
-            slotProps={{ textField: { fullWidth: true } }}
+            slots={{
+              openPickerIcon: () => <Calendar size={16} strokeWidth={1.5} />,
+            }}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                sx: { fontWeight: 400 },
+              },
+            }}
           />
 
           <DatePicker
@@ -158,7 +190,15 @@ const StockFilterDialog = ({
             onChange={(val) =>
               onFilterChange({ ...tempFilters, endDate: val })
             }
-            slotProps={{ textField: { fullWidth: true } }}
+            slots={{
+              openPickerIcon: () => <Calendar size={16} strokeWidth={1.5} />,
+            }}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                sx: { fontWeight: 400 },
+              },
+            }}
           />
         </Stack>
       </DialogContent>
@@ -170,14 +210,33 @@ const StockFilterDialog = ({
           justifyContent: "space-between",
         }}
       >
-        <Button color="inherit" variant="outlined" onClick={onReset}>
+        <Button
+          color="inherit"
+          variant="outlined"
+          onClick={onReset}
+          sx={{ fontWeight: 400 }}
+        >
           Reset
         </Button>
-        <Stack direction="row" spacing={1}>
-          <Button color="inherit" variant="outlined" onClick={onClose}>
+        <Stack direction="row" sx={{ gap: 1.5 }}>
+          <Button
+            color="inherit"
+            variant="outlined"
+            onClick={onClose}
+            sx={{ fontWeight: 400 }}
+          >
             Batal
           </Button>
-          <Button variant="contained" onClick={onApply}>
+          <Button
+            variant="contained"
+            onClick={onApply}
+            sx={{
+              fontWeight: 400,
+              "&:hover": {
+                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+              },
+            }}
+          >
             Terapkan
           </Button>
         </Stack>

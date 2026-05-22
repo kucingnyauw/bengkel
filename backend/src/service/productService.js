@@ -3,7 +3,6 @@ import FileRepository from "#repository/fileRepository.js";
 import CodeGenerator from "#shared/utils/code.js";
 import ApiError from "#shared/utils/error.js";
 import Storage from "#shared/utils/storage.js";
-import CacheManager from "#shared/utils/cache.js";
 import prisma from "#app/database.js";
 import logger from "#app/logger.js";
 
@@ -15,13 +14,12 @@ class ProductService {
   constructor() {
     this.productRepo = new ProductRepository();
     this.fileRepo = new FileRepository();
-    this.productListCache = new CacheManager("product:list");
   }
 
   /**
    * Generate SKU unik berdasarkan tipe produk
-   * @param {string} type - Tipe produk
-   * @returns {Promise<string>} SKU yang unik
+   * @param {string} type
+   * @returns {Promise<string>}
    * @private
    */
   async #generateSku(type) {
@@ -47,9 +45,9 @@ class ProductService {
 
   /**
    * Upload file gambar produk
-   * @param {Object} file - File dari middleware
-   * @param {string} userId - ID user
-   * @returns {Promise<Object>} File record
+   * @param {Object} file
+   * @param {string} userId
+   * @returns {Promise<Object>}
    * @private
    */
   async #uploadImage(file, userId) {
@@ -67,8 +65,8 @@ class ProductService {
 
   /**
    * Menghapus file gambar lama
-   * @param {string} fileId - ID file
-   * @param {string} productId - ID produk (untuk log)
+   * @param {string} fileId
+   * @param {string} productId
    * @returns {Promise<void>}
    * @private
    */
@@ -89,23 +87,38 @@ class ProductService {
   }
 
   /**
-   * Invalidasi semua cache list produk
-   * @returns {Promise<void>}
+   * Generate signed URL untuk gambar produk
+   * @param {Object} product
+   * @returns {Promise<Object>}
    * @private
    */
-  async #invalidateListCache() {
-    await this.productListCache.invalidateAll();
+  async #addSignedUrl(product) {
+    if (product?.image?.path) {
+      product.image.url = await Storage.getSignedUrl(product.image.path);
+    }
+    return product;
+  }
+
+  /**
+   * Generate signed URL untuk multiple produk
+   * @param {Array} products
+   * @returns {Promise<Array>}
+   * @private
+   */
+  async #addSignedUrlsToProducts(products) {
+    if (!products?.length) return products;
+    await Promise.all(products.map((p) => this.#addSignedUrl(p)));
+    return products;
   }
 
   /**
    * Membuat produk baru
-   * @param {Object} payload - Data produk
-   * @param {Object} [productFile] - File gambar
-   * @param {string} userId - ID user
-   * @returns {Promise<Object>} Produk yang berhasil dibuat
+   * @param {Object} payload
+   * @param {Object} [productFile]
+   * @param {string} userId
+   * @returns {Promise<Object>}
    */
   async createProduct(payload, productFile, userId) {
-    throw ApiError.badRequest({message : "test aja ngab"})
     const type = payload.type || "SPAREPART";
     const sku = await this.#generateSku(type);
 
@@ -156,8 +169,6 @@ class ProductService {
       return newProduct;
     });
 
-    await this.#invalidateListCache();
-
     logger.info("Produk berhasil dibuat", {
       productId: product.id,
       name: product.name,
@@ -171,9 +182,9 @@ class ProductService {
 
   /**
    * Mendapatkan produk berdasarkan ID
-   * @param {string} productId - ID produk
-   * @returns {Promise<Object>} Data produk
-   * @throws {ApiError} 404 - Produk tidak ditemukan
+   * @param {string} productId
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
    */
   async getProductById(productId) {
     const product = await this.productRepo.findById(productId);
@@ -183,19 +194,14 @@ class ProductService {
       });
     }
 
-    if (product.image && product.image.path) {
-      const signedUrl = await Storage.getSignedUrl(product.image.path);
-      product.image.url = signedUrl;
-    }
-
-    return product;
+    return this.#addSignedUrl(product);
   }
 
   /**
    * Mendapatkan produk berdasarkan SKU
-   * @param {string} sku - Kode SKU
-   * @returns {Promise<Object>} Data produk
-   * @throws {ApiError} 404 - Produk tidak ditemukan
+   * @param {string} sku
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
    */
   async getProductBySku(sku) {
     const product = await this.productRepo.findBySku(sku);
@@ -205,90 +211,47 @@ class ProductService {
       });
     }
 
-    if (product.image && product.image.path) {
-      const signedUrl = await Storage.getSignedUrl(product.image.path);
-      product.image.url = signedUrl;
-    }
-
-    return product;
+    return this.#addSignedUrl(product);
   }
 
   /**
-   * Mendapatkan daftar produk dengan cache
-   * @param {Object} [query={}] - Parameter query
-   * @returns {Promise<{data: Array, metadata: Object}>} Daftar produk
+   * Mendapatkan daftar produk
+   * @param {Object} [query={}]
+   * @returns {Promise<{data: Array, metadata: Object}>}
    */
   async getProducts(query = {}) {
-    const cacheKey = `products:${JSON.stringify(query)}`;
-
-    const cached = await this.productListCache.get(cacheKey);
-    if (cached) return cached;
-
     const result = await this.productRepo.findMany(query);
-
-    for (const product of result.data) {
-      if (product.image && product.image.path) {
-        const signedUrl = await Storage.getSignedUrl(product.image.path);
-        product.image.url = signedUrl;
-      }
-    }
-
-    await this.productListCache.set(cacheKey, result, 300);
-
+    result.data = await this.#addSignedUrlsToProducts(result.data);
     return result;
   }
 
   /**
-   * Mendapatkan daftar produk service dengan cache
-   * @param {Object} [query={}] - Parameter query
-   * @returns {Promise<Array>} Daftar service
+   * Mendapatkan daftar produk service
+   * @param {Object} [query={}]
+   * @returns {Promise<Array>}
    */
   async getServices(query = {}) {
-    const cacheKey = `services:${JSON.stringify(query)}`;
-
-    const cached = await this.productListCache.get(cacheKey);
-    if (cached) return cached;
-
-    const services = await this.productRepo.findServices(query);
-
-    await this.productListCache.set(cacheKey, services, 300);
-
-    return services;
+    return this.productRepo.findServices(query);
   }
 
   /**
-   * Mendapatkan daftar produk sparepart dengan cache
-   * @param {Object} [query={}] - Parameter query
-   * @returns {Promise<Array>} Daftar sparepart
+   * Mendapatkan daftar produk sparepart
+   * @param {Object} [query={}]
+   * @returns {Promise<Array>}
    */
   async getSpareparts(query = {}) {
-    const cacheKey = `spareparts:${JSON.stringify(query)}`;
-
-    const cached = await this.productListCache.get(cacheKey);
-    if (cached) return cached;
-
     const spareparts = await this.productRepo.findSpareparts(query);
-
-    for (const sparepart of spareparts) {
-      if (sparepart.image && sparepart.image.path) {
-        const signedUrl = await Storage.getSignedUrl(sparepart.image.path);
-        sparepart.image.url = signedUrl;
-      }
-    }
-
-    await this.productListCache.set(cacheKey, spareparts, 300);
-
-    return spareparts;
+    return this.#addSignedUrlsToProducts(spareparts);
   }
 
   /**
    * Memperbarui produk
-   * @param {string} productId - ID produk
-   * @param {Object} payload - Data yang akan diupdate
-   * @param {Object} [productFile] - File gambar baru
-   * @param {string} userId - ID user
-   * @returns {Promise<Object>} Produk yang sudah diupdate
-   * @throws {ApiError} 404 - Produk tidak ditemukan
+   * @param {string} productId
+   * @param {Object} payload
+   * @param {Object} [productFile]
+   * @param {string} userId
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
    */
   async updateProduct(productId, payload, productFile, userId) {
     const existing = await this.productRepo.findById(productId);
@@ -364,8 +327,6 @@ class ProductService {
       return product;
     });
 
-    await this.#invalidateListCache();
-
     logger.info("Produk berhasil diperbarui", {
       productId,
       previousName: existing.name,
@@ -378,9 +339,9 @@ class ProductService {
 
   /**
    * Toggle status aktif produk (ON/OFF)
-   * @param {string} productId - ID produk
-   * @returns {Promise<Object>} Produk dengan status terbaru
-   * @throws {ApiError} 404 - Produk tidak ditemukan
+   * @param {string} productId
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
    */
   async toggleProductStatus(productId) {
     const existing = await this.productRepo.findById(productId);
@@ -392,8 +353,6 @@ class ProductService {
 
     const newStatus = !existing.isActive;
     const updated = await this.productRepo.updateStatus(productId, newStatus);
-
-    await this.#invalidateListCache();
 
     logger.info("Status produk berhasil diubah", {
       productId,
@@ -407,8 +366,8 @@ class ProductService {
 
   /**
    * Mendapatkan produk dengan stok rendah
-   * @param {number} [threshold=5] - Batas threshold
-   * @returns {Promise<Array>} Daftar produk stok rendah
+   * @param {number} [threshold=5]
+   * @returns {Promise<Array>}
    */
   async getLowStockProducts(threshold = 5) {
     return this.productRepo.getLowStockProducts(threshold);
@@ -416,9 +375,9 @@ class ProductService {
 
   /**
    * Mengecek ketersediaan SKU
-   * @param {string} sku - SKU yang dicek
-   * @param {string} [excludeId] - ID produk yang dikecualikan
-   * @returns {Promise<{available: boolean, message: string}>} Status ketersediaan
+   * @param {string} sku
+   * @param {string} [excludeId]
+   * @returns {Promise<{available: boolean, message: string}>}
    */
   async checkSkuAvailability(sku, excludeId = null) {
     const exists = await this.productRepo.isSkuExists(sku, excludeId);

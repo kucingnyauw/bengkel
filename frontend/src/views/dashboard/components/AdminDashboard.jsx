@@ -29,8 +29,6 @@ import { Clock, DollarSign, RotateCcw, ShoppingCart, TrendingUp } from "lucide-r
 import { formatDate, formatToIdr } from "@shared/utils";
 import { BarChart, SummaryCard } from "@components";
 
-const CHART_HEIGHT = 320;
-
 const AdminDashboard = ({ data, isLoading, refetch }) => {
   const theme = useTheme();
 
@@ -41,7 +39,7 @@ const AdminDashboard = ({ data, isLoading, refetch }) => {
       datasets: [
         {
           backgroundColor: data.inventory.lowStockProducts.map((_, i) =>
-            alpha(theme.palette.text.primary, 0.9 - i * 0.15)
+            alpha(theme.palette.secondary.main, 0.85 - i * 0.12)
           ),
           data: data.inventory.lowStockProducts.map((p) => p.stock),
           label: "Sisa Stok",
@@ -85,7 +83,7 @@ const AdminDashboard = ({ data, isLoading, refetch }) => {
         <Card sx={{ p: 3 }}>
           <Skeleton width={240} height={28} />
           <Skeleton width={320} height={16} sx={{ mt: 1 }} />
-          <Skeleton variant="rounded" width="100%" height={CHART_HEIGHT} sx={{ mt: 3 }} />
+          <Skeleton variant="rounded" width="100%" height={320} sx={{ mt: 3 }} />
         </Card>
       </Stack>
     );
@@ -98,24 +96,24 @@ const AdminDashboard = ({ data, isLoading, refetch }) => {
         <Box
           sx={{
             position: "absolute",
-            right: theme.spacing(-6),
-            top: theme.spacing(-6),
-            width: theme.spacing(20),
-            height: theme.spacing(20),
+            right: -24,
+            top: -24,
+            width: 80,
+            height: 80,
             borderRadius: "50%",
-            backgroundColor: alpha(theme.palette.text.primary, 0.03),
+            backgroundColor: alpha(theme.palette.secondary.main, 0.04),
             zIndex: 0,
           }}
         />
         <Box
           sx={{
             position: "absolute",
-            right: theme.spacing(-3),
-            bottom: theme.spacing(-3),
-            width: theme.spacing(14),
-            height: theme.spacing(14),
+            right: -12,
+            bottom: -12,
+            width: 56,
+            height: 56,
             borderRadius: "50%",
-            backgroundColor: alpha(theme.palette.text.primary, 0.04),
+            backgroundColor: alpha(theme.palette.secondary.main, 0.06),
             zIndex: 0,
           }}
         />
@@ -131,10 +129,10 @@ const AdminDashboard = ({ data, isLoading, refetch }) => {
           }}
         >
           <Box>
-            <Typography variant="h5" fontWeight={700}>
+            <Typography variant="h5" sx={{ fontWeight: 400 }}>
               Dashboard Utama
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
               Ringkasan performa bengkel hari ini
             </Typography>
           </Box>
@@ -142,14 +140,13 @@ const AdminDashboard = ({ data, isLoading, refetch }) => {
             <Chip
               label={formatDate(new Date(), { dateStyle: "full" })}
               variant="outlined"
-              size="small"
+              size="medium"
               sx={{
                 borderColor: alpha(theme.palette.divider, 0.8),
                 bgcolor: alpha(theme.palette.background.paper, 0.5),
-                px: 0.5,
-                py: 0.5,
-                height: 28,
-                "& .MuiChip-label": { px: 1, fontSize: "0.75rem" },
+                height: 32,
+                fontWeight: 400,
+                "& .MuiChip-label": { px: 1.5, fontSize: "0.8125rem" },
               }}
             />
             <Tooltip title="Refresh data">
@@ -158,17 +155,21 @@ const AdminDashboard = ({ data, isLoading, refetch }) => {
                 sx={{
                   border: "1px solid",
                   borderColor: alpha(theme.palette.divider, 0.8),
+                  borderRadius: `${theme.shape.borderRadius}px`,
                   color: theme.palette.text.secondary,
                   bgcolor: alpha(theme.palette.background.paper, 0.6),
-                  backdropFilter: "blur(4px)",
+                  transition: theme.transitions.create(
+                    ["background-color", "border-color", "color"],
+                    { duration: theme.transitions.duration.shorter }
+                  ),
                   "&:hover": {
-                    bgcolor: alpha(theme.palette.text.primary, 0.06),
-                    borderColor: theme.palette.text.primary,
-                    color: theme.palette.text.primary,
+                    bgcolor: alpha(theme.palette.secondary.main, 0.06),
+                    borderColor: alpha(theme.palette.secondary.main, 0.4),
+                    color: theme.palette.secondary.main,
                   },
                 }}
               >
-                <RotateCcw size={18} />
+                <RotateCcw size={18} strokeWidth={1.5} />
               </IconButton>
             </Tooltip>
           </Stack>
@@ -184,28 +185,28 @@ const AdminDashboard = ({ data, isLoading, refetch }) => {
         }}
       >
         <SummaryCard
-          color="primary"
+          color="secondary"
           icon={ShoppingCart}
           subtitle={`Rata-rata ${formatToIdr(data?.today?.averageOrderValue || 0)}`}
           title="Pesanan Hari Ini"
           value={data?.today?.orders || 0}
         />
         <SummaryCard
-          color="primary"
+          color="secondary"
           icon={DollarSign}
           subtitle="Total pemasukan kas"
           title="Pendapatan Hari Ini"
           value={formatToIdr(data?.today?.revenue || 0)}
         />
         <SummaryCard
-          color="primary"
+          color="secondary"
           icon={TrendingUp}
           subtitle={`Dari ${data?.thisMonth?.orders || 0} pesanan`}
           title="Pendapatan Bulan Ini"
           value={formatToIdr(data?.thisMonth?.revenue || 0)}
         />
         <SummaryCard
-          color="primary"
+          color="secondary"
           icon={Clock}
           subtitle="Menunggu antrean"
           title="Pesanan Tertunda"
@@ -214,12 +215,17 @@ const AdminDashboard = ({ data, isLoading, refetch }) => {
       </Box>
 
       {/* Low Stock Chart */}
-      <Card>
+      <Card
+        sx={{
+          border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+          boxShadow: "none",
+        }}
+      >
         <Box sx={{ px: 3, py: 2.5 }}>
-          <Typography variant="h6" fontWeight={600}>
+          <Typography variant="h6" sx={{ fontWeight: 400 }}>
             Peringatan Stok Menipis
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
             {data?.inventory?.lowStockCount || 0} item membutuhkan restock segera
           </Typography>
         </Box>
@@ -228,7 +234,7 @@ const AdminDashboard = ({ data, isLoading, refetch }) => {
           {lowStockData.labels.length > 0 ? (
             <BarChart
               datasets={lowStockData.datasets}
-              height={CHART_HEIGHT}
+              height={320}
               labels={lowStockData.labels}
               legend={false}
             />
@@ -237,31 +243,16 @@ const AdminDashboard = ({ data, isLoading, refetch }) => {
               sx={{
                 alignItems: "center",
                 justifyContent: "center",
-                height: CHART_HEIGHT,
+                height: 320,
                 gap: 2,
               }}
             >
-              <Box
-                sx={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: "50%",
-                  bgcolor: alpha(theme.palette.text.primary, 0.06),
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <ShoppingCart size={28} style={{ opacity: 0.3 }} />
-              </Box>
-              <Box sx={{ textAlign: "center" }}>
-                <Typography variant="subtitle1" fontWeight={600}>
-                  Semua Stok Terkendali
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  Tidak ada produk dalam status kritis
-                </Typography>
-              </Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
+                Semua Stok Terkendali
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                Tidak ada produk dalam status kritis
+              </Typography>
             </Stack>
           )}
         </Box>
@@ -271,7 +262,6 @@ const AdminDashboard = ({ data, isLoading, refetch }) => {
 };
 
 AdminDashboard.propTypes = {
-  /** Dashboard data */
   data: PropTypes.shape({
     activeShift: PropTypes.shape({
       cashier: PropTypes.string,
@@ -307,9 +297,7 @@ AdminDashboard.propTypes = {
       revenue: PropTypes.number,
     }),
   }),
-  /** Loading state */
   isLoading: PropTypes.bool,
-  /** Refetch data handler */
   refetch: PropTypes.func,
 };
 

@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('SUPERADMIN', 'ADMIN', 'CASHIER', 'MECHANIC');
+CREATE TYPE "Role" AS ENUM ('ADMIN', 'CASHIER', 'MECHANIC');
 
 -- CreateEnum
 CREATE TYPE "ProductType" AS ENUM ('SPAREPART', 'SERVICE');
@@ -259,7 +259,7 @@ CREATE TABLE "OrderStatusHistory" (
 );
 
 -- CreateIndex
-CREATE INDEX "Notification_userId_idx" ON "Notification"("userId");
+CREATE INDEX "Notification_userId_isRead_idx" ON "Notification"("userId", "isRead");
 
 -- CreateIndex
 CREATE INDEX "Notification_isRead_idx" ON "Notification"("isRead");
@@ -277,34 +277,136 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
 
 -- CreateIndex
+CREATE INDEX "User_role_isActive_idx" ON "User"("role", "isActive");
+
+-- CreateIndex
+CREATE INDEX "User_role_fullName_idx" ON "User"("role", "fullName");
+
+-- CreateIndex
+CREATE INDEX "User_email_idx" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "User_phone_idx" ON "User"("phone");
+
+-- CreateIndex
+CREATE INDEX "Customer_name_idx" ON "Customer"("name");
+
+-- CreateIndex
+CREATE INDEX "Customer_phone_idx" ON "Customer"("phone");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Vehicle_plateNumber_key" ON "Vehicle"("plateNumber");
+
+-- CreateIndex
+CREATE INDEX "Vehicle_customerId_idx" ON "Vehicle"("customerId");
+
+-- CreateIndex
+CREATE INDEX "Vehicle_plateNumber_idx" ON "Vehicle"("plateNumber");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Product_sku_key" ON "Product"("sku");
 
 -- CreateIndex
+CREATE INDEX "Product_type_isActive_idx" ON "Product"("type", "isActive");
+
+-- CreateIndex
+CREATE INDEX "Product_name_idx" ON "Product"("name");
+
+-- CreateIndex
+CREATE INDEX "Product_sku_idx" ON "Product"("sku");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Order_orderNumber_key" ON "Order"("orderNumber");
 
 -- CreateIndex
-CREATE INDEX "Order_status_idx" ON "Order"("status");
+CREATE INDEX "Order_status_deletedAt_idx" ON "Order"("status", "deletedAt");
+
+-- CreateIndex
+CREATE INDEX "Order_cashierId_status_deletedAt_idx" ON "Order"("cashierId", "status", "deletedAt");
+
+-- CreateIndex
+CREATE INDEX "Order_createdAt_deletedAt_idx" ON "Order"("createdAt", "deletedAt");
+
+-- CreateIndex
+CREATE INDEX "Order_orderNumber_idx" ON "Order"("orderNumber");
+
+-- CreateIndex
+CREATE INDEX "Order_shiftId_idx" ON "Order"("shiftId");
+
+-- CreateIndex
+CREATE INDEX "Order_customerId_idx" ON "Order"("customerId");
+
+-- CreateIndex
+CREATE INDEX "Order_vehicleId_idx" ON "Order"("vehicleId");
 
 -- CreateIndex
 CREATE INDEX "OrderItem_orderId_idx" ON "OrderItem"("orderId");
 
 -- CreateIndex
-CREATE INDEX "MechanicAssignment_mechanicId_idx" ON "MechanicAssignment"("mechanicId");
+CREATE INDEX "OrderItem_productId_idx" ON "OrderItem"("productId");
+
+-- CreateIndex
+CREATE INDEX "OrderItem_orderId_productId_idx" ON "OrderItem"("orderId", "productId");
+
+-- CreateIndex
+CREATE INDEX "MechanicAssignment_mechanicId_endAt_idx" ON "MechanicAssignment"("mechanicId", "endAt");
+
+-- CreateIndex
+CREATE INDEX "MechanicAssignment_orderItemId_idx" ON "MechanicAssignment"("orderItemId");
+
+-- CreateIndex
+CREATE INDEX "MechanicAssignment_createdAt_idx" ON "MechanicAssignment"("createdAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Payment_orderId_key" ON "Payment"("orderId");
 
 -- CreateIndex
-CREATE INDEX "Shift_cashierId_idx" ON "Shift"("cashierId");
+CREATE INDEX "Payment_status_idx" ON "Payment"("status");
 
 -- CreateIndex
-CREATE INDEX "StockMovement_productId_idx" ON "StockMovement"("productId");
+CREATE INDEX "Payment_paidAt_idx" ON "Payment"("paidAt");
 
 -- CreateIndex
-CREATE INDEX "OrderStatusHistory_orderId_idx" ON "OrderStatusHistory"("orderId");
+CREATE INDEX "Shift_cashierId_status_idx" ON "Shift"("cashierId", "status");
+
+-- CreateIndex
+CREATE INDEX "Shift_status_idx" ON "Shift"("status");
+
+-- CreateIndex
+CREATE INDEX "Shift_openedAt_idx" ON "Shift"("openedAt");
+
+-- CreateIndex
+CREATE INDEX "StockMovement_productId_createdAt_idx" ON "StockMovement"("productId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "StockMovement_orderItemId_idx" ON "StockMovement"("orderItemId");
+
+-- CreateIndex
+CREATE INDEX "StockMovement_recordedById_idx" ON "StockMovement"("recordedById");
+
+-- CreateIndex
+CREATE INDEX "StockMovement_type_sourceType_idx" ON "StockMovement"("type", "sourceType");
+
+-- CreateIndex
+CREATE INDEX "Expense_shiftId_idx" ON "Expense"("shiftId");
+
+-- CreateIndex
+CREATE INDEX "Expense_recordedById_idx" ON "Expense"("recordedById");
+
+-- CreateIndex
+CREATE INDEX "Expense_date_idx" ON "Expense"("date");
+
+-- CreateIndex
+CREATE INDEX "Expense_category_idx" ON "Expense"("category");
+
+-- CreateIndex
+CREATE INDEX "ProductPriceHistory_productId_effectiveFrom_idx" ON "ProductPriceHistory"("productId", "effectiveFrom");
+
+-- CreateIndex
+CREATE INDEX "OrderStatusHistory_orderId_createdAt_idx" ON "OrderStatusHistory"("orderId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "OrderStatusHistory_changedById_idx" ON "OrderStatusHistory"("changedById");
 
 -- AddForeignKey
 ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

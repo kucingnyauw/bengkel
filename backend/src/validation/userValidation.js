@@ -1,6 +1,9 @@
 import Joi from "joi";
 import { MAX_LIMIT, MAX_PAGE } from "#shared/constant/constants.js";
 
+const phonePattern = /^(\+62|62|0)8[1-9][0-9]{6,10}$/;
+const namePattern = /^[a-zA-Z\s]+$/;
+
 const createUserSchema = Joi.object({
   email: Joi.string().email().max(100).required().messages({
     "any.required": "Email harus diisi",
@@ -8,15 +11,26 @@ const createUserSchema = Joi.object({
     "string.email": "Format email tidak valid",
     "string.max": "Email maksimal 100 karakter",
   }),
-  fullName: Joi.string().min(1).max(100).required().messages({
-    "any.required": "Nama lengkap harus diisi",
-    "string.empty": "Nama lengkap tidak boleh kosong",
-    "string.min": "Nama lengkap minimal 1 karakter",
-    "string.max": "Nama lengkap maksimal 100 karakter",
-  }),
-  phone: Joi.string().max(20).optional().allow("").messages({
-    "string.max": "Nomor telepon maksimal 20 karakter",
-  }),
+  fullName: Joi.string()
+    .min(1)
+    .max(100)
+    .pattern(namePattern)
+    .required()
+    .messages({
+      "any.required": "Nama lengkap harus diisi",
+      "string.empty": "Nama lengkap tidak boleh kosong",
+      "string.min": "Nama lengkap minimal 1 karakter",
+      "string.max": "Nama lengkap maksimal 100 karakter",
+      "string.pattern.base": "Nama lengkap hanya boleh berisi huruf dan spasi",
+    }),
+  phone: Joi.string()
+    .pattern(phonePattern)
+    .optional()
+    .allow("")
+    .messages({
+      "string.pattern.base":
+        "Format nomor telepon tidak valid. Gunakan format 08xx, 62xx, atau +62xx",
+    }),
   role: Joi.string()
     .valid("CASHIER", "MECHANIC")
     .optional()
@@ -34,19 +48,30 @@ const resendMagicLinkSchema = Joi.object({
 });
 
 const updateUserSchema = Joi.object({
-  fullName: Joi.string().min(1).max(100).optional().messages({
-    "string.empty": "Nama lengkap tidak boleh kosong",
-    "string.min": "Nama lengkap minimal 1 karakter",
-    "string.max": "Nama lengkap maksimal 100 karakter",
-  }),
-  phone: Joi.string().max(20).optional().allow("").messages({
-    "string.max": "Nomor telepon maksimal 20 karakter",
-  }),
-  role: Joi.string()
-    .valid("SUPERADMIN", "ADMIN", "CASHIER", "MECHANIC")
+  fullName: Joi.string()
+    .min(1)
+    .max(100)
+    .pattern(namePattern)
     .optional()
     .messages({
-      "any.only": "Role harus SUPERADMIN, ADMIN, CASHIER, atau MECHANIC",
+      "string.empty": "Nama lengkap tidak boleh kosong",
+      "string.min": "Nama lengkap minimal 1 karakter",
+      "string.max": "Nama lengkap maksimal 100 karakter",
+      "string.pattern.base": "Nama lengkap hanya boleh berisi huruf dan spasi",
+    }),
+  phone: Joi.string()
+    .pattern(phonePattern)
+    .optional()
+    .allow("")
+    .messages({
+      "string.pattern.base":
+        "Format nomor telepon tidak valid. Gunakan format 08xx, 62xx, atau +62xx",
+    }),
+  role: Joi.string()
+    .valid("ADMIN", "CASHIER", "MECHANIC")
+    .optional()
+    .messages({
+      "any.only": "Role harus ADMIN, CASHIER, atau MECHANIC",
     }),
   isActive: Joi.boolean().optional().messages({
     "boolean.base": "Status aktif harus berupa boolean",
@@ -86,10 +111,10 @@ const getUsersQuerySchema = Joi.object({
     "string.max": "Pencarian maksimal 100 karakter",
   }),
   role: Joi.string()
-    .valid("SUPERADMIN", "ADMIN", "CASHIER", "MECHANIC")
+    .valid("ADMIN", "CASHIER", "MECHANIC")
     .optional()
     .messages({
-      "any.only": "Role harus SUPERADMIN, ADMIN, CASHIER, atau MECHANIC",
+      "any.only": "Role harus ADMIN, CASHIER, atau MECHANIC",
     }),
   isActive: Joi.boolean().optional().messages({
     "boolean.base": "Status aktif harus berupa boolean",
@@ -145,11 +170,15 @@ const checkEmailExistsSchema = Joi.object({
 });
 
 const checkPhoneExistsSchema = Joi.object({
-  phone: Joi.string().max(20).required().messages({
-    "any.required": "Nomor telepon harus diisi",
-    "string.empty": "Nomor telepon tidak boleh kosong",
-    "string.max": "Nomor telepon maksimal 20 karakter",
-  }),
+  phone: Joi.string()
+    .pattern(phonePattern)
+    .required()
+    .messages({
+      "any.required": "Nomor telepon harus diisi",
+      "string.empty": "Nomor telepon tidak boleh kosong",
+      "string.pattern.base":
+        "Format nomor telepon tidak valid. Gunakan format 08xx, 62xx, atau +62xx",
+    }),
   excludeId: Joi.string().optional().messages({
     "string.empty": "ID pengecualian tidak boleh kosong",
   }),
@@ -171,20 +200,24 @@ const userEmailParamSchema = Joi.object({
 });
 
 const userPhoneParamSchema = Joi.object({
-  phone: Joi.string().max(20).required().messages({
-    "any.required": "Nomor telepon harus diisi",
-    "string.empty": "Nomor telepon tidak boleh kosong",
-    "string.max": "Nomor telepon maksimal 20 karakter",
-  }),
+  phone: Joi.string()
+    .pattern(phonePattern)
+    .required()
+    .messages({
+      "any.required": "Nomor telepon harus diisi",
+      "string.empty": "Nomor telepon tidak boleh kosong",
+      "string.pattern.base":
+        "Format nomor telepon tidak valid. Gunakan format 08xx, 62xx, atau +62xx",
+    }),
 });
 
 const userRoleParamSchema = Joi.object({
   role: Joi.string()
-    .valid("SUPERADMIN", "ADMIN", "CASHIER", "MECHANIC")
+    .valid("ADMIN", "CASHIER", "MECHANIC")
     .required()
     .messages({
       "any.required": "Role harus diisi",
-      "any.only": "Role harus SUPERADMIN, ADMIN, CASHIER, atau MECHANIC",
+      "any.only": "Role harus ADMIN, CASHIER, atau MECHANIC",
     }),
 });
 

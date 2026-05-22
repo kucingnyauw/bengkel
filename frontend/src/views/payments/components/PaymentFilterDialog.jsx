@@ -16,23 +16,24 @@
  *
  * @returns {JSX.Element} Rendered payment filter dialog
  */
-import { X } from "lucide-react";
+import { Calendar, X } from "lucide-react";
 
 import {
-  Box,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   FormControl,
   IconButton,
+  InputLabel,
   MenuItem,
   Select,
   Stack,
-  Typography,
+  useTheme,
 } from "@mui/material";
-
+import { alpha } from "@mui/material/styles";
 import { MobileDatePicker } from "@mui/x-date-pickers/MobileDatePicker";
 
 import { PaymentMethod, PaymentStatus } from "@shared/constant";
@@ -46,34 +47,56 @@ const PaymentFilterDialog = ({
   open,
   tempFilters,
 }) => {
+  const theme = useTheme();
+
   return (
-    <Dialog fullWidth maxWidth="xs" onClose={onClose} open={open}>
+    <Dialog
+      fullWidth
+      maxWidth="xs"
+      onClose={onClose}
+      open={open}
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          fontWeight: 400,
         }}
       >
         Filter Pembayaran
-        <IconButton edge="end" onClick={onClose}>
-          <X size={18} />
+        <IconButton onClick={onClose} size="small">
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent dividers>
-        <Stack spacing={2.5}>
+      <Divider />
+
+      <DialogContent>
+        <Stack sx={{ gap: 2.5 }}>
           <FormControl fullWidth>
+            <InputLabel sx={{ fontWeight: 400 }}>Status</InputLabel>
             <Select
-              displayEmpty
-              value={tempFilters.status}
+              value={tempFilters.status || ""}
+              label="Status"
               onChange={(e) =>
                 onFilterChange({ ...tempFilters, status: e.target.value })
               }
+              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="">Semua Status</MenuItem>
+              <MenuItem value="" sx={{ fontWeight: 400 }}>
+                Semua Status
+              </MenuItem>
               {Object.entries(PaymentStatus).map(([key, value]) => (
-                <MenuItem key={key} value={value}>
+                <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
                   {normalizeEnumText(value)}
                 </MenuItem>
               ))}
@@ -81,16 +104,20 @@ const PaymentFilterDialog = ({
           </FormControl>
 
           <FormControl fullWidth>
+            <InputLabel sx={{ fontWeight: 400 }}>Metode</InputLabel>
             <Select
-              displayEmpty
-              value={tempFilters.method}
+              value={tempFilters.method || ""}
+              label="Metode"
               onChange={(e) =>
                 onFilterChange({ ...tempFilters, method: e.target.value })
               }
+              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="">Semua Metode</MenuItem>
+              <MenuItem value="" sx={{ fontWeight: 400 }}>
+                Semua Metode
+              </MenuItem>
               {Object.entries(PaymentMethod).map(([key, value]) => (
-                <MenuItem key={key} value={value}>
+                <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
                   {normalizeEnumText(value)}
                 </MenuItem>
               ))}
@@ -98,34 +125,78 @@ const PaymentFilterDialog = ({
           </FormControl>
 
           <MobileDatePicker
+            label="Dari Tanggal"
+            value={tempFilters.startDate || null}
             onChange={(val) =>
               onFilterChange({ ...tempFilters, startDate: val })
             }
-            slotProps={{ textField: { fullWidth: true, placeholder: "Dari" } }}
-            value={tempFilters.startDate}
+            slots={{
+              openPickerIcon: () => <Calendar size={16} strokeWidth={1.5} />,
+            }}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                sx: { fontWeight: 400 },
+              },
+            }}
           />
 
           <MobileDatePicker
-            onChange={(val) => onFilterChange({ ...tempFilters, endDate: val })}
-            slotProps={{
-              textField: { fullWidth: true, placeholder: "Sampai" },
+            label="Sampai Tanggal"
+            value={tempFilters.endDate || null}
+            onChange={(val) =>
+              onFilterChange({ ...tempFilters, endDate: val })
+            }
+            slots={{
+              openPickerIcon: () => <Calendar size={16} strokeWidth={1.5} />,
             }}
-            value={tempFilters.endDate}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                sx: { fontWeight: 400 },
+              },
+            }}
           />
         </Stack>
       </DialogContent>
 
-      <DialogActions>
-        <Button color="inherit" variant="outlined" onClick={onReset}>
+      <Divider />
+
+      <DialogActions
+        sx={{
+          justifyContent: "space-between",
+        }}
+      >
+        <Button
+          color="inherit"
+          variant="outlined"
+          onClick={onReset}
+          sx={{ fontWeight: 400 }}
+        >
           Reset
         </Button>
-        <Box sx={{ flex: 1 }} />
-        <Button color="inherit" variant="outlined" onClick={onClose}>
-          Batal
-        </Button>
-        <Button variant="contained" onClick={onApply}>
-          Terapkan
-        </Button>
+        <Stack direction="row" sx={{ gap: 1.5 }}>
+          <Button
+            color="inherit"
+            variant="outlined"
+            onClick={onClose}
+            sx={{ fontWeight: 400 }}
+          >
+            Batal
+          </Button>
+          <Button
+            variant="contained"
+            onClick={onApply}
+            sx={{
+              fontWeight: 400,
+              "&:hover": {
+                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+              },
+            }}
+          >
+            Terapkan
+          </Button>
+        </Stack>
       </DialogActions>
     </Dialog>
   );

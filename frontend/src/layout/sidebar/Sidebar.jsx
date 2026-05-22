@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Box, Drawer, Paper, Skeleton, Stack } from "@mui/material";
+import { Box, Drawer, Paper } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { alpha } from "@mui/material/styles";
 import { useDispatch, useSelector } from "react-redux";
@@ -12,93 +12,16 @@ import {
   closeSidebar,
   setActiveItem,
 } from "@store/sidebar/sidebarSlices.js";
-import { selectAuthLoading, selectUser } from "@store/auth/authSelector.js";
+import { selectUser } from "@store/auth/authSelector.js";
 import { filterMenuByRole, menuItems } from "@menu/index.js";
 import { useDevice } from "@hooks/useDevice.js";
 
 import MenuItem from "@layout/sidebar/MenuItem.jsx";
 
-const SidebarSkeleton = ({ isSidebarOpen }) => (
-  <Box
-    sx={{
-      flexGrow: 1,
-      overflow: "hidden",
-      px: isSidebarOpen ? 2 : 1,
-      py: 2.5,
-      display: "flex",
-      flexDirection: "column",
-      gap: 0.5,
-    }}
-  >
-    <Box sx={{ mt: 2.5, mb: 0.5 }}>
-      {isSidebarOpen && (
-        <Skeleton
-          width={60}
-          height={10}
-          sx={{ mb: 1.5, ml: 2, borderRadius: 1 }}
-        />
-      )}
-      <Stack sx={{ gap: 0.5 }}>
-        {[1, 2, 3].map((i) => (
-          <Skeleton
-            key={i}
-            variant="rounded"
-            height={44}
-            sx={{ borderRadius: 1 }}
-          />
-        ))}
-      </Stack>
-    </Box>
-
-    <Skeleton height={1} sx={{ mx: 2, my: 1.5, borderRadius: 0.5 }} />
-
-    <Box sx={{ mt: isSidebarOpen ? 2.5 : 0.5, mb: 0.5 }}>
-      {isSidebarOpen && (
-        <Skeleton
-          width={80}
-          height={10}
-          sx={{ mb: 1.5, ml: 2, borderRadius: 1 }}
-        />
-      )}
-      <Stack sx={{ gap: 0.5 }}>
-        {[1, 2, 3, 4].map((i) => (
-          <Skeleton
-            key={i}
-            variant="rounded"
-            height={44}
-            sx={{ borderRadius: 1 }}
-          />
-        ))}
-      </Stack>
-    </Box>
-
-    <Skeleton height={1} sx={{ mx: 2, my: 1.5, borderRadius: 0.5 }} />
-
-    <Box sx={{ mt: isSidebarOpen ? 2.5 : 0.5, mb: 0.5 }}>
-      {isSidebarOpen && (
-        <Skeleton
-          width={50}
-          height={10}
-          sx={{ mb: 1.5, ml: 2, borderRadius: 1 }}
-        />
-      )}
-      <Stack sx={{ gap: 0.5 }}>
-        {[1, 2].map((i) => (
-          <Skeleton
-            key={i}
-            variant="rounded"
-            height={44}
-            sx={{ borderRadius: 1 }}
-          />
-        ))}
-      </Stack>
-    </Box>
-  </Box>
-);
-
 /**
- * Sidebar - Application sidebar with menu items, responsive drawer for mobile, and role-based filtering.
- *
+ * Sidebar - Application sidebar dengan menu items, responsive drawer untuk mobile, 
+ * dan role-based filtering
+ * Hanya dirender ketika user sudah terautentikasi (status: "auth")
  * @component
  * @returns {JSX.Element} Rendered sidebar component
  */
@@ -106,14 +29,24 @@ const Sidebar = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const location = useLocation();
-  const isLoading = useSelector(selectAuthLoading);
   const user = useSelector(selectUser);
   const isSidebarOpen = useSelector(selectSidebarIsOpen);
   const { isMobile, isTablet } = useDevice();
 
+  /**
+   * Filter menu items berdasarkan role user
+   */
   const filteredMenu = filterMenuByRole(menuItems.items, user?.role);
 
+  /**
+   * Effect untuk menandai menu item yang aktif berdasarkan URL saat ini
+   */
   useEffect(() => {
+    /**
+     * Mencari item menu yang aktif berdasarkan pathname
+     * @param {Array} items - Array menu items
+     * @returns {string|null} ID item yang aktif atau null
+     */
     const findActiveItem = (items) => {
       for (const item of items) {
         if (item.url && location.pathname === item.url) return item.id;
@@ -132,6 +65,9 @@ const Sidebar = () => {
     if (activeId) dispatch(setActiveItem(activeId));
   }, [location.pathname, filteredMenu, dispatch]);
 
+  /**
+   * Close sidebar saat item diklik (mobile/tablet)
+   */
   const handleItemClick = () => {
     if (isMobile || isTablet) dispatch(closeSidebar());
   };
@@ -140,9 +76,10 @@ const Sidebar = () => {
     ? SIDEBAR.EXPANDED_WIDTH
     : SIDEBAR.COLLAPSED_WIDTH;
 
-  const MenuContent = isLoading ? (
-    <SidebarSkeleton isSidebarOpen={isSidebarOpen} />
-  ) : (
+  /**
+   * Menu content yang akan dirender di sidebar/drawer
+   */
+  const MenuContent = (
     <Box
       sx={{
         flexGrow: 1,
@@ -180,6 +117,9 @@ const Sidebar = () => {
     </Box>
   );
 
+  /**
+   * Mobile: render sebagai Drawer
+   */
   if (isMobile) {
     return (
       <Drawer
@@ -207,6 +147,9 @@ const Sidebar = () => {
     );
   }
 
+  /**
+   * Desktop: render sebagai sidebar tetap
+   */
   return (
     <Paper
       component="nav"

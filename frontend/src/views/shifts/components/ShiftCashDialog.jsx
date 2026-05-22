@@ -26,13 +26,16 @@ import {
   IconButton,
   Stack,
   TextField,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 import { formatToIdr } from "@shared/utils";
 import { useCashInMutation, useCashOutMutation } from "@views/shifts/hooks";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const ShiftCashDialog = ({ onClose, open, shiftId, type }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
 
   const { control, handleSubmit, reset, watch } = useForm({
@@ -93,6 +96,7 @@ const ShiftCashDialog = ({ onClose, open, shiftId, type }) => {
   });
 
   const isPending = cashInMutation.isPending || cashOutMutation.isPending;
+  const isCashIn = type === "in";
 
   /**
    * Handle tutup dialog dan reset form
@@ -108,7 +112,6 @@ const ShiftCashDialog = ({ onClose, open, shiftId, type }) => {
 
   /**
    * Handle submit form
-   * @param {Object} formData - Data form
    */
   const onSubmit = (formData) => {
     if (!shiftId) return;
@@ -116,7 +119,7 @@ const ShiftCashDialog = ({ onClose, open, shiftId, type }) => {
       amount: Number(formData.cashAmount),
       note: formData.cashNote,
     };
-    if (type === "in") {
+    if (isCashIn) {
       cashInMutation.mutate({ id: shiftId, payload });
     } else {
       cashOutMutation.mutate({ id: shiftId, payload });
@@ -124,24 +127,38 @@ const ShiftCashDialog = ({ onClose, open, shiftId, type }) => {
   };
 
   return (
-    <Dialog fullWidth maxWidth="xs" onClose={isPending ? undefined : handleClose} open={open}>
+    <Dialog
+      fullWidth
+      maxWidth="xs"
+      onClose={isPending ? undefined : handleClose}
+      open={open}
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 400,
         }}
       >
-        {type === "in" ? "Kas Masuk" : "Kas Keluar"}
+        {isCashIn ? "Kas Masuk" : "Kas Keluar"}
         <IconButton onClick={handleClose} disabled={isPending} size="small">
-          <X size={20} />
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
       <Divider />
 
       <DialogContent>
-        <Stack spacing={2.5}>
+        <Stack sx={{ gap: 2.5 }}>
           <Controller
             control={control}
             name="cashAmount"
@@ -149,6 +166,7 @@ const ShiftCashDialog = ({ onClose, open, shiftId, type }) => {
             render={({ field, fieldState }) => (
               <TextField
                 {...field}
+                fullWidth
                 autoFocus
                 label="Jumlah"
                 placeholder="Rp 0"
@@ -160,6 +178,11 @@ const ShiftCashDialog = ({ onClose, open, shiftId, type }) => {
                   field.onChange(raw ? Number(raw) : "");
                 }}
                 disabled={isPending}
+                slotProps={{
+                  input: { sx: { fontWeight: 400 } },
+                  inputLabel: { sx: { fontWeight: 400 } },
+                  formHelperText: { sx: { fontWeight: 400 } },
+                }}
               />
             )}
           />
@@ -170,11 +193,16 @@ const ShiftCashDialog = ({ onClose, open, shiftId, type }) => {
             render={({ field }) => (
               <TextField
                 {...field}
+                fullWidth
                 label="Catatan"
                 placeholder="Tambahkan catatan (opsional)"
                 multiline
-                rows={2}
+                rows={3}
                 disabled={isPending}
+                slotProps={{
+                  input: { sx: { fontWeight: 400 } },
+                  inputLabel: { sx: { fontWeight: 400 } },
+                }}
               />
             )}
           />
@@ -189,6 +217,7 @@ const ShiftCashDialog = ({ onClose, open, shiftId, type }) => {
           variant="outlined"
           disabled={isPending}
           onClick={handleClose}
+          sx={{ fontWeight: 400 }}
         >
           Batal
         </Button>
@@ -199,6 +228,7 @@ const ShiftCashDialog = ({ onClose, open, shiftId, type }) => {
           startIcon={
             isPending ? <CircularProgress size={14} color="inherit" /> : null
           }
+          sx={{ fontWeight: 400 }}
         >
           {isPending ? "Menyimpan..." : "Simpan"}
         </Button>

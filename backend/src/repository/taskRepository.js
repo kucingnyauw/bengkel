@@ -14,7 +14,6 @@ class TaskRepository {
     fullName: true,
   };
 
-
   #orderItemBasicSelect = {
     id: true,
     quantity: true,
@@ -37,7 +36,6 @@ class TaskRepository {
       },
     },
   };
-  
 
   #fullSelect = {
     ...this.#taskSelect,
@@ -113,6 +111,8 @@ class TaskRepository {
    * @param {string} [query.orderId] - Filter by order ID
    * @param {string} [query.orderStatus] - Filter by order status
    * @param {string} [query.search] - Search by product name, mechanic name, customer name, plate number, order number
+   * @param {string|Date} [query.startDate] - Filter tanggal mulai (berdasarkan order createdAt)
+   * @param {string|Date} [query.endDate] - Filter tanggal akhir (berdasarkan order createdAt)
    * @returns {Promise<{data: Array, metadata: Object}>}
    * @complexity O(log n) - Single query grouped by order
    */
@@ -140,7 +140,17 @@ class TaskRepository {
 
     if (query.orderStatus) {
       params.push(query.orderStatus);
-      conditions.push(`o."status" = $${params.length}`);
+      conditions.push(`o."status"::text = $${params.length}`);
+    }
+
+    if (query.startDate) {
+      params.push(new Date(query.startDate));
+      conditions.push(`o."createdAt" >= $${params.length}`);
+    }
+
+    if (query.endDate) {
+      params.push(new Date(query.endDate));
+      conditions.push(`o."createdAt" <= $${params.length}`);
     }
 
     if (query.search) {
@@ -528,7 +538,7 @@ class TaskRepository {
       INNER JOIN "Order" o ON oi."orderId" = o."id"
       WHERE ma."mechanicId" = ${mechanicId}
         AND ma."endAt" IS NULL
-        AND o."status" IN ('QUEUED', 'IN_PROGRESS')
+        AND o."status"::text IN ('QUEUED', 'IN_PROGRESS')
     `;
     
     return Number(result[0].count);
@@ -569,7 +579,7 @@ class TaskRepository {
       FROM "User" u
       LEFT JOIN "MechanicAssignment" ma ON u."id" = ma."mechanicId" AND ma."endAt" IS NULL
       LEFT JOIN "OrderItem" oi ON ma."orderItemId" = oi."id"
-      LEFT JOIN "Order" o ON oi."orderId" = o."id" AND o."status" IN ('QUEUED', 'IN_PROGRESS')
+      LEFT JOIN "Order" o ON oi."orderId" = o."id" AND o."status"::text IN ('QUEUED', 'IN_PROGRESS')
       ${whereClause}
       GROUP BY u."id", u."fullName", u."email", u."phone"
       ORDER BY u."fullName" ASC
@@ -617,7 +627,7 @@ class TaskRepository {
     const conditions = [
       `ma."mechanicId" = $1`,
       `ma."endAt" IS NULL`,
-      `o."status" IN ('QUEUED', 'IN_PROGRESS')`,
+      `o."status"::text IN ('QUEUED', 'IN_PROGRESS')`,
       `o."deletedAt" IS NULL`
     ];
     const params = [mechanicId];
@@ -737,7 +747,7 @@ class TaskRepository {
     const conditions = [
       `ma."mechanicId" = $1`,
       `ma."endAt" IS NOT NULL`,
-      `o."status" IN ('COMPLETED', 'CLOSED')`,
+      `o."status"::text IN ('COMPLETED', 'CLOSED')`,
       `o."deletedAt" IS NULL`
     ];
     const params = [mechanicId];

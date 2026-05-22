@@ -413,10 +413,14 @@ const AppTable = memo(
                           <Box
                             sx={{
                               display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "text.secondary",
-                              mr: 1,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 40,
+                        height: 28,
+                        borderRadius: `${theme.shape.borderRadius}px`,
+                        bgcolor: alpha(theme.palette.secondary.main, 0.08),
+                        color: theme.palette.secondary.main,
+                        mr: 1,
                             }}
                           >
                             <Search size={15} strokeWidth={1.5} />
@@ -470,35 +474,61 @@ const AppTable = memo(
               }}
             >
               {onRowsPerPageChange && (
-                <Box
-                  sx={{
-                    order: { xs: 2, sm: 1 },
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    width: { xs: "100%", sm: "auto" },
-                    justifyContent: { xs: "center", sm: "flex-start" },
-                  }}
-                >
-                  <Typography variant="caption" color="text.secondary" fontWeight={400} sx={{ whiteSpace: "nowrap" }}>
-                    Tampilkan
-                  </Typography>
-                  <TextField
-                    select
-                    size="small"
-                    value={rowsPerPage}
-                    onChange={(e) => onRowsPerPageChange(Number(e.target.value))}
-                    slotProps={{ select: { native: true } }}
-                    sx={{ minWidth: 80 }}
-                  >
-                    {rowsPerPageOptions.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </TextField>
-                  <Typography variant="caption" color="text.secondary" fontWeight={400} sx={{ whiteSpace: "nowrap" }}>
-                    per halaman
-                  </Typography>
-                </Box>
+              <Box
+              sx={{
+                order: { xs: 2, sm: 1 },
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                width: { xs: "100%", sm: "auto" },
+                justifyContent: { xs: "center", sm: "flex-start" },
+              }}
+            >
+              <Typography 
+                variant="body2" 
+                color="text.secondary" 
+                sx={{ fontWeight: 500, whiteSpace: "nowrap" }}
+              >
+                Tampilkan
+              </Typography>
+              <TextField
+                select
+                size="small"
+                value={rowsPerPage}
+                onChange={(e) => onRowsPerPageChange(Number(e.target.value))}
+                slotProps={{ select: { native: true } }}
+                sx={(theme) => ({
+                  minWidth: 68,
+                  "& .MuiInputBase-root": {
+                    fontSize: "0.875rem",
+                    fontWeight: 600,
+                    color: "text.primary",
+                    borderRadius: `${theme.shape.borderRadius}px`,
+                    bgcolor: "background.paper",
+                    transition: "all 0.2s ease-in-out",
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: alpha(theme.palette.primary.main, 0.4),
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: theme.palette.primary.main,
+                      borderWidth: "1px",
+                      boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.15)}`,
+                    },
+                  },
+                  "& .MuiNativeSelect-select": {
+                    py: 0.5,
+                    pl: 1.25,
+                    pr: 3,
+                  },
+                })}
+              >
+                {rowsPerPageOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </TextField>
+            </Box>
               )}
 
               <Box
@@ -513,15 +543,53 @@ const AppTable = memo(
                   <Skeleton height={40} variant="rounded" width={isMobile ? 250 : 350} />
                 ) : (
                   <Pagination
-                    count={count}
-                    onChange={onChange}
-                    page={page}
-                    showFirstButton
-                    showLastButton
-                    size={isMobile ? "small" : "medium"}
-                    siblingCount={isMobile ? 0 : 1}
-                    boundaryCount={isMobile ? 1 : 2}
-                  />
+                  count={count}
+                  page={page}
+                  onChange={onChange}
+                  showFirstButton
+                  showLastButton
+                  shape="rounded"
+                  size={isMobile ? "small" : "medium"}
+                  siblingCount={isMobile ? 0 : 1}
+                  boundaryCount={isMobile ? 1 : 2}
+                  sx={(theme) => ({
+                    display: "flex",
+                    justifyContent: "center",
+                    "& .MuiPaginationItem-root": {
+                      fontWeight: 500,
+                      fontSize: "0.875rem",
+                      borderRadius: `${theme.shape.borderRadius}px`,
+                      border: `1px solid ${theme.palette.divider}`,
+                      bgcolor: "background.paper",
+                      color: "text.secondary",
+                      transition: "all 0.2s ease-in-out",
+                      "&:hover": {
+                        bgcolor: alpha(theme.palette.primary.main, 0.06),
+                        borderColor: alpha(theme.palette.primary.main, 0.4),
+                        color: theme.palette.primary.main,
+                      },
+                    },
+                    "& .MuiPaginationItem-root.Mui-selected": {
+                      bgcolor: theme.palette.primary.main,
+                      color: theme.palette.primary.contrastText,
+                      borderColor: theme.palette.primary.main,
+                      boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.24)}`,
+                      "&:hover": {
+                        bgcolor: theme.palette.primary.dark,
+                      },
+                    },
+                    "& .MuiPaginationItem-ellipsis": {
+                      border: "none",
+                      bgcolor: "transparent",
+                      "&:hover": {
+                        bgcolor: "transparent",
+                      },
+                    },
+                    "& .MuiPagination-ul": {
+                      gap: { xs: 0.5, sm: 1 },
+                    },
+                  })}
+                />
                 )}
               </Box>
             </Box>

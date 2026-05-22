@@ -30,7 +30,9 @@ import {
   Stack,
   TextField,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 import { getProducts } from "@api/productApi.js";
 import { StockSourceType, ProductType } from "@shared/constant";
@@ -40,6 +42,7 @@ import { AsyncAutocomplete } from "@components";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const StockInDialog = ({ open, onClose }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const { control, handleSubmit, setValue, reset } = useStockForm();
 
@@ -90,24 +93,38 @@ const StockInDialog = ({ open, onClose }) => {
   }, [reset, onClose]);
 
   return (
-    <Dialog fullWidth maxWidth="xs" onClose={handleClose} open={open}>
+    <Dialog
+      fullWidth
+      maxWidth="xs"
+      onClose={isSubmitting ? undefined : handleClose}
+      open={open}
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 400,
         }}
       >
         Stok Masuk
         <IconButton onClick={handleClose} disabled={isSubmitting} size="small">
-          <X size={20} />
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
       <Divider />
 
       <DialogContent>
-        <Stack spacing={2.5}>
+        <Stack sx={{ gap: 2.5 }}>
           <Controller
             name="product"
             control={control}
@@ -138,10 +155,10 @@ const StockInDialog = ({ open, onClose }) => {
                   return (
                     <Box key={key} component="li" {...rest}>
                       <Box>
-                        <Typography variant="body2" fontWeight={500}>
+                        <Typography variant="body2" sx={{ fontWeight: 400 }}>
                           {option.name}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
                           SKU: {option.sku || "—"} • Stok: {option.stock ?? 0}
                         </Typography>
                       </Box>
@@ -168,12 +185,18 @@ const StockInDialog = ({ open, onClose }) => {
             render={({ field, fieldState }) => (
               <TextField
                 {...field}
+                fullWidth
                 label="Jumlah"
                 type="number"
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
                 disabled={isSubmitting}
-                slotProps={{ htmlInput: { min: 1 } }}
+                slotProps={{
+                  htmlInput: { min: 1 },
+                  input: { sx: { fontWeight: 400 } },
+                  inputLabel: { sx: { fontWeight: 400 } },
+                  formHelperText: { sx: { fontWeight: 400 } },
+                }}
               />
             )}
           />
@@ -182,11 +205,11 @@ const StockInDialog = ({ open, onClose }) => {
             name="sourceType"
             control={control}
             render={({ field }) => (
-              <FormControl disabled={isSubmitting}>
-                <InputLabel>Sumber</InputLabel>
-                <Select {...field} label="Sumber">
+              <FormControl fullWidth disabled={isSubmitting}>
+                <InputLabel sx={{ fontWeight: 400 }}>Sumber</InputLabel>
+                <Select {...field} label="Sumber" sx={{ fontWeight: 400 }}>
                   {Object.entries(StockSourceType).map(([key, value]) => (
-                    <MenuItem key={key} value={value}>
+                    <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
                       {normalizeEnumText(value)}
                     </MenuItem>
                   ))}
@@ -201,11 +224,16 @@ const StockInDialog = ({ open, onClose }) => {
             render={({ field }) => (
               <TextField
                 {...field}
+                fullWidth
                 label="Catatan"
                 placeholder="Catatan (opsional)"
                 multiline
-                rows={2}
+                rows={3}
                 disabled={isSubmitting}
+                slotProps={{
+                  input: { sx: { fontWeight: 400 } },
+                  inputLabel: { sx: { fontWeight: 400 } },
+                }}
               />
             )}
           />
@@ -220,6 +248,7 @@ const StockInDialog = ({ open, onClose }) => {
           variant="outlined"
           disabled={isSubmitting}
           onClick={handleClose}
+          sx={{ fontWeight: 400 }}
         >
           Batal
         </Button>
@@ -230,6 +259,12 @@ const StockInDialog = ({ open, onClose }) => {
           startIcon={
             isSubmitting ? <CircularProgress size={14} color="inherit" /> : null
           }
+          sx={{
+            fontWeight: 400,
+            "&:hover": {
+              boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+            },
+          }}
         >
           {isSubmitting ? "Menyimpan..." : "Simpan"}
         </Button>

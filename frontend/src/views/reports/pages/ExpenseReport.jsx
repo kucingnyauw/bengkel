@@ -9,70 +9,38 @@ import {
   Box,
   Button,
   Card,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
-  IconButton,
   Skeleton,
   Stack,
-  Tooltip,
   Typography,
   useTheme,
+  Chip
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { MobileDatePicker } from "@mui/x-date-pickers/MobileDatePicker";
 import {
   Banknote,
-  CalendarDays,
-  Filter,
   Home,
   MoreHorizontal,
   Package,
-  Receipt,
-  RotateCcw,
   TrendingDown,
   Users,
   Wrench,
-  X,
   Zap,
 } from "lucide-react";
 
 import { formatToIdr, formatDate } from "@shared/utils";
-import { useExpenseReport } from "@views/reports/hooks/useExpenseReport.js";
+import { useExpenseReport } from "@views/reports/hooks/useReportQuery.js";
 import { SummaryCard, BarChart, DoughnutChart } from "@components";
 import { ExpenseCategory } from "@shared/constant";
-
-const CHART_HEIGHT = 320;
-const DOUGHNUT_HEIGHT = 260;
+import { ReportHeader, ReportFilterDialog } from "@views/reports/components";
 
 const categoryConfig = {
-  [ExpenseCategory.RENT]: {
-    icon: Home,
-    label: "Sewa Tempat",
-  },
-  [ExpenseCategory.SALARY]: {
-    icon: Users,
-    label: "Gaji Karyawan",
-  },
-  [ExpenseCategory.MAINTENANCE]: {
-    icon: Wrench,
-    label: "Perawatan",
-  },
-  [ExpenseCategory.SUPPLIES]: {
-    icon: Package,
-    label: "Perlengkapan",
-  },
-  [ExpenseCategory.UTILITIES]: {
-    icon: Zap,
-    label: "Utilitas",
-  },
-  [ExpenseCategory.OTHER]: {
-    icon: MoreHorizontal,
-    label: "Lainnya",
-  },
+  [ExpenseCategory.RENT]: { icon: Home, label: "Sewa Tempat" },
+  [ExpenseCategory.SALARY]: { icon: Users, label: "Gaji Karyawan" },
+  [ExpenseCategory.MAINTENANCE]: { icon: Wrench, label: "Perawatan" },
+  [ExpenseCategory.SUPPLIES]: { icon: Package, label: "Perlengkapan" },
+  [ExpenseCategory.UTILITIES]: { icon: Zap, label: "Utilitas" },
+  [ExpenseCategory.OTHER]: { icon: MoreHorizontal, label: "Lainnya" },
 };
 
 const ExpenseReport = () => {
@@ -108,11 +76,11 @@ const ExpenseReport = () => {
 
   const colors = useMemo(() => {
     return [
-      alpha(theme.palette.text.primary, 0.9),
-      alpha(theme.palette.text.primary, 0.7),
-      alpha(theme.palette.text.primary, 0.5),
-      alpha(theme.palette.text.primary, 0.3),
-      alpha(theme.palette.text.primary, 0.2),
+      alpha(theme.palette.secondary.main, 0.85),
+      alpha(theme.palette.secondary.main, 0.65),
+      alpha(theme.palette.secondary.main, 0.45),
+      alpha(theme.palette.secondary.main, 0.3),
+      alpha(theme.palette.secondary.main, 0.18),
     ];
   }, [theme]);
 
@@ -159,6 +127,7 @@ const ExpenseReport = () => {
       data?.expensesByCategory?.reduce((acc, item) => acc + item.count, 0) || 0,
     [data]
   );
+
   const averagePerTransaction = useMemo(
     () =>
       !data?.totalExpense || !totalTransactions
@@ -223,30 +192,15 @@ const ExpenseReport = () => {
           <Card sx={{ p: 3 }}>
             <Skeleton width={240} height={28} />
             <Skeleton width={320} height={16} sx={{ mt: 1 }} />
-            <Skeleton
-              variant="rounded"
-              width="100%"
-              height={CHART_HEIGHT}
-              sx={{ mt: 3 }}
-            />
+            <Skeleton variant="rounded" width="100%" height={320} sx={{ mt: 3 }} />
           </Card>
         </Box>
         <Box sx={{ gridColumn: { xs: "span 12", lg: "span 4" } }}>
           <Card sx={{ p: 3 }}>
             <Skeleton width={160} height={28} />
             <Skeleton width={200} height={16} sx={{ mt: 1 }} />
-            <Skeleton
-              variant="circular"
-              width={220}
-              height={220}
-              sx={{ mx: "auto", mt: 3 }}
-            />
-            <Skeleton
-              variant="rounded"
-              width="100%"
-              height={80}
-              sx={{ mt: 3 }}
-            />
+            <Skeleton variant="circular" width={220} height={220} sx={{ mx: "auto", mt: 3 }} />
+            <Skeleton variant="rounded" width="100%" height={80} sx={{ mt: 3 }} />
           </Card>
         </Box>
       </Box>
@@ -261,180 +215,40 @@ const ExpenseReport = () => {
         gap: 3,
       }}
     >
-
-<Box sx={{ gridColumn: "span 12" }}>
-  <Card sx={{ overflow: "hidden", position: "relative" }}>
-    {/* Background Decorations - seperti SummaryCard */}
-    <Box
-      sx={{
-        position: "absolute",
-        right: theme.spacing(-6),
-        top: theme.spacing(-6),
-        width: theme.spacing(20),
-        height: theme.spacing(20),
-        borderRadius: "50%",
-        backgroundColor: alpha(theme.palette.text.primary, 0.03),
-        zIndex: 0,
-      }}
-    />
-    <Box
-      sx={{
-        position: "absolute",
-        right: theme.spacing(-3),
-        bottom: theme.spacing(-3),
-        width: theme.spacing(14),
-        height: theme.spacing(14),
-        borderRadius: "50%",
-        backgroundColor: alpha(theme.palette.text.primary, 0.04),
-        zIndex: 0,
-      }}
-    />
-    <Stack
-      direction={{ xs: "column", md: "row" }}
-      sx={{
-        justifyContent: "space-between",
-        alignItems: { xs: "flex-start", md: "center" },
-        gap: 2.5,
-        p: 3,
-        position: "relative",
-        zIndex: 1,
-      }}
-    >
-      <Stack sx={{ gap: 2 }}>
-        <Box>
-          <Typography variant="h5" fontWeight={700}>
-            Laporan Pengeluaran
-          </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mt: 0.5 }}
-          >
-            Analitik pengeluaran & biaya operasional
-          </Typography>
-        </Box>
-        <Stack direction="row" sx={{ gap: 1.5, flexWrap: "wrap" }}>
-          <Chip
-            icon={<CalendarDays size={14} />}
-            label={periodText}
-            variant="outlined"
-            size="small"
-            sx={{
-              borderColor: alpha(theme.palette.divider, 0.8),
-              bgcolor: alpha(theme.palette.background.paper, 0.5),
-              px: 0.5,
-              py: 0.5,
-              height: 28,
-              "& .MuiChip-label": { px: 1, fontSize: "0.75rem" },
-              "& .MuiChip-icon": { ml: 1, mr: -0.5 },
-            }}
-          />
-          {isFilterActive && (
-            <Chip
-              label="Filter aktif"
-              color="primary"
-              size="small"
-              variant="outlined"
-              sx={{
-                bgcolor: alpha(theme.palette.primary.main, 0.06),
-                borderColor: alpha(theme.palette.primary.main, 0.3),
-                px: 0.5,
-                py: 0.5,
-                height: 28,
-                "& .MuiChip-label": { px: 1, fontSize: "0.75rem", fontWeight: 500 },
-              }}
-            />
-          )}
-        </Stack>
-      </Stack>
-      <Stack direction="row" sx={{ gap: 0.5 }}>
-        <Tooltip title="Refresh data">
-          <IconButton
-            onClick={() => refetch()}
-            sx={{
-              border: "1px solid",
-              borderColor: alpha(theme.palette.divider, 0.8),
-              color: theme.palette.text.secondary,
-              bgcolor: alpha(theme.palette.background.paper, 0.6),
-              backdropFilter: "blur(4px)",
-              "&:hover": {
-                bgcolor: alpha(theme.palette.text.primary, 0.06),
-                borderColor: theme.palette.text.primary,
-                color: theme.palette.text.primary,
-              },
-            }}
-          >
-            <RotateCcw size={18} />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Filter periode">
-          <IconButton
-            onClick={handleOpenFilter}
-            sx={{
-              border: "1px solid",
-              borderColor: isFilterActive
-                ? alpha(theme.palette.primary.main, 0.4)
-                : alpha(theme.palette.divider, 0.8),
-              color: isFilterActive ? theme.palette.primary.main : theme.palette.text.secondary,
-              bgcolor: isFilterActive
-                ? alpha(theme.palette.primary.main, 0.06)
-                : alpha(theme.palette.background.paper, 0.6),
-              backdropFilter: "blur(4px)",
-              "&:hover": {
-                bgcolor: isFilterActive
-                  ? alpha(theme.palette.primary.main, 0.12)
-                  : alpha(theme.palette.text.primary, 0.06),
-                borderColor: isFilterActive ? theme.palette.primary.main : theme.palette.text.primary,
-                color: isFilterActive ? theme.palette.primary.main : theme.palette.text.primary,
-              },
-            }}
-          >
-            <Filter size={18} />
-          </IconButton>
-        </Tooltip>
-      </Stack>
-    </Stack>
-  </Card>
-</Box>
+      <Box sx={{ gridColumn: "span 12" }}>
+        <ReportHeader
+          title="Laporan Pengeluaran"
+          subtitle="Analitik pengeluaran & biaya operasional"
+          periodText={periodText}
+          isFilterActive={isFilterActive}
+          onRefresh={() => refetch()}
+          onOpenFilter={handleOpenFilter}
+        />
+      </Box>
 
       {!data?.expensesByCategory?.length ? (
         <Box sx={{ gridColumn: "span 12" }}>
           <Card
             sx={{
-              minHeight: 400,
+              minHeight: 360,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               p: 6,
-              background: `linear-gradient(135deg, ${alpha(
-                theme.palette.text.primary,
-                0.02
-              )} 0%, ${alpha(theme.palette.text.primary, 0.01)} 100%)`,
+              border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+              boxShadow: "none",
             }}
           >
-            <Stack sx={{ gap: 3, alignItems: "center", textAlign: "center" }}>
-              <Box
-                sx={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: "50%",
-                  bgcolor: alpha(theme.palette.text.primary, 0.06),
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Receipt size={32} style={{ opacity: 0.3 }} />
-              </Box>
+            <Stack sx={{ gap: 2.5, alignItems: "center", textAlign: "center" }}>
               <Box>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5 }}>
+                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 400 }}>
                   Belum Ada Data Pengeluaran
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
                   Tidak ada transaksi pengeluaran untuk periode ini.
                 </Typography>
               </Box>
-              <Button variant="outlined" onClick={handleOpenFilter}>
+              <Button variant="outlined" onClick={handleOpenFilter} sx={{ fontWeight: 400 }}>
                 Atur Filter
               </Button>
             </Stack>
@@ -442,33 +256,27 @@ const ExpenseReport = () => {
         </Box>
       ) : (
         <>
-          <Box
-            sx={{ gridColumn: { lg: "span 4", sm: "span 6", xs: "span 12" } }}
-          >
+          <Box sx={{ gridColumn: { lg: "span 4", sm: "span 6", xs: "span 12" } }}>
             <SummaryCard
-              color="primary"
+              color="secondary"
               icon={TrendingDown}
               subtitle={`${totalTransactions} transaksi tercatat`}
               title="Total Pengeluaran"
               value={formatToIdr(data.totalExpense)}
             />
           </Box>
-          <Box
-            sx={{ gridColumn: { lg: "span 4", sm: "span 6", xs: "span 12" } }}
-          >
+          <Box sx={{ gridColumn: { lg: "span 4", sm: "span 6", xs: "span 12" } }}>
             <SummaryCard
-              color="primary"
+              color="secondary"
               icon={Banknote}
               subtitle="Rata-rata per transaksi"
               title="Rata-rata Pengeluaran"
               value={formatToIdr(averagePerTransaction)}
             />
           </Box>
-          <Box
-            sx={{ gridColumn: { lg: "span 4", sm: "span 12", xs: "span 12" } }}
-          >
+          <Box sx={{ gridColumn: { lg: "span 4", sm: "span 12", xs: "span 12" } }}>
             <SummaryCard
-              color="primary"
+              color="secondary"
               icon={
                 topCategory?.category
                   ? categoryConfig[topCategory.category]?.icon || TrendingDown
@@ -476,8 +284,7 @@ const ExpenseReport = () => {
               }
               subtitle={
                 topCategory
-                  ? categoryConfig[topCategory.category]?.label ||
-                    topCategory.category
+                  ? categoryConfig[topCategory.category]?.label || topCategory.category
                   : "Tidak ada data"
               }
               title="Pengeluaran Tertinggi"
@@ -486,16 +293,17 @@ const ExpenseReport = () => {
           </Box>
 
           <Box sx={{ gridColumn: { xs: "span 12", lg: "span 8" } }}>
-            <Card>
+            <Card
+              sx={{
+                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                boxShadow: "none",
+              }}
+            >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" fontWeight={600}>
+                <Typography variant="h6" sx={{ fontWeight: 400 }}>
                   Pengeluaran per Kategori
                 </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 0.5 }}
-                >
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
                   Distribusi total pengeluaran berdasarkan kategori
                 </Typography>
               </Box>
@@ -503,7 +311,7 @@ const ExpenseReport = () => {
               <Box sx={{ p: 3 }}>
                 <BarChart
                   datasets={barChartData.datasets}
-                  height={CHART_HEIGHT}
+                  height={320}
                   labels={barChartData.labels}
                   legend={false}
                   isCurrency
@@ -513,25 +321,27 @@ const ExpenseReport = () => {
           </Box>
 
           <Box sx={{ gridColumn: { xs: "span 12", lg: "span 4" } }}>
-            <Card sx={{ height: "100%" }}>
+            <Card
+              sx={{
+                height: "100%",
+                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                boxShadow: "none",
+              }}
+            >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" fontWeight={600}>
+                <Typography variant="h6" sx={{ fontWeight: 400 }}>
                   Proporsi Kategori
                 </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 0.5 }}
-                >
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
                   Persentase pengeluaran per kategori
                 </Typography>
               </Box>
               <Divider />
               <Box sx={{ p: 3 }}>
-                <Box sx={{ mb: 6 }}>
+                <Box sx={{ mb: 4 }}>
                   <DoughnutChart
                     datasets={doughnutData.datasets}
-                    height={DOUGHNUT_HEIGHT}
+                    height={220}
                     labels={doughnutData.labels}
                     isCurrency
                   />
@@ -539,8 +349,7 @@ const ExpenseReport = () => {
                 <Stack sx={{ gap: 1.5 }}>
                   {data.expensesByCategory.map((item, index) => {
                     const config =
-                      categoryConfig[item.category] ||
-                      categoryConfig[ExpenseCategory.OTHER];
+                      categoryConfig[item.category] || categoryConfig[ExpenseCategory.OTHER];
                     const resolvedColor = colors[index % colors.length];
                     const percentage =
                       data.totalExpense > 0
@@ -558,21 +367,17 @@ const ExpenseReport = () => {
                           border: "1px solid",
                           borderColor: alpha(theme.palette.divider, 0.6),
                           borderRadius: `${theme.shape.borderRadius}px`,
-                          bgcolor: alpha(theme.palette.background.paper, 0.4),
                           transition: theme.transitions.create(
                             ["background-color", "border-color"],
                             { duration: theme.transitions.duration.shorter }
                           ),
                           "&:hover": {
                             bgcolor: alpha(resolvedColor, 0.04),
-                            borderColor: alpha(resolvedColor, 0.2),
+                            borderColor: alpha(resolvedColor, 0.25),
                           },
                         }}
                       >
-                        <Stack
-                          direction="row"
-                          sx={{ gap: 2, alignItems: "center", minWidth: 0 }}
-                        >
+                        <Stack direction="row" sx={{ gap: 2, alignItems: "center", minWidth: 0 }}>
                           <Box
                             sx={{
                               display: "flex",
@@ -586,25 +391,19 @@ const ExpenseReport = () => {
                               flexShrink: 0,
                             }}
                           >
-                            <config.icon size={16} />
+                            <config.icon size={16} strokeWidth={1.5} />
                           </Box>
                           <Box sx={{ minWidth: 0 }}>
-                            <Typography variant="body2" fontWeight={500} noWrap>
+                            <Typography variant="body2" sx={{ fontWeight: 400 }} noWrap>
                               {config.label || item.category}
                             </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
                               {item.count} transaksi
                             </Typography>
                           </Box>
                         </Stack>
-                        <Stack
-                          direction="row"
-                          sx={{ gap: 1.5, alignItems: "center", flexShrink: 0 }}
-                        >
-                          <Typography variant="body2" fontWeight={500} noWrap>
+                        <Stack direction="row" sx={{ gap: 1.5, alignItems: "center", flexShrink: 0 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 400 }} noWrap>
                             {formatToIdr(item.total)}
                           </Typography>
                           <Chip
@@ -616,10 +415,10 @@ const ExpenseReport = () => {
                               color: resolvedColor,
                               bgcolor: alpha(resolvedColor, 0.06),
                               height: 24,
+                              fontWeight: 400,
                               "& .MuiChip-label": {
                                 px: 1,
                                 fontSize: "0.6875rem",
-                                fontWeight: 600,
                               },
                             }}
                           />
@@ -634,67 +433,16 @@ const ExpenseReport = () => {
         </>
       )}
 
-      <Dialog
-        maxWidth="xs"
-        fullWidth
+      <ReportFilterDialog
         open={filterOpen}
+        startDate={startDate}
+        endDate={endDate}
+        onStartDateChange={setStartDate}
+        onEndDateChange={setEndDate}
+        onApply={handleApplyFilter}
+        onReset={handleResetFilter}
         onClose={handleCloseFilter}
-      >
-        <DialogTitle
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            px: 3,
-            pt: 2.5,
-            pb: 2,
-          }}
-        >
-          Filter Periode
-          <IconButton onClick={handleCloseFilter}>
-            <X size={18} />
-          </IconButton>
-        </DialogTitle>
-        <Divider />
-        <DialogContent sx={{ p: 3 }}>
-          <Stack sx={{ gap: 2.5 }}>
-            <MobileDatePicker
-              label="Dari Tanggal"
-              value={startDate}
-              onChange={(val) => setStartDate(val)}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-            <MobileDatePicker
-              label="Sampai Tanggal"
-              value={endDate}
-              onChange={(val) => setEndDate(val)}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-          </Stack>
-        </DialogContent>
-        <Divider />
-        <DialogActions sx={{ px: 3, py: 2, justifyContent: "space-between" }}>
-          <Button
-            color="inherit"
-            variant="outlined"
-            onClick={handleResetFilter}
-          >
-            Reset
-          </Button>
-          <Stack direction="row" sx={{ gap: 1 }}>
-            <Button
-              color="inherit"
-              variant="outlined"
-              onClick={handleCloseFilter}
-            >
-              Batal
-            </Button>
-            <Button variant="contained" onClick={handleApplyFilter}>
-              Terapkan
-            </Button>
-          </Stack>
-        </DialogActions>
-      </Dialog>
+      />
     </Box>
   );
 };

@@ -2,6 +2,7 @@
 import { createTheme, alpha } from "@mui/material/styles";
 import { Color } from "@styles/Colors.jsx";
 import { Size } from "@styles/Size.jsx";
+import garagesh from "@assets/fonts/garagesh.ttf"
 
 /**
  * @param {import("@mui/material/styles").Theme} theme
@@ -13,6 +14,13 @@ const componentsOverride = (theme) => ({
       "@keyframes shimmerLoop": {
         "0%": { left: "-100%" },
         "100%": { left: "100%" },
+      },
+      "@font-face": {
+        fontFamily: "GarageSH",
+        fontStyle: "normal",
+        fontDisplay: "swap",
+        fontWeight: 400,
+        src: `url(${garagesh}) format("truetype")`,
       },
       body: {
         backgroundColor: theme.palette.background.default,
@@ -96,6 +104,7 @@ const componentsOverride = (theme) => ({
           boxShadow: `0 0 0 2px ${theme.palette.background.default}, 0 0 0 4px ${theme.palette.secondary.main}`,
         },
       },
+      
       contained: {
         backgroundColor: theme.palette.text.primary,
         color: theme.palette.background.paper,
@@ -478,8 +487,9 @@ const componentsOverride = (theme) => ({
     styleOverrides: {
       root: {
         border: `1px solid ${theme.palette.divider}`,
-        borderRadius: `${theme.shape.borderRadius}px`,
-        overflow: "hidden",
+         overflowX : "scroll",
+        overflowY: "hidden",
+      
       },
     },
   },
@@ -871,6 +881,7 @@ const componentsOverride = (theme) => ({
           borderRadius: `${theme.shape.borderRadius}px`,
           boxShadow: theme.shadows[3],
           border: `1px solid ${theme.palette.divider}`,
+          
         },
       },
     },

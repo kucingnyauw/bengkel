@@ -1,28 +1,22 @@
+/**
+ * authThunk.js (kontrak error yang disarankan)
+ */
+
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { getCurrentUser, validateUserEmail } from "@api/userApi.js";
-import { signInWithEmailOtp, signInWithGoogle, signOut } from "@api/supabaseApi.js";
+import { getCurrentUser } from "@api/userApi.js";
+import { signOut } from "@api/supabaseApi.js";
 
-export const loginWithEmail = createAsyncThunk(
-  "auth/loginWithEmail",
-  async (email, { rejectWithValue }) => {
-    try {
-      await validateUserEmail(email);
-      await signInWithEmailOtp(email);
-      return true;
-    } catch (err) {
-      return rejectWithValue(err?.message || "Terjadi kesalahan");
-    }
-  }
-);
-
-export const loginWithGoogle = createAsyncThunk(
-  "auth/loginWithGoogle",
+export const fetchCurrentUser = createAsyncThunk(
+  "auth/fetchCurrentUser",
   async (_, { rejectWithValue }) => {
     try {
-      await signInWithGoogle();
-      return true;
+    
+      return await getCurrentUser();
     } catch (err) {
-      return rejectWithValue(err?.message || "Terjadi kesalahan");
+      return rejectWithValue({
+        code: err?.code || "UNKNOWN_ERROR",
+        message: err?.message || "Gagal mengambil user",
+      });
     }
   }
 );
@@ -34,19 +28,10 @@ export const logout = createAsyncThunk(
       await signOut();
       return true;
     } catch (err) {
-      return rejectWithValue(err?.message || "Terjadi kesalahan");
-    }
-  }
-);
-
-export const fetchCurrentUser = createAsyncThunk(
-  "auth/fetchCurrentUser",
-  async (_, { rejectWithValue }) => {
-    try {
-      const user = await getCurrentUser();
-      return user;
-    } catch (err) {
-      return rejectWithValue(err?.message || "Gagal mengambil user");
+      return rejectWithValue({
+        code: err?.code || "UNKNOWN_ERROR",
+        message: err?.message || "Logout gagal",
+      });
     }
   }
 );

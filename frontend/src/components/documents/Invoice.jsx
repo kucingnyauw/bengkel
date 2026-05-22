@@ -15,144 +15,134 @@ import {
 
 import INFO from "@data/Info.js";
 
-// Monochrome Color Palette
-const COLOR_BLACK = "#000000";
-const COLOR_DARK = "#27272a"; // zinc-800
-const COLOR_MUTED = "#71717a"; // zinc-500
-const COLOR_BORDER = "#d4d4d8"; // zinc-300
+const COLOR_BLACK = "#09090B";
+const COLOR_DARK = "#27272A";
+const COLOR_MUTED = "#71717A";
+const COLOR_BORDER = "#E4E4E7";
+const COLOR_PURPLE = "#7C3AED";
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
+    padding: 36,
     fontFamily: "Helvetica",
     fontSize: 9,
     color: COLOR_DARK,
     lineHeight: 1.5,
     backgroundColor: "#ffffff",
-    position: "relative", // Memastikan posisi absolute referensinya ke page
   },
-  // --- Typography Utilities ---
   textBold: { fontFamily: "Helvetica-Bold", color: COLOR_BLACK },
   textMuted: { color: COLOR_MUTED, fontSize: 8 },
-  textRight: { textAlign: "right" },
-  
-  // --- Layout Utilities ---
+  textPurple: { color: COLOR_PURPLE },
   row: { flexDirection: "row" },
   spaceBetween: { flexDirection: "row", justifyContent: "space-between" },
 
-  // --- Background Watermark Layer ---
+  // Watermark
   watermarkLayer: {
     position: "absolute",
-    bottom: 140, // Mengatur posisi vertikal di area tengah bawah
+    bottom: 120,
     left: 0,
     right: 0,
     alignItems: "center",
     justifyContent: "center",
-    opacity: 0.06, // Sangat tipis agar teks utama di atasnya tetap terbaca jelas
+    opacity: 0.04,
   },
   watermarkText: {
-    fontSize: 72,
+    fontSize: 64,
     fontFamily: "Helvetica-Bold",
-    letterSpacing: 12,
-    color: COLOR_BLACK,
+    letterSpacing: 8,
+    color: COLOR_PURPLE,
   },
 
-  // --- Header ---
+  // Header
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
-  logo: {
-    width: 48,
-    height: 48,
-  },
+  logo: { width: 44, height: 44 },
   brandName: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: "Helvetica-Bold",
     color: COLOR_BLACK,
-    letterSpacing: 1,
-    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  brandDesc: { fontSize: 8, color: COLOR_MUTED, marginTop: 2 },
+  brandDesc: { fontSize: 7, color: COLOR_MUTED, marginTop: 2 },
   receiptTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: "Helvetica-Bold",
-    color: COLOR_BORDER,
+    color: COLOR_PURPLE,
     textTransform: "uppercase",
-    letterSpacing: 2,
+    letterSpacing: 1.5,
   },
 
-  // --- Store Contact & Meta ---
-  storeInfo: { fontSize: 8, color: COLOR_MUTED, lineHeight: 1.4, width: "50%" },
+  // Store Info
+  storeInfo: { fontSize: 8, color: COLOR_MUTED, lineHeight: 1.5, width: "55%" },
   metaContainer: { width: "40%", alignItems: "flex-end" },
-  metaRow: { flexDirection: "row", justifyContent: "flex-end", gap: 8, marginBottom: 2 },
-  
-  // --- Customer & Vehicle Box ---
+  metaRow: { flexDirection: "row", justifyContent: "flex-end", gap: 6, marginBottom: 2 },
+
+  // Customer & Vehicle
   infoSection: {
     flexDirection: "row",
-    marginTop: 10,
-    marginBottom: 10,
+    marginTop: 6,
+    marginBottom: 6,
     paddingTop: 10,
-    borderTopWidth: 1,
+    borderTopWidth: 0.5,
     borderTopColor: COLOR_BORDER,
   },
   infoCol: { flex: 1, paddingRight: 10 },
-  infoLabel: { fontSize: 7, color: COLOR_MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
+  infoLabel: { fontSize: 7, color: COLOR_MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 },
   infoValue: { fontSize: 9, fontFamily: "Helvetica-Bold", color: COLOR_DARK },
 
-  // --- Table ---
+  // Table
   tableHeader: {
     flexDirection: "row",
     paddingBottom: 6,
-    borderBottomWidth: 1,
+    borderBottomWidth: 1.5,
     borderBottomColor: COLOR_BLACK,
-    marginTop: 10,
+    marginTop: 6,
   },
   th: { fontSize: 8, fontFamily: "Helvetica-Bold", textTransform: "uppercase" },
   tableRow: {
     flexDirection: "row",
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderBottomWidth: 0.5,
     borderBottomColor: COLOR_BORDER,
   },
   col1: { flex: 1, paddingRight: 8 },
-  col2: { width: "12%", textAlign: "center" },
+  col2: { width: "10%", textAlign: "center" },
   col3: { width: "20%", textAlign: "right" },
-  col4: { width: "22%", textAlign: "right" },
-  
+  col4: { width: "20%", textAlign: "right" },
   itemName: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 2 },
   itemType: { fontSize: 7, color: COLOR_MUTED },
 
-  // --- Summary & Payment ---
+  // Summary
   summarySection: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 16,
+    marginTop: 20,
   },
-  paymentCol: { width: "45%" },
-  calcCol: { width: "45%" },
-  
-  calcRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 },
+  paymentCol: { width: "48%" },
+  calcCol: { width: "48%" },
+  calcRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 },
   calcTotalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 8,
+    paddingVertical: 7,
     marginTop: 4,
     borderTopWidth: 1,
     borderTopColor: COLOR_BLACK,
     borderBottomWidth: 1,
     borderBottomColor: COLOR_BLACK,
   },
-  calcTotalText: { fontSize: 12, fontFamily: "Helvetica-Bold", color: COLOR_BLACK },
+  calcTotalText: { fontSize: 11, fontFamily: "Helvetica-Bold", color: COLOR_BLACK },
 
-  // --- Footer ---
+  // Footer
   footer: {
     position: "absolute",
     bottom: 40,
@@ -161,19 +151,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
     alignItems: "center",
   },
-  footerText: {
-    fontSize: 7,
-    color: COLOR_MUTED,
-    lineHeight: 1.6,
-    textAlign: "center",
-  },
-  barcodeDummy: {
-    marginTop: 10,
-    fontFamily: "Helvetica",
-    fontSize: 24,
-    color: COLOR_BORDER,
-    letterSpacing: 4,
-  }
+  footerText: { fontSize: 7, color: COLOR_MUTED, lineHeight: 1.6, textAlign: "center" },
+  thankYou: { fontSize: 10, fontFamily: "Helvetica-Bold", color: COLOR_PURPLE, marginBottom: 4, textAlign: "center" },
 });
 
 const Invoice = ({ data }) => {
@@ -188,6 +167,7 @@ const Invoice = ({ data }) => {
     items,
     subtotal,
     tax,
+    taxRate,
     total,
     createdAt,
   } = order || {};
@@ -200,30 +180,28 @@ const Invoice = ({ data }) => {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        
-        {/* WATERMARK BACKGROUND LAYER (Diletakkan paling atas agar berada di layer paling bawah) */}
+        {/* WATERMARK */}
         <View style={styles.watermarkLayer}>
           <Text style={styles.watermarkText}>LUNAS</Text>
         </View>
-        
+
         {/* HEADER */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             {INFO.logoUrl && <Image src={INFO.logoUrl} style={styles.logo} />}
             <View>
               <Text style={styles.brandName}>{INFO.name || "G-Speed"}</Text>
-              <Text style={styles.brandDesc}>{INFO.descriptions || "Bengkel Spesialis"}</Text>
+              <Text style={styles.brandDesc}>{INFO.descriptions || "Bengkel Motor Spesialis Vespa"}</Text>
             </View>
           </View>
-          <Text style={styles.receiptTitle}>RECEIPT</Text>
+          <Text style={styles.receiptTitle}>INVOICE</Text>
         </View>
 
-        {/* STORE & META INFO */}
+        {/* STORE INFO + META */}
         <View style={styles.spaceBetween}>
           <Text style={styles.storeInfo}>
             {INFO.address}
-            {"\n"}
-            Telp: {INFO.phone}
+            {"\n"}Telp: {INFO.phone}
           </Text>
           <View style={styles.metaContainer}>
             <View style={styles.metaRow}>
@@ -270,7 +248,7 @@ const Invoice = ({ data }) => {
             <View style={styles.col1}>
               <Text style={styles.itemName}>{item.productName}</Text>
               <Text style={styles.itemType}>
-                {item.type === "SERVICE" ? "[JASA]" : "[PART]"}
+                {item.type === "SERVICE" ? "Servis" : "Sparepart"}
               </Text>
             </View>
             <Text style={[styles.col2, styles.textBold]}>{item.quantity}</Text>
@@ -281,43 +259,41 @@ const Invoice = ({ data }) => {
 
         {/* SUMMARY & PAYMENT */}
         <View style={styles.summarySection}>
-          {/* Left Side: Payment Details */}
           <View style={styles.paymentCol}>
-            <Text style={[styles.infoLabel, { marginTop: 4 }]}>Informasi Pembayaran</Text>
-            <View style={{ marginTop: 6, gap: 4 }}>
+            <Text style={[styles.infoLabel, { marginTop: 4 }]}>Pembayaran</Text>
+            <View style={{ marginTop: 6, gap: 3 }}>
               <View style={styles.row}>
-                <Text style={[styles.textMuted, { width: 60 }]}>Metode</Text>
+                <Text style={[styles.textMuted, { width: 55 }]}>Metode</Text>
                 <Text style={styles.textBold}>{paymentMethods[method] || method}</Text>
               </View>
               <View style={styles.row}>
-                <Text style={[styles.textMuted, { width: 60 }]}>Status</Text>
-                <Text style={styles.textBold}>LUNAS</Text>
+                <Text style={[styles.textMuted, { width: 55 }]}>Status</Text>
+                <Text style={[styles.textBold, styles.textPurple]}>LUNAS</Text>
               </View>
               <View style={styles.row}>
-                <Text style={[styles.textMuted, { width: 60 }]}>Waktu</Text>
+                <Text style={[styles.textMuted, { width: 55 }]}>Waktu</Text>
                 <Text style={styles.textBold}>{formatDateTimeFull(paidAt)}</Text>
               </View>
             </View>
           </View>
 
-          {/* Right Side: Calculation */}
           <View style={styles.calcCol}>
             <View style={styles.calcRow}>
               <Text style={styles.textMuted}>Subtotal</Text>
               <Text style={styles.textBold}>{formatToIdr(subtotal || 0)}</Text>
             </View>
             <View style={styles.calcRow}>
-              <Text style={styles.textMuted}>Pajak (12%)</Text>
+            <Text style={styles.textMuted}>Pajak ({taxRate || 11}%)</Text>
               <Text style={styles.textBold}>{formatToIdr(tax || 0)}</Text>
             </View>
-            
+
             <View style={styles.calcTotalRow}>
               <Text style={styles.calcTotalText}>TOTAL</Text>
-              <Text style={styles.calcTotalText}>{formatToIdr(total || 0)}</Text>
+              <Text style={[styles.calcTotalText, styles.textPurple]}>{formatToIdr(total || 0)}</Text>
             </View>
 
             <View style={[styles.calcRow, { marginTop: 4 }]}>
-              <Text style={styles.textMuted}>Tunai Dibayar</Text>
+              <Text style={styles.textMuted}>Dibayar</Text>
               <Text style={styles.textBold}>{formatToIdr(amountPaid || 0)}</Text>
             </View>
             <View style={styles.calcRow}>
@@ -329,15 +305,12 @@ const Invoice = ({ data }) => {
 
         {/* FOOTER */}
         <View style={styles.footer}>
-          <Text style={[styles.textBold, { fontSize: 10, marginBottom: 4 }]}>TERIMA KASIH</Text>
+          <Text style={styles.thankYou}>TERIMA KASIH</Text>
           <Text style={styles.footerText}>
             Barang yang sudah dibeli tidak dapat dikembalikan.
-            {"\n"}
-            Garansi servis berlaku selama 7 hari.
+            {"\n"}Garansi servis berlaku selama 7 hari.
           </Text>
-          <Text style={styles.barcodeDummy}>|| ||| | || |||| || | |</Text>
         </View>
-
       </Page>
     </Document>
   );

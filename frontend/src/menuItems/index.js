@@ -2,13 +2,10 @@ import {
   LayoutDashboard,
   Users,
   Package,
-  ShoppingCart,
   Store,
   DollarSign,
-  BarChart3,
   TrendingUp,
   ClipboardList,
-  Settings,
   History,
   CreditCard,
   Receipt,
@@ -20,12 +17,9 @@ import {
   ListOrdered,
   Banknote,
   FileText,
-  Tags,
   Activity,
   UserPlus,
-  Truck,
   ArrowLeftRight,
-  ShieldCheck,
   Cog,
 } from "lucide-react";
 
@@ -37,7 +31,7 @@ const menuItems = {
       id: "dashboard-group",
       title: "Dashboard",
       type: "group",
-      roles: [Role.SUPERADMIN, Role.ADMIN, Role.CASHIER, Role.MECHANIC],
+      roles: [Role.ADMIN, Role.CASHIER, Role.MECHANIC],
       children: [
         {
           id: "dashboard-overview",
@@ -45,15 +39,16 @@ const menuItems = {
           type: "item",
           url: "/dashboard",
           icon: LayoutDashboard,
-          roles: [Role.SUPERADMIN, Role.ADMIN, Role.CASHIER, Role.MECHANIC],
+          roles: [Role.ADMIN, Role.CASHIER, Role.MECHANIC],
         },
       ],
     },
+    // ===== KASIR ONLY =====
     {
       id: "sales-group",
       title: "Penjualan",
       type: "group",
-      roles: [Role.SUPERADMIN, Role.CASHIER],
+      roles: [Role.CASHIER],
       children: [
         {
           id: "sales-pos",
@@ -61,23 +56,24 @@ const menuItems = {
           type: "item",
           url: "/pos",
           icon: Store,
-          roles: [Role.SUPERADMIN, Role.CASHIER],
+          roles: [Role.CASHIER],
         },
         {
           id: "sales-orders",
           title: "Pesanan Aktif",
           type: "item",
           url: "/orders",
-          icon: ListOrdered, // lebih cocok untuk daftar pesanan
-          roles: [Role.SUPERADMIN, Role.CASHIER],
+          icon: ListOrdered,
+          roles: [Role.CASHIER],
         },
       ],
     },
+    // ===== ADMIN + KASIR =====
     {
       id: "orders-group",
       title: "Pesanan",
       type: "group",
-      roles: [Role.SUPERADMIN, Role.ADMIN, Role.CASHIER],
+      roles: [Role.ADMIN, Role.CASHIER],
       children: [
         {
           id: "orders-history",
@@ -85,15 +81,16 @@ const menuItems = {
           type: "item",
           url: "/orders/history",
           icon: History,
-          roles: [Role.SUPERADMIN, Role.ADMIN, Role.CASHIER],
+          roles: [Role.ADMIN, Role.CASHIER],
         },
       ],
     },
+    // ===== ADMIN + KASIR =====
     {
       id: "customers-group",
       title: "Pelanggan",
       type: "group",
-      roles: [Role.SUPERADMIN, Role.ADMIN, Role.CASHIER],
+      roles: [Role.ADMIN, Role.CASHIER],
       children: [
         {
           id: "customers-list",
@@ -101,7 +98,7 @@ const menuItems = {
           type: "item",
           url: "/customers",
           icon: Users,
-          roles: [Role.SUPERADMIN, Role.ADMIN, Role.CASHIER],
+          roles: [Role.ADMIN, Role.CASHIER],
         },
         {
           id: "customers-vehicles",
@@ -109,15 +106,16 @@ const menuItems = {
           type: "item",
           url: "/vehicles",
           icon: Car,
-          roles: [Role.SUPERADMIN, Role.ADMIN, Role.CASHIER],
+          roles: [Role.ADMIN, Role.CASHIER],
         },
       ],
     },
+    // ===== MEKANIK ONLY (+ ADMIN lihat) =====
     {
       id: "operations-group",
       title: "Operasional",
       type: "group",
-      roles: [Role.SUPERADMIN, Role.ADMIN, Role.CASHIER, Role.MECHANIC],
+      roles: [Role.ADMIN, Role.MECHANIC],
       children: [
         {
           id: "operations-my-tasks",
@@ -125,7 +123,7 @@ const menuItems = {
           type: "item",
           url: "/tasks/mechanic",
           icon: Wrench,
-          roles: [Role.SUPERADMIN, Role.MECHANIC],
+          roles: [Role.MECHANIC],
         },
         {
           id: "operations-my-task-history",
@@ -133,7 +131,7 @@ const menuItems = {
           type: "item",
           url: "/tasks/history",
           icon: History,
-          roles: [Role.SUPERADMIN, Role.MECHANIC],
+          roles: [Role.MECHANIC],
         },
         {
           id: "operations-all-tasks",
@@ -141,15 +139,15 @@ const menuItems = {
           type: "item",
           url: "/tasks",
           icon: ClipboardList,
-          roles: [Role.SUPERADMIN, Role.ADMIN],
+          roles: [Role.ADMIN],
         },
         {
           id: "operations-unassigned-tasks",
           title: "Tugas Belum Ditugaskan",
           type: "item",
           url: "/tasks/unassigned",
-          icon: UserPlus, // icon assign/orang
-          roles: [Role.SUPERADMIN, Role.ADMIN, Role.CASHIER],
+          icon: UserPlus,
+          roles: [Role.ADMIN, Role.CASHIER],
         },
         {
           id: "operations-available-mechanics",
@@ -157,15 +155,16 @@ const menuItems = {
           type: "item",
           url: "/tasks/mechanics/available",
           icon: UserCheck,
-          roles: [Role.SUPERADMIN, Role.ADMIN, Role.CASHIER],
+          roles: [Role.ADMIN, Role.CASHIER],
         },
       ],
     },
+    // ===== ADMIN ONLY =====
     {
       id: "inventory-group",
       title: "Inventaris",
       type: "group",
-      roles: [Role.SUPERADMIN, Role.ADMIN],
+      roles: [Role.ADMIN],
       children: [
         {
           id: "inventory-products",
@@ -173,31 +172,32 @@ const menuItems = {
           type: "item",
           url: "/products",
           icon: Package,
-          roles: [Role.SUPERADMIN, Role.ADMIN],
+          roles: [Role.ADMIN],
         },
         {
           id: "inventory-stock",
           title: "Mutasi Stok",
           type: "item",
           url: "/stock/movements",
-          icon: ArrowLeftRight, // lebih pas untuk mutasi/perpindahan
-          roles: [Role.SUPERADMIN, Role.ADMIN],
+          icon: ArrowLeftRight,
+          roles: [Role.ADMIN],
         },
       ],
     },
+    // ===== ADMIN + KASIR =====
     {
       id: "finance-group",
       title: "Keuangan",
       type: "group",
-      roles: [Role.SUPERADMIN, Role.ADMIN, Role.CASHIER],
+      roles: [Role.ADMIN, Role.CASHIER],
       children: [
         {
           id: "finance-payments",
           title: "Pembayaran",
           type: "item",
           url: "/payments",
-          icon: Banknote, // lebih natural untuk uang
-          roles: [Role.SUPERADMIN, Role.ADMIN, Role.CASHIER],
+          icon: Banknote,
+          roles: [Role.ADMIN, Role.CASHIER],
         },
         {
           id: "finance-expenses",
@@ -205,7 +205,7 @@ const menuItems = {
           type: "item",
           url: "/expenses",
           icon: Receipt,
-          roles: [Role.SUPERADMIN, Role.CASHIER],
+          roles: [Role.CASHIER],
         },
         {
           id: "finance-expenses-history",
@@ -213,7 +213,7 @@ const menuItems = {
           type: "item",
           url: "/expenses/history",
           icon: History,
-          roles: [Role.SUPERADMIN, Role.ADMIN],
+          roles: [Role.ADMIN],
         },
         {
           id: "finance-shifts",
@@ -221,23 +221,24 @@ const menuItems = {
           type: "item",
           url: "/shifts",
           icon: Clock,
-          roles: [Role.SUPERADMIN, Role.CASHIER],
+          roles: [Role.CASHIER],
         },
         {
           id: "finance-all-shifts",
           title: "Semua Shift",
           type: "item",
           url: "/shifts/all",
-          icon: Activity, // bedakan dari shift saya
-          roles: [Role.SUPERADMIN, Role.ADMIN],
+          icon: Activity,
+          roles: [Role.ADMIN],
         },
       ],
     },
+    // ===== ADMIN ONLY =====
     {
       id: "reports-group",
       title: "Laporan",
       type: "group",
-      roles: [Role.SUPERADMIN, Role.ADMIN],
+      roles: [Role.ADMIN],
       children: [
         {
           id: "reports-sales",
@@ -245,7 +246,7 @@ const menuItems = {
           type: "item",
           url: "/reports/sales",
           icon: TrendingUp,
-          roles: [Role.SUPERADMIN, Role.ADMIN],
+          roles: [Role.ADMIN],
         },
         {
           id: "reports-profit-loss",
@@ -253,7 +254,7 @@ const menuItems = {
           type: "item",
           url: "/reports/profitloss",
           icon: DollarSign,
-          roles: [Role.SUPERADMIN, Role.ADMIN],
+          roles: [Role.ADMIN],
         },
         {
           id: "reports-inventory",
@@ -261,7 +262,7 @@ const menuItems = {
           type: "item",
           url: "/reports/inventory",
           icon: Package,
-          roles: [Role.SUPERADMIN, Role.ADMIN],
+          roles: [Role.ADMIN],
         },
         {
           id: "reports-mechanics",
@@ -269,15 +270,15 @@ const menuItems = {
           type: "item",
           url: "/reports/mechanics",
           icon: UserCog,
-          roles: [Role.SUPERADMIN, Role.ADMIN],
+          roles: [Role.ADMIN],
         },
         {
           id: "reports-expenses",
           title: "Laporan Pengeluaran",
           type: "item",
           url: "/reports/expenses",
-          icon: FileText, // bedakan dari Receipt
-          roles: [Role.SUPERADMIN, Role.ADMIN],
+          icon: FileText,
+          roles: [Role.ADMIN],
         },
         {
           id: "reports-payments",
@@ -285,15 +286,16 @@ const menuItems = {
           type: "item",
           url: "/reports/payments",
           icon: CreditCard,
-          roles: [Role.SUPERADMIN, Role.ADMIN],
+          roles: [Role.ADMIN],
         },
       ],
     },
+    // ===== ADMIN ONLY =====
     {
       id: "users-group",
       title: "Karyawan",
       type: "group",
-      roles: [Role.SUPERADMIN, Role.ADMIN],
+      roles: [Role.ADMIN],
       children: [
         {
           id: "users-all",
@@ -301,36 +303,30 @@ const menuItems = {
           type: "item",
           url: "/users",
           icon: Users,
-          roles: [Role.SUPERADMIN, Role.ADMIN],
+          roles: [Role.ADMIN],
         },
       ],
     },
+    // ===== ADMIN ONLY =====
     {
       id: "settings-group",
       title: "Pengaturan",
       type: "group",
-      roles: [Role.SUPERADMIN, Role.ADMIN],
+      roles: [Role.ADMIN],
       children: [
         {
           id: "settings-system",
           title: "Pengaturan Sistem",
           type: "item",
           url: "/settings",
-          icon: Cog, // bedakan dari Settings (gear umum), Cog lebih teknisi
-          roles: [Role.SUPERADMIN, Role.ADMIN],
+          icon: Cog,
+          roles: [Role.ADMIN],
         },
       ],
     },
   ],
 };
 
-/**
- * Filter menu items based on user role.
- *
- * @param {Array} items - Menu items array
- * @param {string} userRole - Current user role
- * @returns {Array} Filtered menu items
- */
 const filterMenuByRole = (items, userRole) => {
   if (!userRole) return [];
 

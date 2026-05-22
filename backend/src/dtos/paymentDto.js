@@ -3,21 +3,7 @@
  * @module dtos/paymentDto
  */
 
-/**
- * DTO untuk item pesanan dalam invoice
- * @class PaymentInvoiceItemDto
- */
 class PaymentInvoiceItemDto {
-  /**
-   * @param {Object} data - Data order item dari database
-   * @param {string} data.productNameSnapshot - Nama produk saat transaksi
-   * @param {number} data.quantity - Jumlah item
-   * @param {number} data.unitPrice - Harga satuan
-   * @param {number} data.subtotal - Subtotal item
-   * @param {Object} [data.product] - Data produk terkait
-   * @param {ProductType} [data.product.type] - Tipe produk (SPAREPART/SERVICE)
-   * @param {Object[]} [data.assignments] - Daftar mekanik yang ditugaskan
-   */
   constructor(data) {
     this.productName = data.productNameSnapshot;
     this.quantity = data.quantity;
@@ -32,22 +18,7 @@ class PaymentInvoiceItemDto {
   }
 }
 
-/**
- * DTO untuk response invoice (create/findById/findByOrderId)
- * @class PaymentInvoiceDto
- */
 class PaymentInvoiceDto {
-  /**
-   * @param {Object} data - Data payment dari database
-   * @param {string} data.id - ID payment
-   * @param {PaymentMethod} data.method - Metode pembayaran
-   * @param {number} data.amountPaid - Jumlah yang dibayarkan
-   * @param {number} data.change - Kembalian
-   * @param {PaymentStatus} data.status - Status pembayaran
-   * @param {string|null} data.paidAt - Waktu pembayaran
-   * @param {string} data.createdAt - Waktu record dibuat
-   * @param {Object} data.order - Data order terkait
-   */
   constructor(data) {
     this.id = data.id;
     this.method = data.method;
@@ -69,6 +40,7 @@ class PaymentInvoiceDto {
       orderNumber: data.order.orderNumber,
       subtotal: data.order.subtotal,
       tax: data.order.tax,
+      taxRate: data.order.taxRate ?? null,
       total: data.order.total,
       createdAt: data.order.createdAt,
       cashier: {
@@ -96,11 +68,6 @@ class PaymentInvoiceDto {
   }
 }
 
-/**
- * DTO untuk payment dalam list (pagination)
- * @class PaymentListDto
- */
-
 class PaymentListDto {
   constructor(data) {
     this.id = data.id;
@@ -118,6 +85,7 @@ class PaymentListDto {
           total: data.order.total,
           subtotal: data.order.subtotal,
           tax: data.order.tax,
+          taxRate: data.order.taxRate ?? null,
           status: data.order.status,
           createdAt: data.order.createdAt,
           cashier: data.order.cashier
@@ -159,21 +127,7 @@ class PaymentListDto {
   }
 }
 
-/**
- * DTO untuk response setelah update status (refund)
- * @class PaymentStatusDto
- */
 class PaymentStatusDto {
-  /**
-   * @param {Object} data - Data payment dari database
-   * @param {string} data.id - ID payment
-   * @param {PaymentMethod} data.method - Metode pembayaran
-   * @param {number} data.amountPaid - Jumlah yang dibayarkan
-   * @param {number} data.change - Kembalian
-   * @param {PaymentStatus} data.status - Status pembayaran
-   * @param {string|null} data.paidAt - Waktu pembayaran
-   * @param {string} data.createdAt - Waktu record dibuat
-   */
   constructor(data) {
     this.id = data.id;
     this.method = data.method;
@@ -185,20 +139,7 @@ class PaymentStatusDto {
   }
 }
 
-/**
- * DTO untuk response pembayaran QRIS
- * @class PaymentQrisDto
- */
 class PaymentQrisDto {
-  /**
-   * @param {Object} data - Data response QRIS dari service
-   * @param {string} data.orderId - ID pesanan
-   * @param {string} data.orderNumber - Nomor pesanan
-   * @param {string} data.transactionId - Transaction ID dari Midtrans
-   * @param {string} data.qrCodeUrl - URL QR code untuk pembayaran
-   * @param {number} data.amount - Jumlah pembayaran
-   * @param {string} data.status - Status pembayaran
-   */
   constructor(data) {
     this.orderId = data.orderId;
     this.orderNumber = data.orderNumber;
@@ -209,14 +150,7 @@ class PaymentQrisDto {
   }
 }
 
-/**
- * DTO untuk response status pembayaran QRIS dari Midtrans
- * @class PaymentQrisStatusDto
- */
 class PaymentQrisStatusDto {
-  /**
-   * @param {Object} data - Data status dari service
-   */
   constructor(data) {
     this.orderId = data.orderId;
     this.orderNumber = data.orderNumber;

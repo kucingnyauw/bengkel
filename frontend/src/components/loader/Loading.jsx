@@ -12,6 +12,12 @@ const pulse = keyframes`
   }
 `;
 
+/**
+ * AppLoading - Simple loading indicator dengan animasi 3 dots
+ * Digunakan saat initial bootstrap atau auth check berlangsung
+ * @component
+ * @returns {JSX.Element} Full-screen backdrop dengan animasi loading
+ */
 const AppLoading = () => {
   const dotStyle = {
     display: "inline-block",

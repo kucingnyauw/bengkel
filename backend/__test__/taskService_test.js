@@ -14,6 +14,16 @@ jest.mock("#repository/orderRepository.js");
 jest.mock("#repository/notificationRepository.js");
 jest.mock("#repository/settingRepository.js");
 
+jest.mock("#shared/utils/cache.js", () => {
+  return jest.fn().mockImplementation(() => ({
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(undefined),
+    invalidate: jest.fn().mockResolvedValue(undefined),
+    invalidateAll: jest.fn().mockResolvedValue(undefined),
+    buildKey: jest.fn((key) => `order:${key}`),
+  }));
+});
+
 jest.mock("#shared/utils/storage.js", () => ({
   getSignedUrl: jest.fn().mockResolvedValue("https://signed-url.com/image.jpg"),
 }));
@@ -44,6 +54,7 @@ describe("TaskService", () => {
   let mockOrderRepo;
   let mockNotifRepo;
   let mockSettingRepo;
+  let mockCache;
   let mockStorage;
 
   beforeEach(() => {
@@ -56,6 +67,7 @@ describe("TaskService", () => {
     mockNotifRepo = NotificationRepository.mock.instances[0];
     mockSettingRepo = SettingRepository.mock.instances[0];
 
+    mockCache = service.cache;
     mockSettingRepo.findByKey.mockResolvedValue({ value: "5" });
     mockStorage = require("#shared/utils/storage.js");
   });
@@ -95,10 +107,10 @@ describe("TaskService", () => {
       ],
     };
 
-    const mockAssignment = (itemId, mechId) => ({
+    const mockAssignment = (itemId) => ({
       id: `a-${itemId}`,
       orderItemId: itemId,
-      mechanicId: mechId,
+      mechanicId,
     });
 
     beforeEach(() => {
@@ -106,12 +118,12 @@ describe("TaskService", () => {
       mockTaskRepo.getActiveTaskCount.mockResolvedValue(2);
       mockOrderRepo.findById.mockResolvedValue(mockOrder);
       mockTaskRepo.assignMechanic.mockImplementation((itemId) =>
-        Promise.resolve(mockAssignment(itemId, mechanicId))
+        Promise.resolve(mockAssignment(itemId))
       );
       mockNotifRepo.create.mockResolvedValue({});
     });
 
-    it("should assign mechanic to all unassigned service items successfully", async () => {
+    it("should assign mechanic to all unassigned service items and invalidate cache", async () => {
       const result = await service.assignMechanicToOrder(orderId, mechanicId);
 
       expect(result).toHaveLength(2);
@@ -129,6 +141,7 @@ describe("TaskService", () => {
           note: expect.stringContaining("Joko ditugaskan ke 2 item service"),
         }),
       });
+      expect(mockCache.invalidate).toHaveBeenCalledWith("history:ORD-001");
       expect(mockNotifRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: mechanicId,
@@ -177,7 +190,7 @@ describe("TaskService", () => {
     it("should throw 400 when order has no service items", async () => {
       const orderNoService = {
         ...mockOrder,
-        items: [{ id: "oi-1", product: { type: "PRODUCT" }, assignments: [] }],
+        items: [{ id: "oi-1", product: { type: "SPAREPART" }, assignments: [] }],
       };
       mockOrderRepo.findById.mockResolvedValue(orderNoService);
 
@@ -238,7 +251,7 @@ describe("TaskService", () => {
       mockNotifRepo.create.mockResolvedValue({});
     });
 
-    it("should unassign all mechanics from service items and send notifications", async () => {
+    it("should unassign all mechanics from service items, invalidate cache, and send notifications", async () => {
       await service.unassignMechanicFromOrder(orderId, userId);
 
       expect(mockTaskRepo.unassignMechanic).toHaveBeenCalledTimes(1);
@@ -253,6 +266,7 @@ describe("TaskService", () => {
           }),
         })
       );
+      expect(mockCache.invalidate).toHaveBeenCalledWith("history:ORD-001");
       expect(mockNotifRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: "m1",
@@ -260,6 +274,15 @@ describe("TaskService", () => {
           type: "WARNING",
         })
       );
+    });
+
+    it("should unassign from IN_PROGRESS order", async () => {
+      mockOrderRepo.findById.mockResolvedValue({ ...baseOrder, status: "IN_PROGRESS" });
+
+      await service.unassignMechanicFromOrder(orderId, userId);
+
+      expect(mockTaskRepo.unassignMechanic).toHaveBeenCalledTimes(1);
+      expect(mockCache.invalidate).toHaveBeenCalledWith("history:ORD-001");
     });
 
     it("should throw 404 when order not found", async () => {
@@ -282,15 +305,6 @@ describe("TaskService", () => {
           .rejects.toMatchObject({ statusCode: 400 });
       }
     );
-
-    it("should throw 400 when order is IN_PROGRESS", async () => {
-      mockOrderRepo.findById.mockResolvedValue({ ...baseOrder, status: "IN_PROGRESS" });
-
-      await expect(service.unassignMechanicFromOrder(orderId, userId))
-        .rejects.toThrow(ApiError);
-      await expect(service.unassignMechanicFromOrder(orderId, userId))
-        .rejects.toMatchObject({ statusCode: 400 });
-    });
 
     it("should throw 400 when order is DRAFT", async () => {
       mockOrderRepo.findById.mockResolvedValue({ ...baseOrder, status: "DRAFT" });
@@ -338,6 +352,24 @@ describe("TaskService", () => {
 
       expect(result.orderItem.product.image.url).toBe("https://signed-url.com/image.jpg");
       expect(mockStorage.getSignedUrl).toHaveBeenCalledWith("product-images/oli.jpg");
+    });
+
+    it("should return assignment without signed URL if no image", async () => {
+      const assignment = {
+        id: "a1",
+        orderItem: {
+          product: {
+            id: "p1",
+            name: "Ganti Oli",
+            image: null,
+          },
+        },
+      };
+      mockTaskRepo.findById.mockResolvedValue(assignment);
+
+      const result = await service.getTaskById("a1");
+
+      expect(result.orderItem.product.image).toBeNull();
     });
 
     it("should throw 404 when assignment not found", async () => {
@@ -398,7 +430,44 @@ describe("TaskService", () => {
       expect(svc.serviceName).toBe("Ganti Oli");
       expect(svc.assignments).toHaveLength(1);
       expect(svc.assignments[0].status).toBe("IN_PROGRESS");
+      expect(svc.assignments[0].statusLabel).toBe("Dikerjakan");
       expect(svc.product.image).toBe("https://signed-url.com/image.jpg");
+    });
+
+    it("should return assignments with COMPLETED status when endAt exists", async () => {
+      mockOrderRepo.findById.mockResolvedValue(baseOrder);
+      mockTaskRepo.findByOrderId.mockResolvedValue([
+        {
+          id: "a1",
+          orderItem: { id: "oi-1" },
+          mechanic: { id: "m1", fullName: "Joko" },
+          startAt: new Date("2025-01-02T10:00:00"),
+          endAt: new Date("2025-01-02T11:00:00"),
+        },
+      ]);
+
+      const result = await service.getTasksByOrderId(orderId);
+      const svc = result.services[0];
+      expect(svc.assignments[0].status).toBe("COMPLETED");
+      expect(svc.assignments[0].statusLabel).toBe("Selesai");
+    });
+
+    it("should return assignments with PENDING status when no startAt", async () => {
+      mockOrderRepo.findById.mockResolvedValue(baseOrder);
+      mockTaskRepo.findByOrderId.mockResolvedValue([
+        {
+          id: "a1",
+          orderItem: { id: "oi-1" },
+          mechanic: null,
+          startAt: null,
+          endAt: null,
+        },
+      ]);
+
+      const result = await service.getTasksByOrderId(orderId);
+      const svc = result.services[0];
+      expect(svc.assignments[0].status).toBe("PENDING");
+      expect(svc.assignments[0].statusLabel).toBe("Menunggu");
     });
 
     it("should throw 404 when order not found", async () => {
@@ -563,7 +632,7 @@ describe("TaskService", () => {
       mockNotifRepo.create.mockResolvedValue({});
     });
 
-    it("should start all pending assignments and transition order to IN_PROGRESS", async () => {
+    it("should start all pending assignments, transition to IN_PROGRESS, and invalidate cache", async () => {
       const result = await service.startOrder(orderId, mechanicId);
 
       expect(result).toHaveLength(2);
@@ -571,6 +640,7 @@ describe("TaskService", () => {
       expect(mockTaskRepo.startTask).toHaveBeenCalledWith("a1");
       expect(mockTaskRepo.startTask).toHaveBeenCalledWith("a2");
       expect(prisma.$transaction).toHaveBeenCalled();
+      expect(mockCache.invalidate).toHaveBeenCalledWith("history:ORD-001");
       expect(mockNotifRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: "cashier-1",
@@ -662,12 +732,13 @@ describe("TaskService", () => {
       mockNotifRepo.create.mockResolvedValue({});
     });
 
-    it("should complete all pending assignments and transition to COMPLETED", async () => {
+    it("should complete all pending assignments, transition to COMPLETED, and invalidate cache", async () => {
       const result = await service.completeOrder(orderId, mechanicId);
 
       expect(result).toHaveLength(1);
       expect(mockTaskRepo.completeTask).toHaveBeenCalledWith("a1");
       expect(prisma.$transaction).toHaveBeenCalled();
+      expect(mockCache.invalidate).toHaveBeenCalledWith("history:ORD-001");
       expect(mockNotifRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: "cashier-1",
@@ -812,7 +883,7 @@ describe("TaskService", () => {
     });
 
     it("should process all assignments and return success/failed", async () => {
-      const mockOrder2 = { ...mockOrder, id: "o2", status: "DRAFT" };
+      const mockOrder2 = { ...mockOrder, id: "o2", orderNumber: "ORD-002", status: "DRAFT" };
 
       mockOrderRepo.findById
         .mockResolvedValueOnce(mockOrder)

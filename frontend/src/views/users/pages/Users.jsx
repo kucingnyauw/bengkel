@@ -36,8 +36,6 @@ import {
   UserFormDialog,
 } from "@views/users/components";
 import {
-  useCreateUserMutation,
-  useUpdateUserMutation,
   useUsersQuery,
   useUserDialogs,
   useUserFilters,
@@ -79,28 +77,6 @@ const Users = () => {
     closeDetailDialog,
   } = useUserDialogs();
 
-  /**
-   * Konfigurasi header tabel
-   * @type {string[]}
-   */
-  const headers = useMemo(
-    () => [
-      "Nama",
-      "Email",
-      "Telepon",
-      "Role",
-      "Status",
-      "Verifikasi",
-      "Bergabung",
-      "Aksi",
-    ],
-    []
-  );
-
-  /**
-   * Parameter query
-   * @type {Object}
-   */
   const params = useMemo(
     () => ({
       page,
@@ -119,9 +95,6 @@ const Users = () => {
   const tableData = data?.data || [];
   const metadata = data?.metadata || {};
 
-  const createUserMutation = useCreateUserMutation();
-  const updateUserMutation = useUpdateUserMutation();
-
   /**
    * Terapkan filter dan reset ke halaman pertama
    */
@@ -139,49 +112,7 @@ const Users = () => {
   }, [resetFilter]);
 
   /**
-   * Handle create user
-   * @param {Object} formData - Data form user
-   */
-  const handleCreateUser = useCallback(
-    (formData) => {
-      createUserMutation.mutate(
-        {
-          email: formData.email,
-          fullName: formData.fullName,
-          phone: formData.phone || undefined,
-          role: formData.role,
-        },
-        { onSuccess: () => closeCreateDialog() }
-      );
-    },
-    [createUserMutation, closeCreateDialog]
-  );
-
-  /**
-   * Handle update user
-   * @param {Object} formData - Data form user
-   */
-  const handleUpdateUser = useCallback(
-    (formData) => {
-      if (!editDialog.user) return;
-      updateUserMutation.mutate(
-        {
-          id: editDialog.user.id,
-          fullName: formData.fullName,
-          phone: formData.phone || undefined,
-          role: formData.role,
-          isActive: formData.isActive,
-        },
-        { onSuccess: () => closeEditDialog() }
-      );
-    },
-    [updateUserMutation, editDialog.user, closeEditDialog]
-  );
-
-  /**
    * Handle kirim ulang magic link
-   * @param {Event} e - Event klik
-   * @param {Object} user - Data user
    */
   const handleResendClick = useCallback(
     (e, user) => {
@@ -193,8 +124,6 @@ const Users = () => {
 
   /**
    * Handle klik tombol edit
-   * @param {Event} e - Event klik
-   * @param {Object} row - Data baris user
    */
   const handleEditClick = useCallback(
     (e, row) => {
@@ -206,8 +135,6 @@ const Users = () => {
 
   /**
    * Handle klik tombol hapus
-   * @param {Event} e - Event klik
-   * @param {Object} row - Data baris user
    */
   const handleDeleteClick = useCallback(
     (e, row) => {
@@ -219,7 +146,6 @@ const Users = () => {
 
   /**
    * Handler klik ganda baris untuk membuka dialog detail
-   * @param {Object} row - Data baris user
    */
   const handleRowDoubleClick = useCallback(
     (row) => openDetailDialog(row),
@@ -228,45 +154,53 @@ const Users = () => {
 
   /**
    * Render baris kustom untuk tabel user
-   * @param {Object} row - Data user
-   * @returns {JSX.Element[]} Array komponen sel
    */
   const renderRow = useCallback(
     (row) => [
-      <Typography key={`name-${row.id}`} variant="body2" fontWeight={600}>
+      <Typography key={`name-${row.id}`} variant="body2" sx={{ fontWeight: 400 }}>
         {row.fullName}
       </Typography>,
-      <Typography key={`email-${row.id}`} variant="body2" color="text.secondary">
+
+      <Typography key={`email-${row.id}`} variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
         {row.email}
       </Typography>,
-      <Typography key={`phone-${row.id}`} variant="body2">
+
+      <Typography key={`phone-${row.id}`} variant="body2" sx={{ fontWeight: 400 }}>
         {row.phone || "—"}
       </Typography>,
+
       <Chip
         key={`role-${row.id}`}
         label={normalizeEnumText(row.role)}
         size="small"
         color={roleColorMap[row.role] || "default"}
         variant="outlined"
+        sx={{ fontWeight: 400 }}
       />,
+
       <Chip
         key={`status-${row.id}`}
         label={row.isActive ? "Aktif" : "Nonaktif"}
         color={row.isActive ? "success" : "default"}
         size="small"
         variant="outlined"
+        sx={{ fontWeight: 400 }}
       />,
+
       <Chip
         key={`auth-${row.id}`}
         label={row.isAuthenticated ? "Terverifikasi" : "Pending"}
         color={row.isAuthenticated ? "success" : "warning"}
         size="small"
         variant="outlined"
+        sx={{ fontWeight: 400 }}
       />,
-      <Typography key={`date-${row.id}`} variant="body2" color="text.secondary">
+
+      <Typography key={`date-${row.id}`} variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
         {formatDateTime(row.createdAt)}
       </Typography>,
-      <Stack key={`actions-${row.id}`} direction="row" spacing={0.5}>
+
+      <Stack key={`actions-${row.id}`} direction="row" sx={{ gap: 0.5 }}>
         <Tooltip
           title={
             row.isAuthenticated
@@ -283,31 +217,33 @@ const Users = () => {
               sx={{
                 border: "1px solid",
                 borderColor: row.isAuthenticated
-                  ? alpha(theme.palette.divider, 0.5)
+                  ? alpha(theme.palette.divider, 0.4)
                   : alpha(theme.palette.divider, 0.8),
+                borderRadius: `${theme.shape.borderRadius}px`,
                 bgcolor: row.isAuthenticated
                   ? "transparent"
                   : alpha(theme.palette.background.paper, 0.6),
-                backdropFilter: "blur(4px)",
                 color: row.isAuthenticated
                   ? theme.palette.action.disabled
                   : theme.palette.text.secondary,
-                transition: theme.transitions.create(["background-color", "border-color", "color"], {
-                  duration: theme.transitions.duration.shorter,
-                }),
+                transition: theme.transitions.create(
+                  ["background-color", "border-color", "color"],
+                  { duration: theme.transitions.duration.shorter }
+                ),
                 "&:hover": row.isAuthenticated
                   ? {}
                   : {
-                      bgcolor: alpha(theme.palette.text.primary, 0.06),
-                      borderColor: theme.palette.text.primary,
-                      color: theme.palette.text.primary,
+                      bgcolor: alpha(theme.palette.secondary.main, 0.06),
+                      borderColor: alpha(theme.palette.secondary.main, 0.4),
+                      color: theme.palette.secondary.main,
                     },
               }}
             >
-              <Send size={16} />
+              <Send size={16} strokeWidth={1.5} />
             </IconButton>
           </Box>
         </Tooltip>
+
         <Tooltip title="Edit Karyawan">
           <Box component="span" sx={{ display: "inline-flex" }}>
             <IconButton
@@ -317,23 +253,25 @@ const Users = () => {
               sx={{
                 border: "1px solid",
                 borderColor: alpha(theme.palette.divider, 0.8),
+                borderRadius: `${theme.shape.borderRadius}px`,
                 bgcolor: alpha(theme.palette.background.paper, 0.6),
-                backdropFilter: "blur(4px)",
                 color: theme.palette.text.secondary,
-                transition: theme.transitions.create(["background-color", "border-color", "color"], {
-                  duration: theme.transitions.duration.shorter,
-                }),
+                transition: theme.transitions.create(
+                  ["background-color", "border-color", "color"],
+                  { duration: theme.transitions.duration.shorter }
+                ),
                 "&:hover": {
-                  bgcolor: alpha(theme.palette.text.primary, 0.06),
-                  borderColor: theme.palette.text.primary,
-                  color: theme.palette.text.primary,
+                  bgcolor: alpha(theme.palette.secondary.main, 0.06),
+                  borderColor: alpha(theme.palette.secondary.main, 0.4),
+                  color: theme.palette.secondary.main,
                 },
               }}
             >
-              <FilePenLine size={16} />
+              <FilePenLine size={16} strokeWidth={1.5} />
             </IconButton>
           </Box>
         </Tooltip>
+
         <Tooltip title="Hapus Karyawan">
           <Box component="span" sx={{ display: "inline-flex" }}>
             <IconButton
@@ -343,20 +281,21 @@ const Users = () => {
               sx={{
                 border: "1px solid",
                 borderColor: alpha(theme.palette.divider, 0.8),
+                borderRadius: `${theme.shape.borderRadius}px`,
                 bgcolor: alpha(theme.palette.background.paper, 0.6),
-                backdropFilter: "blur(4px)",
                 color: theme.palette.text.secondary,
-                transition: theme.transitions.create(["background-color", "border-color", "color"], {
-                  duration: theme.transitions.duration.shorter,
-                }),
+                transition: theme.transitions.create(
+                  ["background-color", "border-color", "color"],
+                  { duration: theme.transitions.duration.shorter }
+                ),
                 "&:hover": {
-                  bgcolor: alpha(theme.palette.text.primary, 0.06),
-                  borderColor: theme.palette.text.primary,
-                  color: theme.palette.text.primary,
+                  bgcolor: alpha(theme.palette.error.main, 0.06),
+                  borderColor: alpha(theme.palette.error.main, 0.4),
+                  color: theme.palette.error.main,
                 },
               }}
             >
-              <Trash2 size={16} />
+              <Trash2 size={16} strokeWidth={1.5} />
             </IconButton>
           </Box>
         </Tooltip>
@@ -367,7 +306,6 @@ const Users = () => {
 
   /**
    * Konfigurasi tombol aksi tabel
-   * @type {Object[]}
    */
   const tableActions = useMemo(
     () => [
@@ -380,8 +318,6 @@ const Users = () => {
 
   /**
    * Handler perubahan halaman
-   * @param {Event} event - Event perubahan
-   * @param {number} newPage - Nomor halaman baru
    */
   const handlePageChange = useCallback((event, newPage) => {
     setPage(newPage);
@@ -389,7 +325,6 @@ const Users = () => {
 
   /**
    * Handler perubahan jumlah baris per halaman
-   * @param {number} newLimit - Nilai jumlah baris per halaman baru
    */
   const handleRowsPerPageChange = useCallback((newLimit) => {
     setLimit(newLimit);
@@ -398,7 +333,6 @@ const Users = () => {
 
   /**
    * Handler perubahan input pencarian
-   * @param {Event} e - Event perubahan input
    */
   const onSearchChange = useCallback((e) => {
     setSearch(e.target.value);
@@ -412,7 +346,16 @@ const Users = () => {
         count={metadata.totalPages || 0}
         data={tableData}
         emptyStateMessage="Tidak ada karyawan ditemukan"
-        headers={headers}
+        headers={[
+          "Nama",
+          "Email",
+          "Telepon",
+          "Role",
+          "Status",
+          "Verifikasi",
+          "Bergabung",
+          "Aksi",
+        ]}
         isLoading={isLoading}
         onChange={handlePageChange}
         onRowDoubleClick={handleRowDoubleClick}
@@ -440,8 +383,6 @@ const Users = () => {
       <UserFormDialog
         open={createDialog}
         onClose={closeCreateDialog}
-        onSubmit={handleCreateUser}
-        isPending={createUserMutation.isPending}
         type="create"
       />
 
@@ -449,8 +390,6 @@ const Users = () => {
         open={editDialog.open}
         user={editDialog.user}
         onClose={closeEditDialog}
-        onSubmit={handleUpdateUser}
-        isPending={updateUserMutation.isPending}
         type="edit"
       />
 

@@ -1,108 +1,223 @@
+// #shared/utils/error.js
+
 /**
- * @class ApiError
- * @extends Error
- * @description Kelas kustom untuk menangani error API beserta kode status HTTP.
+ * Custom API Error
  */
 class ApiError extends Error {
   /**
-   * @constructor
-   * @param {Object} params - Konfigurasi error.
-   * @param {string} params.message - Pesan error yang akan dikirim ke klien.
-   * @param {number} [params.statusCode=500] - Kode status HTTP.
-   * @param {*} [params.details=null] - Detail tambahan terkait error (opsional).
+   * @param {Object} params
+   * @param {string} params.message
+   * @param {number} [params.statusCode=500]
+   * @param {string} [params.code="INTERNAL_SERVER_ERROR"]
+   * @param {*} [params.details=null]
+   * @param {boolean} [params.isOperational=true]
    */
-  constructor({ message, statusCode = 500, details = null }) {
+  constructor({
+    message,
+    statusCode = 500,
+    code = "INTERNAL_SERVER_ERROR",
+    details = null,
+    isOperational = true,
+  }) {
     super(message);
+
+    this.name = this.constructor.name;
     this.statusCode = statusCode;
+    this.code = code;
     this.details = details;
-    this.isOperational = true;
+    this.isOperational = isOperational;
 
     Error.captureStackTrace(this, this.constructor);
   }
 
   /**
-   * @static
-   * @description Menghasilkan error 400 Bad Request.
-   * @param {Object} [params] - Konfigurasi error.
-   * @param {string} [params.message="Permintaan tidak valid"] - Pesan error.
-   * @param {*} [params.details=null] - Detail tambahan error.
-   * @returns {ApiError} Instance ApiError.
+   * Serialize Error
+   */
+  toJSON() {
+    return {
+      success: false,
+      message: this.message,
+      code: this.code,
+      details: this.details,
+    };
+  }
+
+  /**
+   * 400 Bad Request
    */
   static badRequest({
     message = "Permintaan tidak valid",
+    code = "BAD_REQUEST",
     details = null,
   } = {}) {
-    return new ApiError({ message, statusCode: 400, details });
+    return new ApiError({
+      message,
+      statusCode: 400,
+      code,
+      details,
+    });
   }
 
   /**
-   * @static
-   * @description Menghasilkan error 401 Unauthorized.
-   * @param {Object} [params] - Konfigurasi error.
-   * @param {string} [params.message="Autentikasi diperlukan"] - Pesan error.
-   * @returns {ApiError} Instance ApiError.
+   * 401 Unauthorized
    */
-  static unauthorized({ message = "Autentikasi diperlukan" } = {}) {
-    return new ApiError({ message, statusCode: 401 });
+  static unauthorized({
+    message = "Autentikasi diperlukan",
+    code = "UNAUTHORIZED",
+    details = null,
+  } = {}) {
+    return new ApiError({
+      message,
+      statusCode: 401,
+      code,
+      details,
+    });
   }
 
   /**
-   * @static
-   * @description Menghasilkan error 403 Forbidden.
-   * @param {Object} [params] - Konfigurasi error.
-   * @param {string} [params.message="Anda tidak memiliki akses"] - Pesan error.
-   * @returns {ApiError} Instance ApiError.
+   * 403 Forbidden
    */
-  static forbidden({ message = "Anda tidak memiliki akses" } = {}) {
-    return new ApiError({ message, statusCode: 403 });
+  static forbidden({
+    message = "Anda tidak memiliki akses",
+    code = "FORBIDDEN",
+    details = null,
+  } = {}) {
+    return new ApiError({
+      message,
+      statusCode: 403,
+      code,
+      details,
+    });
   }
 
   /**
-   * @static
-   * @description Menghasilkan error 404 Not Found.
-   * @param {Object} [params] - Konfigurasi error.
-   * @param {string} [params.message="Data tidak ditemukan"] - Pesan error.
-   * @returns {ApiError} Instance ApiError.
+   * 404 Not Found
    */
-  static notFound({ message = "Data tidak ditemukan" } = {}) {
-    return new ApiError({ message, statusCode: 404 });
+  static notFound({
+    message = "Data tidak ditemukan",
+    code = "NOT_FOUND",
+    details = null,
+  } = {}) {
+    return new ApiError({
+      message,
+      statusCode: 404,
+      code,
+      details,
+    });
   }
 
   /**
-   * @static
-   * @description Menghasilkan error 408 Request Timeout.
-   * @param {Object} [params] - Konfigurasi error.
-   * @param {string} [params.message="Waktu permintaan habis"] - Pesan error.
-   * @returns {ApiError} Instance ApiError.
+   * 408 Request Timeout
    */
-  static requestTimeout({ message = "Waktu permintaan habis" } = {}) {
-    return new ApiError({ message, statusCode: 408 });
+  static requestTimeout({
+    message = "Waktu permintaan habis",
+    code = "REQUEST_TIMEOUT",
+    details = null,
+  } = {}) {
+    return new ApiError({
+      message,
+      statusCode: 408,
+      code,
+      details,
+    });
   }
 
   /**
-   * @static
-   * @description Menghasilkan error 409 Conflict.
-   * @param {Object} [params] - Konfigurasi error.
-   * @param {string} [params.message="Data sudah ada"] - Pesan error.
-   * @returns {ApiError} Instance ApiError.
+   * 409 Conflict
    */
-  static conflict({ message = "Data sudah ada" } = {}) {
-    return new ApiError({ message, statusCode: 409 });
+  static conflict({
+    message = "Data sudah ada",
+    code = "RESOURCE_CONFLICT",
+    details = null,
+  } = {}) {
+    return new ApiError({
+      message,
+      statusCode: 409,
+      code,
+      details,
+    });
   }
 
   /**
-   * @static
-   * @description Menghasilkan error 500 Internal Server Error.
-   * @param {Object} [params] - Konfigurasi error.
-   * @param {string} [params.message="Terjadi kesalahan pada sistem"] - Pesan error.
-   * @param {*} [params.details=null] - Detail tambahan error.
-   * @returns {ApiError} Instance ApiError.
+   * 422 Validation Error
+   */
+  static unprocessableEntity({
+    message = "Validasi gagal",
+    code = "VALIDATION_ERROR",
+    details = null,
+  } = {}) {
+    return new ApiError({
+      message,
+      statusCode: 422,
+      code,
+      details,
+    });
+  }
+
+  /**
+   * 429 Too Many Requests
+   */
+  static tooManyRequests({
+    message = "Terlalu banyak permintaan. Silakan coba lagi nanti.",
+    code = "RATE_LIMITED",
+    retryAfter = 60,
+  } = {}) {
+    return new ApiError({
+      message,
+      statusCode: 429,
+      code,
+      details: {
+        retryAfter,
+      },
+    });
+  }
+
+  /**
+   * 500 Internal Server Error
    */
   static internal({
     message = "Terjadi kesalahan pada sistem",
+    code = "INTERNAL_SERVER_ERROR",
     details = null,
   } = {}) {
-    return new ApiError({ message, statusCode: 500, details });
+    return new ApiError({
+      message,
+      statusCode: 500,
+      code,
+      details,
+    });
+  }
+
+  /**
+   * 503 Service Unavailable
+   */
+  static serviceUnavailable({
+    message = "Layanan sedang tidak tersedia",
+    code = "SERVICE_UNAVAILABLE",
+    details = null,
+  } = {}) {
+    return new ApiError({
+      message,
+      statusCode: 503,
+      code,
+      details,
+    });
+  }
+
+  /**
+   * 504 Gateway Timeout
+   */
+  static gatewayTimeout({
+    message = "Gateway timeout",
+    code = "GATEWAY_TIMEOUT",
+    details = null,
+  } = {}) {
+    return new ApiError({
+      message,
+      statusCode: 504,
+      code,
+      details,
+    });
   }
 }
 

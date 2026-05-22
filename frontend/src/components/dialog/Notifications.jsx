@@ -15,8 +15,6 @@ import {
   DialogActions,
   Button,
   IconButton,
-  Slide,
-  Fade,
   useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -30,8 +28,6 @@ import {
   selectNotificationVariant,
   selectNotificationAutoHide,
 } from "@store/notifications/notificationsSelector.js";
-
-const SlideTransition = (props) => <Slide {...props} direction="up" />;
 
 const NotificationHandler = () => {
   const theme = useTheme();
@@ -53,9 +49,16 @@ const NotificationHandler = () => {
       <Dialog
         open={open}
         onClose={handleClose}
-        TransitionComponent={Fade}
         maxWidth="xs"
         fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: `${theme.shape.borderRadius}px`,
+              border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+            },
+          },
+        }}
       >
         {title && (
           <DialogTitle
@@ -63,24 +66,29 @@ const NotificationHandler = () => {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              px: 3,
-              pt: 2.5,
-              pb: 2,
+              fontWeight: 400,
             }}
           >
             {title}
-            <IconButton onClick={handleClose}>
-              <X size={18} />
+            <IconButton onClick={handleClose} size="small">
+              <X size={18} strokeWidth={1.5} />
             </IconButton>
           </DialogTitle>
         )}
 
         <DialogContent dividers={!!title}>
-          <DialogContentText>{message}</DialogContentText>
+          <DialogContentText sx={{ fontWeight: 400 }}>
+            {message}
+          </DialogContentText>
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button color="inherit" variant="outlined" onClick={handleClose}>
+        <DialogActions>
+          <Button
+            color="inherit"
+            variant="outlined"
+            onClick={handleClose}
+            sx={{ fontWeight: 400 }}
+          >
             Tutup
           </Button>
         </DialogActions>
@@ -93,12 +101,15 @@ const NotificationHandler = () => {
       open={open}
       autoHideDuration={autoHide}
       onClose={handleClose}
-      TransitionComponent={SlideTransition}
       anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      slotProps={{
+        transition: {
+          direction: "up",
+        },
+      }}
     >
       <Alert
         severity={type}
-        onClose={handleClose}
         variant="outlined"
         sx={{
           borderRadius: `${theme.shape.borderRadius}px`,
@@ -107,6 +118,7 @@ const NotificationHandler = () => {
           backdropFilter: "blur(8px)",
           boxShadow: theme.shadows[3],
           alignItems: "center",
+          fontWeight: 400,
           "& .MuiAlert-icon": {
             color: theme.palette[type]?.main || theme.palette.primary.main,
           },

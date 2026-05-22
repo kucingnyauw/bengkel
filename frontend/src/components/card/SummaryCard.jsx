@@ -165,7 +165,7 @@ const SummaryCard = memo(
                 color="text.secondary"
                 variant="body2"
                 noWrap
-                sx={{ fontWeight: 400 }}
+                sx={{ fontWeight: 500 }}
               >
                 {title}
               </Typography>

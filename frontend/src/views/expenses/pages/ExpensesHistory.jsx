@@ -6,7 +6,7 @@
  */
 import { useCallback, useMemo, useState } from "react";
 import { ListFilter, RotateCcw } from "lucide-react";
-import { Chip, Typography } from "@mui/material";
+import { Box, Chip, Typography, useTheme } from "@mui/material";
 
 import { AppTable } from "@components";
 import { useDebounce } from "@hooks";
@@ -23,6 +23,7 @@ import {
 } from "@views/expenses/hooks";
 
 const ExpenseHistory = () => {
+  const theme = useTheme();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
@@ -41,19 +42,6 @@ const ExpenseHistory = () => {
     tempFilters,
   } = useExpenseFilters();
 
-  /**
-   * Konfigurasi header tabel
-   * @type {string[]}
-   */
-  const headers = useMemo(
-    () => ["Judul", "Jumlah", "Kategori", "Pencatat", "Tanggal"],
-    []
-  );
-
-  /**
-   * Parameter query untuk riwayat pengeluaran
-   * @type {Object}
-   */
   const params = useMemo(
     () => ({
       page,
@@ -93,7 +81,6 @@ const ExpenseHistory = () => {
 
   /**
    * Handler klik ganda baris untuk membuka dialog detail
-   * @param {Object} row - Data baris pengeluaran
    */
   const handleRowDoubleClick = useCallback(
     (row) => openDetailDialog(row),
@@ -102,28 +89,49 @@ const ExpenseHistory = () => {
 
   /**
    * Render baris kustom untuk tabel riwayat pengeluaran
-   * @param {Object} row - Data pengeluaran
-   * @returns {JSX.Element[]} Array komponen sel
    */
   const renderRow = useCallback(
     (row) => [
-      <Typography key={`title-${row.id}`} fontWeight={500} variant="body2">
-        {row.title}
+      <Box key={`title-${row.id}`}>
+        <Typography variant="body2" sx={{ fontWeight: 400 }}>
+          {row.title}
+        </Typography>
+        {row.description && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{
+              fontWeight: 400,
+              display: "block",
+              maxWidth: 200,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {row.description}
+          </Typography>
+        )}
+      </Box>,
+
+      <Typography key={`amount-${row.id}`} variant="body2" color="error.main" sx={{ fontWeight: 400 }}>
+        -{formatToIdr(row.amount)}
       </Typography>,
-      <Typography key={`amount-${row.id}`} fontWeight={500} variant="body2">
-        {formatToIdr(row.amount)}
-      </Typography>,
+
       <Chip
         key={`category-${row.id}`}
         color={expenseCategoryColorMap[row.category] || "default"}
         label={normalizeEnumText(ExpenseCategory[row.category] || row.category)}
         size="small"
         variant="outlined"
+        sx={{ fontWeight: 400 }}
       />,
-      <Typography key={`recordedBy-${row.id}`} variant="body2">
+
+      <Typography key={`recordedBy-${row.id}`} variant="body2" sx={{ fontWeight: 400 }}>
         {row.recordedBy?.fullName || "—"}
       </Typography>,
-      <Typography key={`date-${row.id}`} variant="body2">
+
+      <Typography key={`date-${row.id}`} variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
         {formatDateTime(row.date)}
       </Typography>,
     ],
@@ -132,7 +140,6 @@ const ExpenseHistory = () => {
 
   /**
    * Konfigurasi tombol aksi tabel
-   * @type {Object[]}
    */
   const tableActions = useMemo(
     () => [
@@ -144,8 +151,6 @@ const ExpenseHistory = () => {
 
   /**
    * Handler perubahan halaman
-   * @param {Event} event - Event perubahan
-   * @param {number} newPage - Nomor halaman baru
    */
   const handlePageChange = useCallback((event, newPage) => {
     setPage(newPage);
@@ -153,7 +158,6 @@ const ExpenseHistory = () => {
 
   /**
    * Handler perubahan jumlah baris per halaman
-   * @param {number} newLimit - Nilai jumlah baris per halaman baru
    */
   const handleRowsPerPageChange = useCallback((newLimit) => {
     setLimit(newLimit);
@@ -162,7 +166,6 @@ const ExpenseHistory = () => {
 
   /**
    * Handler perubahan input pencarian
-   * @param {Event} e - Event perubahan input
    */
   const onSearchChange = useCallback((e) => {
     setSearch(e.target.value);
@@ -176,7 +179,7 @@ const ExpenseHistory = () => {
         count={metadata.totalPages || 0}
         data={tableData}
         emptyStateMessage="Tidak ada riwayat pengeluaran"
-        headers={headers}
+        headers={["Judul", "Jumlah", "Kategori", "Pencatat", "Tanggal"]}
         isLoading={isLoading}
         onChange={handlePageChange}
         onRowDoubleClick={handleRowDoubleClick}

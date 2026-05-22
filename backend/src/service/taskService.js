@@ -3,6 +3,7 @@ import UserRepository from "#repository/userRepository.js";
 import OrderRepository from "#repository/orderRepository.js";
 import NotificationRepository from "#repository/notificationRepository.js";
 import SettingRepository from "#repository/settingRepository.js";
+import CacheManager from "#shared/utils/cache.js";
 import ApiError from "#shared/utils/error.js";
 import Storage from "#shared/utils/storage.js";
 import prisma from "#app/database.js";
@@ -27,12 +28,25 @@ class TaskService {
     this.orderRepo = new OrderRepository();
     this.notifRepo = new NotificationRepository();
     this.settingRepo = new SettingRepository();
+    this.cache = new CacheManager("order");
+  }
+
+  /**
+   * Invalidasi cache order history
+   * @param {string} orderNumber
+   * @returns {Promise<void>}
+   * @private
+   */
+  async #invalidateOrderHistoryCache(orderNumber) {
+    if (orderNumber) {
+      await this.cache.invalidate(`history:${orderNumber}`);
+    }
   }
 
   /**
    * Mendapatkan nilai setting dari database
-   * @param {string} key - Key setting
-   * @param {*} defaultValue - Nilai default
+   * @param {string} key
+   * @param {*} defaultValue
    * @returns {Promise<*>}
    * @private
    */
@@ -43,9 +57,9 @@ class TaskService {
 
   /**
    * Mendapatkan order item service yang belum di-assign dari order
-   * @param {string} orderId - ID order
-   * @returns {Promise<Array>} Array order item service unassigned
-   * @throws {ApiError} 404 | 400
+   * @param {string} orderId
+   * @returns {Promise<Array>}
+   * @throws {ApiError}
    * @private
    */
   async #getUnassignedServiceItems(orderId) {
@@ -80,8 +94,8 @@ class TaskService {
 
   /**
    * Validasi kapasitas mekanik sebelum assign
-   * @param {string} mechanicId - ID mekanik
-   * @throws {ApiError} 400
+   * @param {string} mechanicId
+   * @throws {ApiError}
    * @private
    */
   async #validateMechanicCapacity(mechanicId) {
@@ -97,7 +111,7 @@ class TaskService {
 
   /**
    * Cek apakah mekanik tersedia
-   * @param {string} mechanicId - ID mekanik
+   * @param {string} mechanicId
    * @returns {Promise<boolean>}
    * @private
    */
@@ -109,7 +123,7 @@ class TaskService {
 
   /**
    * Cek apakah semua task di order sudah selesai
-   * @param {string} orderId - ID order
+   * @param {string} orderId
    * @returns {Promise<boolean>}
    * @private
    */
@@ -125,9 +139,9 @@ class TaskService {
 
   /**
    * Mendapatkan semua assignment aktif untuk order dan mekanik tertentu
-   * @param {string} orderId - ID order
-   * @param {string} mechanicId - ID mekanik
-   * @returns {Promise<Array>} Array assignment
+   * @param {string} orderId
+   * @param {string} mechanicId
+   * @returns {Promise<Array>}
    * @private
    */
   async #getActiveAssignments(orderId, mechanicId) {
@@ -153,10 +167,10 @@ class TaskService {
 
   /**
    * Mengirim notifikasi
-   * @param {string} userId - ID user penerima
-   * @param {string} title - Judul notifikasi
-   * @param {string} message - Pesan notifikasi
-   * @param {string} [type="INFO"] - Tipe notifikasi
+   * @param {string} userId
+   * @param {string} title
+   * @param {string} message
+   * @param {string} [type="INFO"]
    * @returns {Promise<void>}
    * @private
    */
@@ -167,9 +181,9 @@ class TaskService {
 
   /**
    * Menghitung durasi kerja dalam format readable
-   * @param {Date} startAt - Waktu mulai
-   * @param {Date} endAt - Waktu selesai
-   * @returns {string} Durasi terformat
+   * @param {Date} startAt
+   * @param {Date} endAt
+   * @returns {string}
    * @private
    */
   #formatDuration(startAt, endAt) {
@@ -183,8 +197,8 @@ class TaskService {
 
   /**
    * Generate signed URL untuk gambar produk
-   * @param {Object} product - Data produk
-   * @returns {Promise<Object>} Produk dengan signed URL
+   * @param {Object} product
+   * @returns {Promise<Object>}
    * @private
    */
   async #addSignedUrlToProduct(product) {
@@ -195,18 +209,12 @@ class TaskService {
     return product;
   }
 
-  // ============================================================
-  // Public Methods
-  // ============================================================
-
   /**
-   * Menugaskan mekanik ke semua item service unassigned dalam order.
-   * Hanya bisa dilakukan saat status QUEUED.
-   *
-   * @param {string} orderId - ID order
-   * @param {string} mechanicId - ID mekanik
-   * @returns {Promise<Array>} Data assignments
-   * @throws {ApiError} 400 | 404
+   * Menugaskan mekanik ke semua item service unassigned dalam order
+   * @param {string} orderId
+   * @param {string} mechanicId
+   * @returns {Promise<Array>}
+   * @throws {ApiError}
    */
   async assignMechanicToOrder(orderId, mechanicId) {
     const mechanic = await this.userRepo.findById(mechanicId);
@@ -255,6 +263,8 @@ class TaskService {
       },
     });
 
+    await this.#invalidateOrderHistoryCache(order.orderNumber);
+
     await this.#sendNotification(
       mechanicId,
       "Tugas Baru Diterima",
@@ -275,13 +285,11 @@ class TaskService {
   }
 
   /**
-   * Melepas semua mekanik dari order.
-   * Hanya bisa saat status QUEUED.
-   *
-   * @param {string} orderId - ID order
-   * @param {string} [userId] - ID user yang melakukan unassign
+   * Melepas semua mekanik dari order
+   * @param {string} orderId
+   * @param {string} [userId]
    * @returns {Promise<void>}
-   * @throws {ApiError} 400 | 404
+   * @throws {ApiError}
    */
   async unassignMechanicFromOrder(orderId, userId) {
     const order = await this.orderRepo.findById(orderId);
@@ -293,12 +301,6 @@ class TaskService {
     if (order.status === "COMPLETED" || order.status === "CLOSED" || order.status === "CANCELLED") {
       throw ApiError.badRequest({
         message: "Tidak dapat unassign dari pesanan yang sudah selesai, ditutup, atau dibatalkan.",
-      });
-    }
-
-    if (order.status === "IN_PROGRESS") {
-      throw ApiError.badRequest({
-        message: "Tidak dapat unassign. Pesanan sedang dalam pengerjaan.",
       });
     }
 
@@ -343,6 +345,8 @@ class TaskService {
       },
     });
 
+    await this.#invalidateOrderHistoryCache(order.orderNumber);
+
     for (const mId of mechanicIds) {
       await this.#sendNotification(
         mId,
@@ -359,9 +363,9 @@ class TaskService {
 
   /**
    * Mendapatkan task berdasarkan ID
-   * @param {string} assignmentId - ID assignment
+   * @param {string} assignmentId
    * @returns {Promise<Object>}
-   * @throws {ApiError} 404
+   * @throws {ApiError}
    */
   async getTaskById(assignmentId) {
     const assignment = await this.taskRepo.findById(assignmentId);
@@ -375,10 +379,10 @@ class TaskService {
   }
 
   /**
-   * Mendapatkan semua task dalam satu order (grouped dengan detail)
-   * @param {string} orderId - ID order
-   * @returns {Promise<Object>} Data order dengan tasks
-   * @throws {ApiError} 404
+   * Mendapatkan semua task dalam satu order
+   * @param {string} orderId
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
    */
   async getTasksByOrderId(orderId) {
     const order = await this.orderRepo.findById(orderId);
@@ -454,7 +458,7 @@ class TaskService {
   }
 
   /**
-   * Mendapatkan daftar task dengan filter dan paginasi (grouped by order)
+   * Mendapatkan daftar task dengan filter dan paginasi
    * @param {Object} [query={}]
    * @returns {Promise<{data: Array, metadata: Object}>}
    */
@@ -463,8 +467,8 @@ class TaskService {
   }
 
   /**
-   * Mendapatkan task aktif berdasarkan mekanik (grouped by order)
-   * @param {string} mechanicId - ID mekanik
+   * Mendapatkan task aktif berdasarkan mekanik
+   * @param {string} mechanicId
    * @returns {Promise<Array>}
    */
   async getTasksByMechanic(mechanicId) {
@@ -501,7 +505,7 @@ class TaskService {
 
   /**
    * Mendapatkan task berdasarkan order item
-   * @param {string} orderItemId - ID order item
+   * @param {string} orderItemId
    * @returns {Promise<Array>}
    */
   async getTasksByOrderItem(orderItemId) {
@@ -509,8 +513,8 @@ class TaskService {
   }
 
   /**
-   * Mendapatkan task pribadi mekanik yang sedang login (grouped by order)
-   * @param {string} mechanicId - ID mekanik
+   * Mendapatkan task pribadi mekanik yang sedang login
+   * @param {string} mechanicId
    * @param {Object} [query={}]
    * @returns {Promise<{data: Array, metadata: Object}>}
    */
@@ -528,13 +532,11 @@ class TaskService {
   }
 
   /**
-   * Memulai pengerjaan semua task dalam order oleh mekanik.
-   * Status order QUEUED → IN_PROGRESS.
-   *
-   * @param {string} orderId - ID order
-   * @param {string} mechanicId - ID mekanik
-   * @returns {Promise<Array>} Semua task yang sudah distart
-   * @throws {ApiError} 404 | 409 | 400
+   * Memulai pengerjaan semua task dalam order oleh mekanik
+   * @param {string} orderId
+   * @param {string} mechanicId
+   * @returns {Promise<Array>}
+   * @throws {ApiError}
    */
   async startOrder(orderId, mechanicId) {
     const order = await this.orderRepo.findById(orderId);
@@ -589,6 +591,8 @@ class TaskService {
       });
     });
 
+    await this.#invalidateOrderHistoryCache(order.orderNumber);
+
     if (order.cashierId) {
       await this.#sendNotification(
         order.cashierId,
@@ -610,13 +614,11 @@ class TaskService {
   }
 
   /**
-   * Menyelesaikan semua task dalam order oleh mekanik.
-   * Status order IN_PROGRESS → COMPLETED.
-   *
-   * @param {string} orderId - ID order
-   * @param {string} mechanicId - ID mekanik
-   * @returns {Promise<Array>} Semua task yang sudah selesai
-   * @throws {ApiError} 404 | 409 | 400
+   * Menyelesaikan semua task dalam order oleh mekanik
+   * @param {string} orderId
+   * @param {string} mechanicId
+   * @returns {Promise<Array>}
+   * @throws {ApiError}
    */
   async completeOrder(orderId, mechanicId) {
     const order = await this.orderRepo.findById(orderId);
@@ -672,6 +674,8 @@ class TaskService {
       });
     });
 
+    await this.#invalidateOrderHistoryCache(order.orderNumber);
+
     if (order.cashierId) {
       await this.#sendNotification(
         order.cashierId,
@@ -713,9 +717,9 @@ class TaskService {
 
   /**
    * Mendapatkan status ketersediaan seorang mekanik
-   * @param {string} mechanicId - ID mekanik
+   * @param {string} mechanicId
    * @returns {Promise<Object>}
-   * @throws {ApiError} 400
+   * @throws {ApiError}
    */
   async getMechanicAvailabilityStatus(mechanicId) {
     const mechanic = await this.userRepo.findById(mechanicId);
@@ -737,7 +741,7 @@ class TaskService {
 
   /**
    * Mengecek apakah order item sudah memiliki mekanik yang ditugaskan
-   * @param {string} orderItemId - ID order item
+   * @param {string} orderItemId
    * @returns {Promise<boolean>}
    */
   async hasMechanicAssigned(orderItemId) {
@@ -745,7 +749,7 @@ class TaskService {
   }
 
   /**
-   * Assign banyak mekanik ke banyak order sekaligus (bulk operation)
+   * Assign banyak mekanik ke banyak order sekaligus
    * @param {Array<{orderId: string, mechanicId: string}>} assignments
    * @returns {Promise<{success: Array, failed: Array}>}
    */
@@ -772,14 +776,14 @@ class TaskService {
   }
 
   /**
-   * Mendapatkan riwayat task mekanik yang sudah selesai (grouped by order)
-   * @param {string} mechanicId - ID mekanik
+   * Mendapatkan riwayat task mekanik yang sudah selesai
+   * @param {string} mechanicId
    * @param {Object} [query={}]
-   * @param {number} [query.page] - Nomor halaman
-   * @param {number} [query.limit] - Jumlah data per halaman
-   * @param {string} [query.search] - Search by product name atau order number
-   * @param {string|Date} [query.startDate] - Filter tanggal mulai
-   * @param {string|Date} [query.endDate] - Filter tanggal akhir
+   * @param {number} [query.page]
+   * @param {number} [query.limit]
+   * @param {string} [query.search]
+   * @param {string|Date} [query.startDate]
+   * @param {string|Date} [query.endDate]
    * @returns {Promise<{data: Array, metadata: Object}>}
    */
   async getMyTaskHistory(mechanicId, query = {}) {

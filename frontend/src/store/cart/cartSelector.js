@@ -17,11 +17,6 @@ export const selectVehicleId = createSelector(
   (cart) => cart.vehicleId
 );
 
-export const selectIsItemAdded = createSelector(
-  selectCart,
-  (cart) => cart.isItemAdded
-);
-
 export const selectCartItemCount = createSelector(
   selectCartItems,
   (items) =>
@@ -80,13 +75,11 @@ export const selectCartSummary = createSelector(
   selectCartTax,
   selectCartTotal,
   selectCartItemCount,
-  selectIsItemAdded,
-  (items, subtotal, tax, total, itemCount, isItemAdded) => ({
+  (items, subtotal, tax, total, itemCount) => ({
     items,
     subtotal,
     tax,
     total,
     itemCount,
-    isItemAdded,
   })
 );

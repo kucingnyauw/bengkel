@@ -15,8 +15,12 @@ const App = () => {
   const mode = useSelector(selectThemeMode);
   const theme = useMemo(() => getTheme(mode), [mode]);
 
+
+
   useEffect(() => {
+
     dispatch(fetchCurrentUser());
+
   }, [dispatch]);
 
   useEffect(() => {

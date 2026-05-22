@@ -50,26 +50,6 @@ const AvailableMechanics = () => {
     closeTaskDialog,
   } = useTaskDialog();
 
-  /**
-   * Konfigurasi header tabel
-   * @type {string[]}
-   */
-  const headers = useMemo(
-    () => [
-      "Nama Mekanik",
-      "Email",
-      "Telepon",
-      "Tugas Aktif",
-      "Status",
-      "Aksi",
-    ],
-    []
-  );
-
-  /**
-   * Parameter query
-   * @type {Object}
-   */
   const params = useMemo(
     () => ({ limit, page, search: debouncedSearch }),
     [limit, page, debouncedSearch]
@@ -82,8 +62,6 @@ const AvailableMechanics = () => {
 
   /**
    * Handler klik tombol assign
-   * @param {Event} e - Event klik
-   * @param {Object} row - Data mekanik
    */
   const handleAssignClick = useCallback(
     (e, row) => {
@@ -96,7 +74,6 @@ const AvailableMechanics = () => {
 
   /**
    * Handler klik ganda baris
-   * @param {Object} row - Data mekanik
    */
   const handleRowDoubleClick = useCallback(
     (row) => openTaskDialog(row),
@@ -105,38 +82,42 @@ const AvailableMechanics = () => {
 
   /**
    * Render baris kustom
-   * @param {Object} row - Data mekanik
-   * @returns {JSX.Element[]} Array komponen sel
    */
   const renderRow = useCallback(
     (row) => [
-      <Stack key={`name-${row.id}`} spacing={0.5}>
-        <Typography fontWeight={500} variant="body2">
+      <Box key={`name-${row.id}`}>
+        <Typography variant="body2" sx={{ fontWeight: 400 }}>
           {row.fullName}
         </Typography>
         {!row.isAvailable && (
-          <Typography variant="caption" color="error.main">
+          <Typography variant="caption" color="error.main" sx={{ fontWeight: 400 }}>
             Kapasitas penuh ({row.activeTaskCount} tugas)
           </Typography>
         )}
-      </Stack>,
-      <Typography key={`email-${row.id}`} variant="body2">
-        {row.email}
+      </Box>,
+
+      <Typography key={`email-${row.id}`} variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+        {row.email || "—"}
       </Typography>,
-      <Typography key={`phone-${row.id}`} variant="body2">
+
+      <Typography key={`phone-${row.id}`} variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
         {row.phone || "—"}
       </Typography>,
-      <Typography key={`task-${row.id}`} variant="body2" textAlign="center">
+
+      <Typography key={`task-${row.id}`} variant="body2" sx={{ fontWeight: 400, textAlign: "center" }}>
         {row.activeTaskCount}
       </Typography>,
+
       <Chip
         key={`status-${row.id}`}
         color={row.isAvailable ? "success" : "default"}
         label={row.isAvailable ? "Tersedia" : "Sibuk"}
         size="small"
         variant="outlined"
+        sx={{ fontWeight: 400 }}
       />,
-      <Stack key={`action-${row.id}`} direction="row" spacing={0.5}>
+
+      <Stack key={`action-${row.id}`} direction="row" sx={{ gap: 0.5 }}>
         <Tooltip title={row.isAvailable ? "Tugaskan ke Pesanan" : "Mekanik tidak tersedia"}>
           <Box component="span" sx={{ display: "inline-flex" }}>
             <IconButton
@@ -148,27 +129,28 @@ const AvailableMechanics = () => {
                 border: "1px solid",
                 borderColor: row.isAvailable
                   ? alpha(theme.palette.divider, 0.8)
-                  : alpha(theme.palette.divider, 0.5),
+                  : alpha(theme.palette.divider, 0.4),
+                borderRadius: `${theme.shape.borderRadius}px`,
                 bgcolor: row.isAvailable
                   ? alpha(theme.palette.background.paper, 0.6)
                   : "transparent",
-                backdropFilter: "blur(4px)",
                 color: row.isAvailable
                   ? theme.palette.text.secondary
                   : theme.palette.action.disabled,
-                transition: theme.transitions.create(["background-color", "border-color", "color"], {
-                  duration: theme.transitions.duration.shorter,
-                }),
+                transition: theme.transitions.create(
+                  ["background-color", "border-color", "color"],
+                  { duration: theme.transitions.duration.shorter }
+                ),
                 "&:hover": row.isAvailable
                   ? {
-                      bgcolor: alpha(theme.palette.text.primary, 0.06),
-                      borderColor: theme.palette.text.primary,
-                      color: theme.palette.text.primary,
+                      bgcolor: alpha(theme.palette.secondary.main, 0.06),
+                      borderColor: alpha(theme.palette.secondary.main, 0.4),
+                      color: theme.palette.secondary.main,
                     }
                   : {},
               }}
             >
-              <Plus size={16} />
+              <Plus size={16} strokeWidth={1.5} />
             </IconButton>
           </Box>
         </Tooltip>
@@ -179,7 +161,6 @@ const AvailableMechanics = () => {
 
   /**
    * Konfigurasi tombol aksi tabel
-   * @type {Object[]}
    */
   const tableActions = useMemo(
     () => [{ icon: RotateCcw, label: "Refresh", onClick: () => refetch() }],
@@ -188,8 +169,6 @@ const AvailableMechanics = () => {
 
   /**
    * Handler perubahan halaman
-   * @param {Event} event - Event perubahan
-   * @param {number} newPage - Nomor halaman baru
    */
   const handlePageChange = useCallback((event, newPage) => {
     setPage(newPage);
@@ -197,7 +176,6 @@ const AvailableMechanics = () => {
 
   /**
    * Handler perubahan jumlah baris per halaman
-   * @param {number} newLimit - Nilai jumlah baris per halaman baru
    */
   const handleRowsPerPageChange = useCallback((newLimit) => {
     setLimit(newLimit);
@@ -206,7 +184,6 @@ const AvailableMechanics = () => {
 
   /**
    * Handler perubahan input pencarian
-   * @param {Event} e - Event perubahan input
    */
   const onSearchChange = useCallback((e) => {
     setSearch(e.target.value);
@@ -220,7 +197,14 @@ const AvailableMechanics = () => {
         count={metadata.totalPages || 0}
         data={tableData}
         emptyStateMessage="Tidak ada mekanik tersedia"
-        headers={headers}
+        headers={[
+          "Nama Mekanik",
+          "Email",
+          "Telepon",
+          "Tugas Aktif",
+          "Status",
+          "Aksi",
+        ]}
         isLoading={isLoading}
         onChange={handlePageChange}
         onRowDoubleClick={handleRowDoubleClick}

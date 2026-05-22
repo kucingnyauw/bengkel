@@ -4,12 +4,16 @@ import {
   Button,
   TextField,
   Box,
-  Divider,
+  CircularProgress,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 import { Controller, useForm } from "react-hook-form";
 
-const LoginForm = ({ onEmailSubmit, onGoogleSubmit, isLoading }) => {
+const LoginForm = ({ onEmailSubmit, isLoading }) => {
+  const theme = useTheme();
+
   const {
     handleSubmit,
     control,
@@ -31,7 +35,6 @@ const LoginForm = ({ onEmailSubmit, onGoogleSubmit, isLoading }) => {
         width: "100%",
         display: "flex",
         justifyContent: "center",
-        
       }}
     >
       <Stack
@@ -42,7 +45,6 @@ const LoginForm = ({ onEmailSubmit, onGoogleSubmit, isLoading }) => {
           mx: "auto",
           alignItems: "center",
           textAlign: "center",
-          
         }}
       >
         <Stack spacing={1} sx={{ mb: 6 }}>
@@ -50,11 +52,11 @@ const LoginForm = ({ onEmailSubmit, onGoogleSubmit, isLoading }) => {
             variant="h5"
             sx={{ fontWeight: 800, letterSpacing: "-0.02em" }}
           >
-            Welcome Back
+            Selamat Datang
           </Typography>
 
           <Typography variant="body2" color="text.secondary">
-            Enter your email to sign in to your account
+            Masukkan email Anda untuk masuk ke akun
           </Typography>
         </Stack>
 
@@ -63,22 +65,22 @@ const LoginForm = ({ onEmailSubmit, onGoogleSubmit, isLoading }) => {
             name="email"
             control={control}
             rules={{
-              required: "Email is required",
+              required: "Email wajib diisi",
               pattern: {
                 value: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
-                message: "Invalid email format",
+                message: "Format email tidak valid",
               },
             }}
             render={({ field }) => (
               <TextField
                 {...field}
                 fullWidth
-                label="Email Address"
+                label="Alamat Email"
                 type="email"
                 disabled={isLoading}
                 error={!!errors.email}
                 helperText={errors.email?.message}
-                placeholder="you@example.com"
+                placeholder="anda@example.com"
               />
             )}
           />
@@ -92,46 +94,17 @@ const LoginForm = ({ onEmailSubmit, onGoogleSubmit, isLoading }) => {
           sx={{
             height: 48,
             textTransform: "none",
+            borderRadius: `${theme.shape.borderRadius}px`,
+            "&:hover": {
+              boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+            },
           }}
         >
-          {isLoading ? "Sending..." : "Continue with Email"}
-        </Button>
-
-        <Box
-          sx={{
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
-          }}
-        >
-          <Divider sx={{ flex: 1 }} />
-          <Typography variant="caption" color="text.secondary">
-            OR
-          </Typography>
-          <Divider sx={{ flex: 1 }} />
-        </Box>
-
-        <Button
-          variant="outlined"
-          fullWidth
-          onClick={onGoogleSubmit}
-          disabled={isLoading}
-          sx={{
-            height: 48,
-            textTransform: "none",
-            gap: 1,
-          }}
-          startIcon={
-            <img
-              src="https://img.icons8.com/color/48/google-logo.png"
-              alt="google"
-              width={18}
-              height={18}
-            />
-          }
-        >
-          Continue with Google
+          {isLoading ? (
+            <CircularProgress size={20} color="inherit" />
+          ) : (
+            "Lanjutkan dengan Email"
+          )}
         </Button>
       </Stack>
     </Box>

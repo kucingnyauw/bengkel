@@ -7,15 +7,9 @@
 import { useMemo, useState } from "react";
 import {
   Box,
-  Button,
   Card,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
-  IconButton,
   Skeleton,
   Stack,
   Table,
@@ -24,28 +18,23 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { MobileDatePicker } from "@mui/x-date-pickers/MobileDatePicker";
 import {
   ArrowDown,
   ArrowUp,
   DollarSign,
-  Filter,
   Percent,
-  Receipt,
-  RotateCcw,
   ShoppingCart,
   TrendingUp,
-  X,
 } from "lucide-react";
 
 import { formatDate, formatToIdr } from "@shared/utils";
 import { BarChart, LineChart, SummaryCard } from "@components";
 import { useSalesSummaryReport } from "@views/reports/hooks";
+import { ReportHeader, ReportFilterDialog } from "@views/reports/components";
 
 const SalesReport = () => {
   const theme = useTheme();
@@ -85,14 +74,12 @@ const SalesReport = () => {
         {
           data: data.dailyBreakdown.map((d) => d.totalSales),
           label: "Total Penjualan",
-          backgroundColor: alpha(theme.palette.text.primary, 0.8),
+          backgroundColor: alpha(theme.palette.secondary.main, 0.8),
           borderRadius: theme.shape.borderRadius,
           borderSkipped: false,
         },
       ],
-      labels: data.dailyBreakdown.map((d) =>
-        formatDate(d.date, { dateStyle: "medium" })
-      ),
+      labels: data.dailyBreakdown.map((d) => formatDate(d.date, { dateStyle: "medium" })),
     };
   }, [data, theme]);
 
@@ -103,16 +90,14 @@ const SalesReport = () => {
         {
           data: data.dailyBreakdown.map((d) => d.orderCount),
           label: "Jumlah Pesanan",
-          borderColor: theme.palette.text.primary,
-          backgroundColor: alpha(theme.palette.text.primary, 0.08),
-          pointBackgroundColor: theme.palette.text.primary,
+          borderColor: theme.palette.secondary.main,
+          backgroundColor: alpha(theme.palette.secondary.main, 0.08),
+          pointBackgroundColor: theme.palette.secondary.main,
           pointBorderColor: theme.palette.background.paper,
           fill: true,
         },
       ],
-      labels: data.dailyBreakdown.map((d) =>
-        formatDate(d.date, { dateStyle: "medium" })
-      ),
+      labels: data.dailyBreakdown.map((d) => formatDate(d.date, { dateStyle: "medium" })),
     };
   }, [data, theme]);
 
@@ -123,16 +108,14 @@ const SalesReport = () => {
         {
           data: data.dailyBreakdown.map((d) => d.averageOrderValue),
           label: "Rata-rata Nilai Pesanan",
-          borderColor: alpha(theme.palette.text.primary, 0.6),
-          backgroundColor: alpha(theme.palette.text.primary, 0.04),
-          pointBackgroundColor: alpha(theme.palette.text.primary, 0.6),
+          borderColor: alpha(theme.palette.secondary.main, 0.6),
+          backgroundColor: alpha(theme.palette.secondary.main, 0.04),
+          pointBackgroundColor: alpha(theme.palette.secondary.main, 0.6),
           pointBorderColor: theme.palette.background.paper,
           fill: true,
         },
       ],
-      labels: data.dailyBreakdown.map((d) =>
-        formatDate(d.date, { dateStyle: "medium" })
-      ),
+      labels: data.dailyBreakdown.map((d) => formatDate(d.date, { dateStyle: "medium" })),
     };
   }, [data, theme]);
 
@@ -174,10 +157,7 @@ const SalesReport = () => {
       >
         <Box sx={{ gridColumn: "span 12" }}>
           <Card sx={{ p: 3 }}>
-            <Stack
-              direction="row"
-              sx={{ justifyContent: "space-between", alignItems: "center" }}
-            >
+            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
               <Box>
                 <Skeleton width={280} height={36} />
                 <Skeleton width={180} height={20} sx={{ mt: 1 }} />
@@ -190,10 +170,7 @@ const SalesReport = () => {
           </Card>
         </Box>
         {[1, 2, 3, 4].map((item) => (
-          <Box
-            key={item}
-            sx={{ gridColumn: { lg: "span 3", md: "span 6", xs: "span 12" } }}
-          >
+          <Box key={item} sx={{ gridColumn: { lg: "span 3", md: "span 6", xs: "span 12" } }}>
             <Card sx={{ p: 2.5 }}>
               <Stack sx={{ gap: 1.5 }}>
                 <Skeleton width="40%" height={16} />
@@ -220,228 +197,74 @@ const SalesReport = () => {
         gap: 3,
       }}
     >
-      {/* Header */}
       <Box sx={{ gridColumn: "span 12" }}>
-        <Card sx={{ overflow: "hidden", position: "relative" }}>
-          <Box
-            sx={{
-              position: "absolute",
-              right: theme.spacing(-6),
-              top: theme.spacing(-6),
-              width: theme.spacing(20),
-              height: theme.spacing(20),
-              borderRadius: "50%",
-              backgroundColor: alpha(theme.palette.text.primary, 0.03),
-              zIndex: 0,
-            }}
-          />
-          <Box
-            sx={{
-              position: "absolute",
-              right: theme.spacing(-3),
-              bottom: theme.spacing(-3),
-              width: theme.spacing(14),
-              height: theme.spacing(14),
-              borderRadius: "50%",
-              backgroundColor: alpha(theme.palette.text.primary, 0.04),
-              zIndex: 0,
-            }}
-          />
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            sx={{
-              justifyContent: "space-between",
-              alignItems: { xs: "flex-start", md: "center" },
-              gap: 2.5,
-              p: 3,
-              position: "relative",
-              zIndex: 1,
-            }}
-          >
-            <Stack sx={{ gap: 2 }}>
-              <Box>
-                <Typography variant="h5" fontWeight={700}>
-                  Laporan Penjualan
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 0.5 }}
-                >
-                  Pantau performa penjualan harian
-                </Typography>
-              </Box>
-              <Stack direction="row" sx={{ gap: 1.5, flexWrap: "wrap" }}>
-                <Chip
-                  label={periodText}
-                  variant="outlined"
-                  size="small"
-                  sx={{
-                    borderColor: alpha(theme.palette.divider, 0.8),
-                    bgcolor: alpha(theme.palette.background.paper, 0.5),
-                    px: 0.5,
-                    py: 0.5,
-                    height: 28,
-                    "& .MuiChip-label": { px: 1, fontSize: "0.75rem" },
-                  }}
-                />
-                {isFilterActive && (
-                  <Chip
-                    label="Filter aktif"
-                    color="primary"
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                      bgcolor: alpha(theme.palette.primary.main, 0.06),
-                      borderColor: alpha(theme.palette.primary.main, 0.3),
-                      px: 0.5,
-                      py: 0.5,
-                      height: 28,
-                      "& .MuiChip-label": {
-                        px: 1,
-                        fontSize: "0.75rem",
-                        fontWeight: 500,
-                      },
-                    }}
-                  />
-                )}
-              </Stack>
-            </Stack>
-            <Stack direction="row" sx={{ gap: 0.5 }}>
-              <Tooltip title="Refresh data">
-                <IconButton
-                  onClick={() => refetch()}
-                  sx={{
-                    border: "1px solid",
-                    borderColor: alpha(theme.palette.divider, 0.8),
-                    color: theme.palette.text.secondary,
-                    bgcolor: alpha(theme.palette.background.paper, 0.6),
-                    backdropFilter: "blur(4px)",
-                    "&:hover": {
-                      bgcolor: alpha(theme.palette.text.primary, 0.06),
-                      borderColor: theme.palette.text.primary,
-                      color: theme.palette.text.primary,
-                    },
-                  }}
-                >
-                  <RotateCcw size={18} />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Filter periode">
-                <IconButton
-                  onClick={handleOpenFilter}
-                  sx={{
-                    border: "1px solid",
-                    borderColor: isFilterActive
-                      ? alpha(theme.palette.primary.main, 0.4)
-                      : alpha(theme.palette.divider, 0.8),
-                    color: isFilterActive
-                      ? theme.palette.primary.main
-                      : theme.palette.text.secondary,
-                    bgcolor: isFilterActive
-                      ? alpha(theme.palette.primary.main, 0.06)
-                      : alpha(theme.palette.background.paper, 0.6),
-                    backdropFilter: "blur(4px)",
-                    "&:hover": {
-                      bgcolor: isFilterActive
-                        ? alpha(theme.palette.primary.main, 0.12)
-                        : alpha(theme.palette.text.primary, 0.06),
-                      borderColor: isFilterActive
-                        ? theme.palette.primary.main
-                        : theme.palette.text.primary,
-                      color: isFilterActive
-                        ? theme.palette.primary.main
-                        : theme.palette.text.primary,
-                    },
-                  }}
-                >
-                  <Filter size={18} />
-                </IconButton>
-              </Tooltip>
-            </Stack>
-          </Stack>
-        </Card>
+        <ReportHeader
+          title="Laporan Penjualan"
+          subtitle="Pantau performa penjualan harian"
+          periodText={periodText}
+          isFilterActive={isFilterActive}
+          onRefresh={() => refetch()}
+          onOpenFilter={handleOpenFilter}
+        />
       </Box>
 
       {!data?.dailyBreakdown?.length ? (
         <Box sx={{ gridColumn: "span 12" }}>
           <Card
             sx={{
-              minHeight: 400,
+              minHeight: 360,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               p: 6,
+              border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+              boxShadow: "none",
             }}
           >
-            <Stack sx={{ gap: 3, alignItems: "center", textAlign: "center" }}>
-              <Box
-                sx={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: "50%",
-                  bgcolor: alpha(theme.palette.text.primary, 0.06),
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Receipt size={32} style={{ opacity: 0.3 }} />
-              </Box>
+            <Stack sx={{ gap: 2.5, alignItems: "center", textAlign: "center" }}>
               <Box>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5 }}>
+                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 400 }}>
                   Belum Ada Data Penjualan
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
                   Tidak ditemukan transaksi pada periode ini.
                 </Typography>
               </Box>
-              <Button variant="outlined" onClick={handleOpenFilter}>
-                Atur Filter
-              </Button>
             </Stack>
           </Card>
         </Box>
       ) : (
         <>
-          <Box
-            sx={{ gridColumn: { lg: "span 3", sm: "span 6", xs: "span 12" } }}
-          >
+          <Box sx={{ gridColumn: { lg: "span 3", sm: "span 6", xs: "span 12" } }}>
             <SummaryCard
-              color="primary"
+              color="secondary"
               icon={ShoppingCart}
               subtitle={`${data.summary.totalOrders} transaksi`}
               title="Total Pesanan"
               value={data.summary.totalOrders}
             />
           </Box>
-          <Box
-            sx={{ gridColumn: { lg: "span 3", sm: "span 6", xs: "span 12" } }}
-          >
+          <Box sx={{ gridColumn: { lg: "span 3", sm: "span 6", xs: "span 12" } }}>
             <SummaryCard
-              color="primary"
+              color="secondary"
               icon={DollarSign}
               subtitle={`Subtotal: ${formatToIdr(data.summary.totalSubtotal)}`}
               title="Total Penjualan"
               value={formatToIdr(data.summary.totalSales)}
             />
           </Box>
-          <Box
-            sx={{ gridColumn: { lg: "span 3", sm: "span 6", xs: "span 12" } }}
-          >
+          <Box sx={{ gridColumn: { lg: "span 3", sm: "span 6", xs: "span 12" } }}>
             <SummaryCard
-              color="primary"
+              color="secondary"
               icon={TrendingUp}
               subtitle="Rata-rata per pesanan"
               title="AOV"
               value={formatToIdr(averageOrderValue)}
             />
           </Box>
-          <Box
-            sx={{ gridColumn: { lg: "span 3", sm: "span 6", xs: "span 12" } }}
-          >
+          <Box sx={{ gridColumn: { lg: "span 3", sm: "span 6", xs: "span 12" } }}>
             <SummaryCard
-              color="primary"
+              color="secondary"
               icon={Percent}
               subtitle={`${data.summary.totalOrders} transaksi`}
               title="Total Pajak"
@@ -450,16 +273,17 @@ const SalesReport = () => {
           </Box>
 
           <Box sx={{ gridColumn: "span 12" }}>
-            <Card>
+            <Card
+              sx={{
+                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                boxShadow: "none",
+              }}
+            >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" fontWeight={600}>
+                <Typography variant="h6" sx={{ fontWeight: 400 }}>
                   Penjualan Harian
                 </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 0.5 }}
-                >
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
                   Total penjualan harian selama periode
                 </Typography>
               </Box>
@@ -477,23 +301,25 @@ const SalesReport = () => {
           </Box>
 
           <Box sx={{ gridColumn: { lg: "span 6", xs: "span 12" } }}>
-            <Card sx={{ height: "100%" }}>
+            <Card
+              sx={{
+                height: "100%",
+                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                boxShadow: "none",
+              }}
+            >
               <Box sx={{ p: 3 }}>
-                <Typography variant="h6" fontWeight={600}>
+                <Typography variant="h6" sx={{ fontWeight: 400 }}>
                   Tren Pesanan
                 </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 0.5 }}
-                >
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
                   Fluktuasi jumlah transaksi harian
                 </Typography>
                 <Box sx={{ mt: 3 }}>
                   <LineChart
                     area
                     datasets={orderCountChartData.datasets}
-                    height={280}
+                    height={300}
                     labels={orderCountChartData.labels}
                     legend={false}
                   />
@@ -503,23 +329,25 @@ const SalesReport = () => {
           </Box>
 
           <Box sx={{ gridColumn: { lg: "span 6", xs: "span 12" } }}>
-            <Card sx={{ height: "100%" }}>
+            <Card
+              sx={{
+                height: "100%",
+                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                boxShadow: "none",
+              }}
+            >
               <Box sx={{ p: 3 }}>
-                <Typography variant="h6" fontWeight={600}>
+                <Typography variant="h6" sx={{ fontWeight: 400 }}>
                   Tren Nilai Pesanan
                 </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 0.5 }}
-                >
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
                   Fluktuasi rata-rata nilai transaksi
                 </Typography>
                 <Box sx={{ mt: 3 }}>
                   <LineChart
                     area
                     datasets={aovChartData.datasets}
-                    height={280}
+                    height={300}
                     labels={aovChartData.labels}
                     legend={false}
                     isCurrency
@@ -532,44 +360,31 @@ const SalesReport = () => {
           {bestDay && worstDay && (
             <>
               <Box sx={{ gridColumn: { lg: "span 6", xs: "span 12" } }}>
-                <Card sx={{ overflow: "hidden" }}>
-                  <Box
-                    sx={{
-                      height: 3,
-                      bgcolor: alpha(theme.palette.text.primary, 0.8),
-                    }}
-                  />
-                  <Stack
-                    direction="row"
-                    sx={{
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      p: 3,
-                    }}
-                  >
-                    <Stack
-                      direction="row"
-                      sx={{ gap: 2.5, alignItems: "center" }}
-                    >
-                      <ArrowUp size={20} />
+                <Card
+                  sx={{
+                    overflow: "hidden",
+                    border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                    boxShadow: "none",
+                  }}
+                >
+                  <Box sx={{ height: 2, bgcolor: alpha(theme.palette.success.main, 0.6) }} />
+                  <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", p: 3 }}>
+                    <Stack direction="row" sx={{ gap: 2.5, alignItems: "center" }}>
+                      <ArrowUp size={18} strokeWidth={1.5} color={theme.palette.success.main} />
                       <Box>
-                        <Typography
-                          variant="overline"
-                          color="text.secondary"
-                          fontWeight={600}
-                        >
+                        <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 400 }}>
                           Penjualan Tertinggi
                         </Typography>
-                        <Typography variant="subtitle1" fontWeight={600}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
                           {formatDate(bestDay.date)}
                         </Typography>
                       </Box>
                     </Stack>
                     <Box sx={{ textAlign: "right" }}>
-                      <Typography variant="h6" fontWeight={700}>
+                      <Typography variant="h6" sx={{ fontWeight: 400 }}>
                         {formatToIdr(bestDay.totalSales)}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
                         {bestDay.orderCount} pesanan
                       </Typography>
                     </Box>
@@ -577,48 +392,31 @@ const SalesReport = () => {
                 </Card>
               </Box>
               <Box sx={{ gridColumn: { lg: "span 6", xs: "span 12" } }}>
-                <Card sx={{ overflow: "hidden" }}>
-                  <Box
-                    sx={{
-                      height: 3,
-                      bgcolor: alpha(theme.palette.text.primary, 0.25),
-                    }}
-                  />
-                  <Stack
-                    direction="row"
-                    sx={{
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      p: 3,
-                    }}
-                  >
-                    <Stack
-                      direction="row"
-                      sx={{ gap: 2.5, alignItems: "center" }}
-                    >
-                      <ArrowDown size={20} />
+                <Card
+                  sx={{
+                    overflow: "hidden",
+                    border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                    boxShadow: "none",
+                  }}
+                >
+                  <Box sx={{ height: 2, bgcolor: alpha(theme.palette.error.main, 0.3) }} />
+                  <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", p: 3 }}>
+                    <Stack direction="row" sx={{ gap: 2.5, alignItems: "center" }}>
+                      <ArrowDown size={18} strokeWidth={1.5} color={theme.palette.error.main} />
                       <Box>
-                        <Typography
-                          variant="overline"
-                          color="text.secondary"
-                          fontWeight={600}
-                        >
+                        <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 400 }}>
                           Penjualan Terendah
                         </Typography>
-                        <Typography variant="subtitle1" fontWeight={600}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
                           {formatDate(worstDay.date)}
                         </Typography>
                       </Box>
                     </Stack>
                     <Box sx={{ textAlign: "right" }}>
-                      <Typography
-                        variant="h6"
-                        fontWeight={600}
-                        color="text.secondary"
-                      >
+                      <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 400 }}>
                         {formatToIdr(worstDay.totalSales)}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
                         {worstDay.orderCount} pesanan
                       </Typography>
                     </Box>
@@ -629,16 +427,17 @@ const SalesReport = () => {
           )}
 
           <Box sx={{ gridColumn: "span 12" }}>
-            <Card>
+            <Card
+              sx={{
+                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                boxShadow: "none",
+              }}
+            >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" fontWeight={600}>
+                <Typography variant="h6" sx={{ fontWeight: 400 }}>
                   Detail Harian
                 </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 0.5 }}
-                >
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
                   Breakdown performa penjualan harian
                 </Typography>
               </Box>
@@ -647,19 +446,13 @@ const SalesReport = () => {
                 <Table sx={{ minWidth: 900 }}>
                   <TableHead>
                     <TableRow>
-                      {[
-                        "Tanggal",
-                        "Pesanan",
-                        "Total Penjualan",
-                        "Rata-rata",
-                        "Performa",
-                      ].map((item) => (
+                      {["Tanggal", "Pesanan", "Total Penjualan", "Rata-rata", "Performa"].map((item) => (
                         <TableCell key={item}>
                           <Typography
                             variant="caption"
-                            fontWeight={600}
                             color="text.secondary"
                             sx={{
+                              fontWeight: 600,
                               textTransform: "uppercase",
                               letterSpacing: "0.05em",
                             }}
@@ -684,67 +477,58 @@ const SalesReport = () => {
                           key={day.date}
                           hover
                           sx={{
+                            "&:hover": {
+                              bgcolor: alpha(theme.palette.secondary.main, 0.04),
+                            },
                             "& td": {
                               borderBottom: isLast
                                 ? 0
-                                : `1px solid ${alpha(
-                                    theme.palette.divider,
-                                    0.5
-                                  )}`,
+                                : `1px solid ${alpha(theme.palette.divider, 0.5)}`,
                               py: 2,
                             },
                           }}
                         >
                           <TableCell>
-                            <Stack
-                              direction="row"
-                              sx={{ gap: 2, alignItems: "center" }}
-                            >
+                            <Stack direction="row" sx={{ gap: 2, alignItems: "center" }}>
                               <Box
                                 sx={{
                                   width: 36,
                                   height: 36,
                                   borderRadius: `${theme.shape.borderRadius}px`,
-                                  bgcolor: alpha(
-                                    theme.palette.text.primary,
-                                    0.06
-                                  ),
+                                  bgcolor: alpha(theme.palette.secondary.main, 0.08),
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
                                   fontSize: "0.75rem",
-                                  fontWeight: 600,
-                                  color: theme.palette.text.secondary,
+                                  fontWeight: 400,
+                                  color: theme.palette.secondary.main,
                                   flexShrink: 0,
                                 }}
                               >
                                 {new Date(day.date).getDate()}
                               </Box>
                               <Box>
-                                <Typography variant="body2" fontWeight={500}>
+                                <Typography variant="body2" sx={{ fontWeight: 400 }}>
                                   {formatDate(day.date)}
                                 </Typography>
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
+                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
                                   {dayOfWeek}
                                 </Typography>
                               </Box>
                             </Stack>
                           </TableCell>
                           <TableCell>
-                            <Typography variant="body2" fontWeight={500}>
+                            <Typography variant="body2" sx={{ fontWeight: 400 }}>
                               {day.orderCount}
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Typography variant="body2" fontWeight={600}>
+                            <Typography variant="body2" sx={{ fontWeight: 400 }}>
                               {formatToIdr(day.totalSales)}
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
                               {formatToIdr(day.averageOrderValue)}
                             </Typography>
                           </TableCell>
@@ -755,21 +539,12 @@ const SalesReport = () => {
                                 size="small"
                                 variant="outlined"
                                 sx={{
-                                  borderColor: alpha(
-                                    theme.palette.text.primary,
-                                    0.4
-                                  ),
-                                  color: theme.palette.text.primary,
-                                  bgcolor: alpha(
-                                    theme.palette.text.primary,
-                                    0.06
-                                  ),
+                                  borderColor: alpha(theme.palette.success.main, 0.4),
+                                  color: theme.palette.success.main,
+                                  bgcolor: alpha(theme.palette.success.main, 0.06),
                                   height: 24,
-                                  "& .MuiChip-label": {
-                                    px: 1,
-                                    fontSize: "0.6875rem",
-                                    fontWeight: 600,
-                                  },
+                                  fontWeight: 400,
+                                  "& .MuiChip-label": { px: 1, fontSize: "0.6875rem" },
                                 }}
                               />
                             ) : isWorst ? (
@@ -778,27 +553,16 @@ const SalesReport = () => {
                                 size="small"
                                 variant="outlined"
                                 sx={{
-                                  borderColor: alpha(
-                                    theme.palette.text.primary,
-                                    0.2
-                                  ),
-                                  color: alpha(theme.palette.text.primary, 0.5),
-                                  bgcolor: alpha(
-                                    theme.palette.text.primary,
-                                    0.03
-                                  ),
+                                  borderColor: alpha(theme.palette.error.main, 0.2),
+                                  color: theme.palette.error.main,
+                                  bgcolor: alpha(theme.palette.error.main, 0.03),
                                   height: 24,
-                                  "& .MuiChip-label": {
-                                    px: 1,
-                                    fontSize: "0.6875rem",
-                                  },
+                                  fontWeight: 400,
+                                  "& .MuiChip-label": { px: 1, fontSize: "0.6875rem" },
                                 }}
                               />
                             ) : (
-                              <Typography
-                                variant="caption"
-                                color="text.disabled"
-                              >
+                              <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400 }}>
                                 —
                               </Typography>
                             )}
@@ -814,67 +578,16 @@ const SalesReport = () => {
         </>
       )}
 
-      <Dialog
-        maxWidth="xs"
-        fullWidth
+      <ReportFilterDialog
         open={filterOpen}
+        startDate={startDate}
+        endDate={endDate}
+        onStartDateChange={setStartDate}
+        onEndDateChange={setEndDate}
+        onApply={handleApplyFilter}
+        onReset={handleResetFilter}
         onClose={handleCloseFilter}
-      >
-        <DialogTitle
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            px: 3,
-            pt: 2.5,
-            pb: 2,
-          }}
-        >
-          Filter Periode
-          <IconButton onClick={handleCloseFilter}>
-            <X size={18} />
-          </IconButton>
-        </DialogTitle>
-        <Divider />
-        <DialogContent sx={{ p: 3 }}>
-          <Stack sx={{ gap: 2.5 }}>
-            <MobileDatePicker
-              label="Dari Tanggal"
-              value={startDate}
-              onChange={(val) => setStartDate(val)}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-            <MobileDatePicker
-              label="Sampai Tanggal"
-              value={endDate}
-              onChange={(val) => setEndDate(val)}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-          </Stack>
-        </DialogContent>
-        <Divider />
-        <DialogActions sx={{ px: 3, py: 2, justifyContent: "space-between" }}>
-          <Button
-            color="inherit"
-            variant="outlined"
-            onClick={handleResetFilter}
-          >
-            Reset
-          </Button>
-          <Stack direction="row" sx={{ gap: 1 }}>
-            <Button
-              color="inherit"
-              variant="outlined"
-              onClick={handleCloseFilter}
-            >
-              Batal
-            </Button>
-            <Button variant="contained" onClick={handleApplyFilter}>
-              Terapkan
-            </Button>
-          </Stack>
-        </DialogActions>
-      </Dialog>
+      />
     </Box>
   );
 };

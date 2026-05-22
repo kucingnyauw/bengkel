@@ -11,6 +11,12 @@ import { selectUser } from "@store/auth/authSelector.js";
  */
 export const usePermission = (options = {}) => {
   const user = useSelector(selectUser);
+
+
+  if (!user) {
+    return false;
+  }
+
   const { role, anyRole, allRoles } = options;
 
   if (role) {

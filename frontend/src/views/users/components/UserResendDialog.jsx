@@ -16,25 +16,23 @@ import { X } from "lucide-react";
 
 import {
   Button,
-  Card,
-  CardContent,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
   Divider,
   IconButton,
-  Stack,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 import { useResendMagicLinkMutation } from "@views/users/hooks";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const UserResendDialog = ({ open, user, onClose }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
 
   const resendMutation = useResendMagicLinkMutation({
@@ -71,54 +69,58 @@ const UserResendDialog = ({ open, user, onClose }) => {
   };
 
   return (
-    <Dialog fullWidth maxWidth="xs" onClose={isPending ? undefined : onClose} open={open}>
+    <Dialog
+      fullWidth
+      maxWidth="xs"
+      onClose={isPending ? undefined : onClose}
+      open={open}
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 400,
         }}
       >
         Kirim Ulang Magic Link
         <IconButton onClick={onClose} disabled={isPending} size="small">
-          <X size={20} />
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
       <Divider />
 
       <DialogContent>
-        <DialogContentText sx={{ mb: 2 }}>
-          Kirim ulang email verifikasi ke karyawan ini?
-        </DialogContentText>
-
-        {user && (
-          <Card>
-            <CardContent sx={{ py: 2, "&:last-child": { pb: 2 } }}>
-              <Stack spacing={1}>
-                <Typography variant="body2" fontWeight={600}>
-                  {user.fullName}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {user.email}
-                </Typography>
-                <Chip
-                  label="Belum Verifikasi"
-                  size="small"
-                  color="warning"
-                  variant="outlined"
-                  sx={{ alignSelf: "flex-start" }}
-                />
-              </Stack>
-            </CardContent>
-          </Card>
+        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+          Kirim ulang email verifikasi ke{" "}
+          <strong>{user?.fullName || "karyawan ini"}</strong>?
+        </Typography>
+        {user?.email && (
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5, fontWeight: 400 }}>
+            {user.email}
+          </Typography>
         )}
       </DialogContent>
 
       <Divider />
 
       <DialogActions>
-        <Button color="inherit" variant="outlined" disabled={isPending} onClick={onClose}>
+        <Button
+          color="inherit"
+          variant="outlined"
+          disabled={isPending}
+          onClick={onClose}
+          sx={{ fontWeight: 400 }}
+        >
           Batal
         </Button>
         <Button
@@ -128,6 +130,12 @@ const UserResendDialog = ({ open, user, onClose }) => {
           startIcon={
             isPending ? <CircularProgress size={14} color="inherit" /> : null
           }
+          sx={{
+            fontWeight: 400,
+            "&:hover": {
+              boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+            },
+          }}
         >
           {isPending ? "Mengirim..." : "Ya, Kirim"}
         </Button>

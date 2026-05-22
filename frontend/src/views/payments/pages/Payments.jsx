@@ -63,29 +63,6 @@ const Payments = () => {
     setRefundReason,
   } = usePaymentDialog();
 
-  /**
-   * Konfigurasi header tabel
-   * @type {string[]}
-   */
-  const headers = useMemo(
-    () => [
-      "No. Order",
-      "Metode",
-      "Dibayar",
-      "Kembalian",
-      "Status",
-      "Kasir",
-      "Customer",
-      "Tanggal",
-      "Aksi",
-    ],
-    []
-  );
-
-  /**
-   * Parameter query untuk pembayaran
-   * @type {Object}
-   */
   const params = useMemo(
     () => ({
       endDate: activeFilters.endDate
@@ -110,7 +87,6 @@ const Payments = () => {
 
   /**
    * Handle cetak invoice
-   * @param {Object} row - Data baris pembayaran
    */
   const handlePrintInvoice = useCallback((row) => {
     downloadPdf({
@@ -137,7 +113,6 @@ const Payments = () => {
 
   /**
    * Handler klik ganda baris untuk membuka dialog detail
-   * @param {Object} row - Data baris pembayaran
    */
   const handleRowDoubleClick = useCallback(
     (row) => {
@@ -148,45 +123,48 @@ const Payments = () => {
 
   /**
    * Render baris kustom untuk tabel pembayaran
-   * @param {Object} row - Data pembayaran
-   * @returns {JSX.Element[]} Array komponen sel
    */
   const renderRow = useCallback(
     (row) => [
-      <Typography key={`order-${row.id}`} fontWeight={500} variant="body2">
+      <Typography key={`order-${row.id}`} variant="body2" sx={{ fontWeight: 400 }}>
         {row.order?.orderNumber || "—"}
       </Typography>,
-      <Typography key={`method-${row.id}`} variant="body2">
+
+      <Typography key={`method-${row.id}`} variant="body2" sx={{ fontWeight: 400 }}>
         {PaymentMethod[row.method] || row.method}
       </Typography>,
-      <Typography key={`paid-${row.id}`} fontWeight={500} variant="body2">
+
+      <Typography key={`paid-${row.id}`} variant="body2" sx={{ fontWeight: 400 }}>
         {formatToIdr(row.amountPaid)}
       </Typography>,
-      <Typography key={`change-${row.id}`} variant="body2">
+
+      <Typography key={`change-${row.id}`} variant="body2" sx={{ fontWeight: 400 }}>
         {formatToIdr(row.change)}
       </Typography>,
+
       <Chip
         key={`status-${row.id}`}
         color={paymentStatusColorMap[row.status] || "default"}
         label={row.statusLabel}
         size="small"
         variant="outlined"
+        sx={{ fontWeight: 400 }}
       />,
-      <Typography key={`cashier-${row.id}`} variant="body2">
+
+      <Typography key={`cashier-${row.id}`} variant="body2" sx={{ fontWeight: 400 }}>
         {row.order?.cashier?.fullName || "—"}
       </Typography>,
-      <Typography key={`customer-${row.id}`} variant="body2">
+
+      <Typography key={`customer-${row.id}`} variant="body2" sx={{ fontWeight: 400 }}>
         {row.order?.customer?.name || "—"}
       </Typography>,
-      <Typography key={`date-${row.id}`} variant="body2">
+
+      <Typography key={`date-${row.id}`} variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
         {formatDateTime(row.createdAt)}
       </Typography>,
-      <Stack key={`action-${row.id}`} direction="row" spacing={0.5}>
-        <Tooltip
-          title={
-            row.status === "PAID" ? "Cetak Invoice" : "Invoice belum tersedia"
-          }
-        >
+
+      <Stack key={`action-${row.id}`} direction="row" sx={{ gap: 0.5 }}>
+        <Tooltip title={row.status === "PAID" ? "Cetak Invoice" : "Invoice belum tersedia"}>
           <Box component="span" sx={{ display: "inline-flex" }}>
             <IconButton
               onClick={(e) => {
@@ -198,27 +176,30 @@ const Payments = () => {
               aria-label="Cetak Invoice"
               sx={{
                 border: "1px solid",
-                borderColor: alpha(theme.palette.divider, 0.8),
+                borderColor: row.status === "PAID"
+                  ? alpha(theme.palette.divider, 0.8)
+                  : alpha(theme.palette.divider, 0.4),
+                borderRadius: `${theme.shape.borderRadius}px`,
                 bgcolor: row.status === "PAID"
                   ? alpha(theme.palette.background.paper, 0.6)
                   : "transparent",
-                backdropFilter: "blur(4px)",
                 color: row.status === "PAID"
                   ? theme.palette.text.secondary
                   : theme.palette.action.disabled,
-                transition: theme.transitions.create(["background-color", "border-color", "color"], {
-                  duration: theme.transitions.duration.shorter,
-                }),
+                transition: theme.transitions.create(
+                  ["background-color", "border-color", "color"],
+                  { duration: theme.transitions.duration.shorter }
+                ),
                 "&:hover": row.status === "PAID"
                   ? {
-                      bgcolor: alpha(theme.palette.text.primary, 0.06),
-                      borderColor: theme.palette.text.primary,
-                      color: theme.palette.text.primary,
+                      bgcolor: alpha(theme.palette.secondary.main, 0.06),
+                      borderColor: alpha(theme.palette.secondary.main, 0.4),
+                      color: theme.palette.secondary.main,
                     }
                   : {},
               }}
             >
-              <Printer size={16} />
+              <Printer size={16} strokeWidth={1.5} />
             </IconButton>
           </Box>
         </Tooltip>
@@ -235,20 +216,21 @@ const Payments = () => {
                 sx={{
                   border: "1px solid",
                   borderColor: alpha(theme.palette.divider, 0.8),
+                  borderRadius: `${theme.shape.borderRadius}px`,
                   bgcolor: alpha(theme.palette.background.paper, 0.6),
-                  backdropFilter: "blur(4px)",
                   color: theme.palette.text.secondary,
-                  transition: theme.transitions.create(["background-color", "border-color", "color"], {
-                    duration: theme.transitions.duration.shorter,
-                  }),
+                  transition: theme.transitions.create(
+                    ["background-color", "border-color", "color"],
+                    { duration: theme.transitions.duration.shorter }
+                  ),
                   "&:hover": {
-                    bgcolor: alpha(theme.palette.text.primary, 0.06),
-                    borderColor: theme.palette.text.primary,
-                    color: theme.palette.text.primary,
+                    bgcolor: alpha(theme.palette.error.main, 0.06),
+                    borderColor: alpha(theme.palette.error.main, 0.4),
+                    color: theme.palette.error.main,
                   },
                 }}
               >
-                <Undo2 size={16} />
+                <Undo2 size={16} strokeWidth={1.5} />
               </IconButton>
             </Box>
           </Tooltip>
@@ -260,7 +242,6 @@ const Payments = () => {
 
   /**
    * Konfigurasi tombol aksi tabel
-   * @type {Object[]}
    */
   const tableActions = useMemo(
     () => [
@@ -273,8 +254,6 @@ const Payments = () => {
 
   /**
    * Handler perubahan halaman
-   * @param {Event} event - Event perubahan
-   * @param {number} newPage - Nomor halaman baru
    */
   const handlePageChange = useCallback((event, newPage) => {
     setPage(newPage);
@@ -282,7 +261,6 @@ const Payments = () => {
 
   /**
    * Handler perubahan jumlah baris per halaman
-   * @param {number} newLimit - Nilai jumlah baris per halaman baru
    */
   const handleRowsPerPageChange = useCallback((newLimit) => {
     setLimit(newLimit);
@@ -291,7 +269,6 @@ const Payments = () => {
 
   /**
    * Handler perubahan input pencarian
-   * @param {Event} e - Event perubahan input
    */
   const onSearchChange = useCallback((e) => {
     setSearch(e.target.value);
@@ -305,7 +282,17 @@ const Payments = () => {
         count={metadata.totalPages || 0}
         data={tableData}
         emptyStateMessage="Tidak ada data pembayaran"
-        headers={headers}
+        headers={[
+          "No. Order",
+          "Metode",
+          "Dibayar",
+          "Kembalian",
+          "Status",
+          "Kasir",
+          "Customer",
+          "Tanggal",
+          "Aksi",
+        ]}
         isLoading={isLoading}
         onChange={handlePageChange}
         onRowDoubleClick={handleRowDoubleClick}

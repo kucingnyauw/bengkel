@@ -66,19 +66,6 @@ const Expenses = () => {
     tempFilters,
   } = useExpenseFilters();
 
-  /**
-   * Konfigurasi header tabel
-   * @type {string[]}
-   */
-  const headers = useMemo(
-    () => ["Judul", "Jumlah", "Kategori", "Pencatat", "Tanggal", "Aksi"],
-    []
-  );
-
-  /**
-   * Parameter query untuk pengeluaran
-   * @type {Object}
-   */
   const params = useMemo(
     () => ({
       page,
@@ -126,7 +113,6 @@ const Expenses = () => {
 
   /**
    * Buka dialog edit pengeluaran
-   * @param {Object} row - Data baris pengeluaran
    */
   const handleOpenUpdate = useCallback(
     (row) => openUpdateDialog(row),
@@ -135,8 +121,6 @@ const Expenses = () => {
 
   /**
    * Handler klik tombol edit
-   * @param {Event} e - Event klik
-   * @param {Object} row - Data baris pengeluaran
    */
   const handleEditClick = useCallback(
     (e, row) => {
@@ -156,7 +140,6 @@ const Expenses = () => {
 
   /**
    * Handler klik ganda baris untuk membuka dialog detail
-   * @param {Object} row - Data baris pengeluaran
    */
   const handleRowDoubleClick = useCallback(
     (row) => openDetailDialog(row),
@@ -165,8 +148,6 @@ const Expenses = () => {
 
   /**
    * Handler klik tombol hapus
-   * @param {Event} e - Event klik
-   * @param {Object} row - Data baris pengeluaran
    */
   const handleDeleteClick = useCallback(
     (e, row) => {
@@ -178,31 +159,53 @@ const Expenses = () => {
 
   /**
    * Render baris kustom untuk tabel pengeluaran
-   * @param {Object} row - Data pengeluaran
-   * @returns {JSX.Element[]} Array komponen sel
    */
   const renderRow = useCallback(
     (row) => [
-      <Typography key={`title-${row.id}`} fontWeight={500} variant="body2">
-        {row.title}
+      <Box key={`title-${row.id}`}>
+        <Typography variant="body2" sx={{ fontWeight: 400 }}>
+          {row.title}
+        </Typography>
+        {row.description && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{
+              fontWeight: 400,
+              display: "block",
+              maxWidth: 200,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {row.description}
+          </Typography>
+        )}
+      </Box>,
+
+      <Typography key={`amount-${row.id}`} variant="body2" color="error.main" sx={{ fontWeight: 400 }}>
+        -{formatToIdr(row.amount)}
       </Typography>,
-      <Typography key={`amount-${row.id}`} fontWeight={500} variant="body2">
-        {formatToIdr(row.amount)}
-      </Typography>,
+
       <Chip
         key={`category-${row.id}`}
         color={expenseCategoryColorMap[row.category] || "default"}
         label={normalizeEnumText(ExpenseCategory[row.category] || row.category)}
         size="small"
         variant="outlined"
+        sx={{ fontWeight: 400 }}
       />,
-      <Typography key={`recordedBy-${row.id}`} variant="body2">
+
+      <Typography key={`recordedBy-${row.id}`} variant="body2" sx={{ fontWeight: 400 }}>
         {row.recordedBy?.fullName || "—"}
       </Typography>,
-      <Typography key={`date-${row.id}`} variant="body2">
+
+      <Typography key={`date-${row.id}`} variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
         {formatDateTime(row.date)}
       </Typography>,
-      <Stack key={`action-${row.id}`} direction="row" spacing={0.5}>
+
+      <Stack key={`action-${row.id}`} direction="row" sx={{ gap: 0.5 }}>
         <Tooltip title="Edit">
           <Box component="span" sx={{ display: "inline-flex" }}>
             <IconButton
@@ -212,20 +215,21 @@ const Expenses = () => {
               sx={{
                 border: "1px solid",
                 borderColor: alpha(theme.palette.divider, 0.8),
+                borderRadius: `${theme.shape.borderRadius}px`,
                 bgcolor: alpha(theme.palette.background.paper, 0.6),
-                backdropFilter: "blur(4px)",
                 color: theme.palette.text.secondary,
-                transition: theme.transitions.create(["background-color", "border-color", "color"], {
-                  duration: theme.transitions.duration.shorter,
-                }),
+                transition: theme.transitions.create(
+                  ["background-color", "border-color", "color"],
+                  { duration: theme.transitions.duration.shorter }
+                ),
                 "&:hover": {
-                  bgcolor: alpha(theme.palette.text.primary, 0.06),
-                  borderColor: theme.palette.text.primary,
-                  color: theme.palette.text.primary,
+                  bgcolor: alpha(theme.palette.secondary.main, 0.06),
+                  borderColor: alpha(theme.palette.secondary.main, 0.4),
+                  color: theme.palette.secondary.main,
                 },
               }}
             >
-              <FilePenLine size={16} />
+              <FilePenLine size={16} strokeWidth={1.5} />
             </IconButton>
           </Box>
         </Tooltip>
@@ -238,20 +242,21 @@ const Expenses = () => {
               sx={{
                 border: "1px solid",
                 borderColor: alpha(theme.palette.divider, 0.8),
+                borderRadius: `${theme.shape.borderRadius}px`,
                 bgcolor: alpha(theme.palette.background.paper, 0.6),
-                backdropFilter: "blur(4px)",
                 color: theme.palette.text.secondary,
-                transition: theme.transitions.create(["background-color", "border-color", "color"], {
-                  duration: theme.transitions.duration.shorter,
-                }),
+                transition: theme.transitions.create(
+                  ["background-color", "border-color", "color"],
+                  { duration: theme.transitions.duration.shorter }
+                ),
                 "&:hover": {
-                  bgcolor: alpha(theme.palette.text.primary, 0.06),
-                  borderColor: theme.palette.text.primary,
-                  color: theme.palette.text.primary,
+                  bgcolor: alpha(theme.palette.error.main, 0.06),
+                  borderColor: alpha(theme.palette.error.main, 0.4),
+                  color: theme.palette.error.main,
                 },
               }}
             >
-              <Trash2 size={16} />
+              <Trash2 size={16} strokeWidth={1.5} />
             </IconButton>
           </Box>
         </Tooltip>
@@ -262,7 +267,6 @@ const Expenses = () => {
 
   /**
    * Konfigurasi tombol aksi tabel
-   * @type {Object[]}
    */
   const tableActions = useMemo(
     () => [
@@ -275,8 +279,6 @@ const Expenses = () => {
 
   /**
    * Handler perubahan halaman
-   * @param {Event} event - Event perubahan
-   * @param {number} newPage - Nomor halaman baru
    */
   const handlePageChange = useCallback((event, newPage) => {
     setPage(newPage);
@@ -284,7 +286,6 @@ const Expenses = () => {
 
   /**
    * Handler perubahan jumlah baris per halaman
-   * @param {number} newLimit - Nilai jumlah baris per halaman baru
    */
   const handleRowsPerPageChange = useCallback((newLimit) => {
     setLimit(newLimit);
@@ -293,7 +294,6 @@ const Expenses = () => {
 
   /**
    * Handler perubahan input pencarian
-   * @param {Event} e - Event perubahan input
    */
   const onSearchChange = useCallback((e) => {
     setSearch(e.target.value);
@@ -307,7 +307,7 @@ const Expenses = () => {
         count={metadata.totalPages || 0}
         data={tableData}
         emptyStateMessage="Tidak ada pengeluaran ditemukan"
-        headers={headers}
+        headers={["Judul", "Jumlah", "Kategori", "Pencatat", "Tanggal", "Aksi"]}
         isLoading={isLoading}
         onChange={handlePageChange}
         onRowDoubleClick={handleRowDoubleClick}

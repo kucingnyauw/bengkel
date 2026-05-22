@@ -26,34 +26,52 @@ import {
   Skeleton,
   Stack,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
-import { formatDateTime } from "@shared/utils/format.js";
+import { formatDateTime, normalizeEnumText } from "@shared/utils";
+import { roleColorMap } from "@shared/constant";
 import { useUserDetailQuery } from "@views/users/hooks";
 
 const DetailSkeleton = () => (
-  <Stack spacing={3}>
-    <Skeleton variant="rounded" height={120} />
-    <Skeleton variant="rounded" height={100} />
-    <Skeleton variant="rounded" height={80} />
+  <Stack sx={{ gap: 3 }}>
+    <Skeleton variant="rounded" height={160} sx={{ borderRadius: 2 }} />
+    <Skeleton variant="rounded" height={100} sx={{ borderRadius: 2 }} />
+    <Skeleton variant="rounded" height={80} sx={{ borderRadius: 2 }} />
   </Stack>
 );
 
 const UserDetailDialog = ({ open, userId, onClose }) => {
+  const theme = useTheme();
   const { data: user, isLoading } = useUserDetailQuery(userId, open);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 400,
         }}
       >
         Detail Karyawan
         <IconButton onClick={onClose} size="small">
-          <X size={20} />
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
@@ -63,88 +81,124 @@ const UserDetailDialog = ({ open, userId, onClose }) => {
         {isLoading ? (
           <DetailSkeleton />
         ) : user ? (
-          <Stack spacing={3}>
+          <Stack sx={{ gap: 3 }}>
             {/* Header Info */}
-            <Card>
-              <CardContent sx={{ textAlign: "center" }}>
+            <Card
+              sx={{
+                border: `1px solid ${alpha(theme.palette.secondary.main, 0.15)}`,
+                bgcolor: alpha(theme.palette.secondary.main, 0.02),
+                boxShadow: "none",
+              }}
+            >
+              <CardContent sx={{ textAlign: "center", py: 3 }}>
                 <Box
                   sx={{
                     width: 64,
                     height: 64,
-                    borderRadius: "50%",
-                    bgcolor: "action.hover",
+                    borderRadius: `${theme.shape.borderRadius}px`,
+                    bgcolor: alpha(theme.palette.secondary.main, 0.08),
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     fontSize: "1.5rem",
-                    fontWeight: 700,
-                    color: "text.primary",
+                    fontWeight: 400,
+                    color: theme.palette.secondary.main,
                     mx: "auto",
                     mb: 1.5,
                   }}
                 >
                   {user.fullName?.charAt(0)?.toUpperCase()}
                 </Box>
-                <Typography variant="h6" fontWeight={700}>
+                <Typography variant="h6" sx={{ fontWeight: 400 }}>
                   {user.fullName}
                 </Typography>
-                <Stack direction="row" spacing={1} sx={{ justifyContent: "center", mt: 1 }}>
+                <Stack direction="row" sx={{ gap: 1, justifyContent: "center", mt: 1 }}>
                   <Chip
-                    label={user.role === "CASHIER" ? "Kasir" : "Mekanik"}
+                    label={normalizeEnumText(user.role)}
                     size="small"
                     variant="outlined"
-                    color={user.role === "CASHIER" ? "primary" : "warning"}
+                    color={roleColorMap[user.role] || "default"}
+                    sx={{ fontWeight: 400 }}
                   />
                   <Chip
                     label={user.isActive ? "Aktif" : "Nonaktif"}
                     color={user.isActive ? "success" : "default"}
                     size="small"
                     variant="outlined"
+                    sx={{ fontWeight: 400 }}
                   />
                 </Stack>
               </CardContent>
             </Card>
 
             {/* Informasi Kontak */}
-            <Card>
-              <CardContent>
-                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
+            <Card
+              sx={{
+                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                boxShadow: "none",
+              }}
+            >
+              <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
                   Informasi Kontak
                 </Typography>
-                <Stack spacing={1.5}>
+                <Stack sx={{ gap: 1.5 }}>
                   <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary">Email</Typography>
-                    <Typography variant="body2" fontWeight={500}>{user.email}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                      Email
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                      {user.email}
+                    </Typography>
                   </Stack>
                   <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary">Telepon</Typography>
-                    <Typography variant="body2" fontWeight={600}>{user.phone || "—"}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                      Telepon
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                      {user.phone || "—"}
+                    </Typography>
                   </Stack>
                 </Stack>
               </CardContent>
             </Card>
 
             {/* Informasi Sistem */}
-            <Card>
-              <CardContent>
-                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
+            <Card
+              sx={{
+                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                boxShadow: "none",
+              }}
+            >
+              <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
                   Informasi Sistem
                 </Typography>
-                <Stack spacing={1.5}>
+                <Stack sx={{ gap: 1.5 }}>
                   <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                    <Typography variant="body2" color="text.secondary">ID User</Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                      ID User
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
                       {user.id}
                     </Typography>
                   </Stack>
                   <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary">Tanggal Dibuat</Typography>
-                    <Typography variant="body2" fontWeight={500}>{formatDateTime(user.createdAt)}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                      Tanggal Dibuat
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                      {formatDateTime(user.createdAt)}
+                    </Typography>
                   </Stack>
                   {user.updatedAt && (
                     <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary">Terakhir Diupdate</Typography>
-                      <Typography variant="body2" fontWeight={500}>{formatDateTime(user.updatedAt)}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                        Terakhir Diupdate
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                        {formatDateTime(user.updatedAt)}
+                      </Typography>
                     </Stack>
                   )}
                 </Stack>
@@ -152,7 +206,7 @@ const UserDetailDialog = ({ open, userId, onClose }) => {
             </Card>
           </Stack>
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 4, fontWeight: 400 }}>
             Data tidak ditemukan
           </Typography>
         )}
@@ -161,7 +215,7 @@ const UserDetailDialog = ({ open, userId, onClose }) => {
       <Divider />
 
       <DialogActions>
-        <Button variant="outlined" onClick={onClose}>
+        <Button variant="outlined" onClick={onClose} sx={{ fontWeight: 400 }}>
           Tutup
         </Button>
       </DialogActions>

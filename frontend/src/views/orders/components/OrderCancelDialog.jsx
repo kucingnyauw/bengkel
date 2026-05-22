@@ -22,20 +22,20 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
   Divider,
   IconButton,
+  Typography,
   useTheme,
-  alpha
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 import { useCancelOrderMutation } from "@views/orders/hooks";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const OrderCancelDialog = ({ onClose, open, order }) => {
-  const dispatch = useDispatch();
   const theme = useTheme();
+  const dispatch = useDispatch();
 
   const cancelOrder = useCancelOrderMutation({
     onSuccess: (data) => {
@@ -53,7 +53,7 @@ const OrderCancelDialog = ({ onClose, open, order }) => {
     onFailed: (error) => {
       dispatch(
         showNotification({
-          message: error.message || "Gagal membatalkan pesanan",
+          message: error?.message || "Gagal membatalkan pesanan",
           type: "error",
           title: "Error",
           variant: "snackbar",
@@ -66,6 +66,7 @@ const OrderCancelDialog = ({ onClose, open, order }) => {
   const isPending = cancelOrder.isPending;
 
   const handleConfirm = () => {
+    console.log("order" , order);
     if (!order) return;
     cancelOrder.mutate({
       id: order.id,
@@ -74,32 +75,38 @@ const OrderCancelDialog = ({ onClose, open, order }) => {
   };
 
   return (
-    <Dialog fullWidth maxWidth="xs" onClose={isPending ? undefined : onClose} open={open}     slotProps={{
-      paper : {
-        sx: {
-          borderRadius: `${theme.shape.borderRadius}px`,
-          border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+    <Dialog
+      fullWidth
+      maxWidth="xs"
+      onClose={isPending ? undefined : onClose}
+      open={open}
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
         },
-      }
-    }}
- >
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 400,
         }}
       >
         Batalkan Pesanan
         <IconButton onClick={onClose} disabled={isPending} size="small">
-          <X size={20} />
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
       <Divider />
 
       <DialogContent>
-        <DialogContentText>
+        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
           Apakah Anda yakin ingin membatalkan pesanan{" "}
           <strong>{order?.orderNumber}</strong>?
           {order?.customer?.name && (
@@ -108,22 +115,30 @@ const OrderCancelDialog = ({ onClose, open, order }) => {
               Pelanggan: {order.customer.name}
             </>
           )}
-        </DialogContentText>
+        </Typography>
       </DialogContent>
 
       <Divider />
 
       <DialogActions>
-        <Button color="inherit" variant="outlined" disabled={isPending} onClick={onClose}>
+        <Button
+          color="inherit"
+          variant="outlined"
+          disabled={isPending}
+          onClick={onClose}
+          sx={{ fontWeight: 400 }}
+        >
           Batal
         </Button>
         <Button
           variant="contained"
+          color="error"
           disabled={isPending}
           onClick={handleConfirm}
           startIcon={
             isPending ? <CircularProgress size={14} color="inherit" /> : null
           }
+          sx={{ fontWeight: 400 }}
         >
           {isPending ? "Membatalkan..." : "Ya, Batalkan"}
         </Button>

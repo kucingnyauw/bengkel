@@ -6,7 +6,7 @@
  */
 import { useCallback, useMemo, useState } from "react";
 import { ListFilter, RotateCcw } from "lucide-react";
-import { Chip, Typography } from "@mui/material";
+import { Box, Chip, Typography, useTheme } from "@mui/material";
 
 import { AppTable } from "@components";
 import { useDebounce } from "@hooks";
@@ -20,6 +20,7 @@ import {
 } from "@views/tasks/hooks";
 
 const TaskHistory = () => {
+  const theme = useTheme();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
@@ -39,19 +40,6 @@ const TaskHistory = () => {
     tempFilters,
   } = useTaskFilters();
 
-  /**
-   * Konfigurasi header tabel
-   * @type {string[]}
-   */
-  const headers = useMemo(
-    () => ["No. Order", "Status", "Customer", "Kendaraan", "Layanan", "Progress", "Dibuat", "Selesai"],
-    []
-  );
-
-  /**
-   * Parameter query
-   * @type {Object}
-   */
   const params = useMemo(
     () => ({
       limit,
@@ -59,6 +47,12 @@ const TaskHistory = () => {
       search: debouncedSearch || undefined,
       orderId: activeFilters.orderId || undefined,
       status: activeFilters.status || undefined,
+      startDate: activeFilters.startDate
+        ? activeFilters.startDate.toISOString()
+        : undefined,
+      endDate: activeFilters.endDate
+        ? activeFilters.endDate.toISOString()
+        : undefined,
     }),
     [limit, page, debouncedSearch, activeFilters]
   );
@@ -86,7 +80,6 @@ const TaskHistory = () => {
 
   /**
    * Handler klik ganda baris
-   * @param {Object} row - Data baris
    */
   const handleRowDoubleClick = useCallback(
     (row) => openDetailDialog(row.orderId),
@@ -95,55 +88,92 @@ const TaskHistory = () => {
 
   /**
    * Render baris kustom
-   * @param {Object} row - Data tugas
-   * @returns {JSX.Element[]} Array komponen sel
    */
-  const renderRow = useCallback((row) => {
-    const serviceNames = row.services?.map((s) => s.name).join(", ") || "—";
+  const renderRow = useCallback(
+    (row) => {
+      const serviceNames = row.services?.map((s) => s.name).join(", ") || "—";
+      const completedCount =
+        row.services?.filter((s) => s.taskStatus === "COMPLETED").length || 0;
+      const totalCount = row.services?.length || 0;
 
-    return [
-      <Typography key={`order-${row.orderId}`} fontWeight={500} variant="body2">
-        {row.orderNumber}
-      </Typography>,
-      <Chip
-        key={`status-${row.orderId}`}
-        color={statusColorMap[row.status] || "default"}
-        label={normalizeEnumText(OrderStatus[row.status] || row.status)}
-        size="small"
-        variant="outlined"
-      />,
-      <Typography key={`customer-${row.orderId}`} variant="body2">
-        {row.customer?.name || "—"}
-      </Typography>,
-      <Typography key={`vehicle-${row.orderId}`} variant="body2">
-        {row.vehicle?.plateNumber || "—"}
-      </Typography>,
-      <Typography key={`service-${row.orderId}`} variant="body2" noWrap sx={{ maxWidth: 200 }}>
-        {serviceNames}
-      </Typography>,
-      <Chip
-        key={`progress-${row.orderId}`}
-        color={row.status === "COMPLETED" || row.status === "CLOSED" ? "success" : "default"}
-        label={
-          row.status === "COMPLETED" || row.status === "CLOSED"
-            ? "Selesai"
-            : "Menunggu"
-        }
-        size="small"
-        variant="outlined"
-      />,
-      <Typography key={`created-${row.orderId}`} variant="body2">
-        {row.createdAt ? formatDateTime(row.createdAt) : "—"}
-      </Typography>,
-      <Typography key={`completed-${row.orderId}`} variant="body2">
-        {row.completedAt ? formatDateTime(row.completedAt) : "—"}
-      </Typography>,
-    ];
-  }, []);
+      return [
+        <Typography key={`order-${row.orderId}`} variant="body2" sx={{ fontWeight: 400 }}>
+          {row.orderNumber}
+        </Typography>,
+
+        <Chip
+          key={`status-${row.orderId}`}
+          color={statusColorMap[row.status] || "default"}
+          label={normalizeEnumText(OrderStatus[row.status] || row.status)}
+          size="small"
+          variant="outlined"
+          sx={{ fontWeight: 400 }}
+        />,
+
+        <Typography key={`customer-${row.orderId}`} variant="body2" sx={{ fontWeight: 400 }}>
+          {row.customer?.name || "—"}
+        </Typography>,
+
+        <Box key={`vehicle-${row.orderId}`}>
+          <Typography variant="body2" sx={{ fontWeight: 400 }}>
+            {row.vehicle?.plateNumber || "—"}
+          </Typography>
+          {row.vehicle?.brand && (
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+              {row.vehicle.brand} {row.vehicle.model || ""}
+            </Typography>
+          )}
+        </Box>,
+
+        <Box key={`service-${row.orderId}`}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 400,
+              maxWidth: 200,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {serviceNames}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+            {totalCount} layanan
+          </Typography>
+        </Box>,
+
+        <Box key={`progress-${row.orderId}`}>
+          <Chip
+            color={row.status === "COMPLETED" || row.status === "CLOSED" ? "success" : "secondary"}
+            label={
+              row.status === "COMPLETED" || row.status === "CLOSED"
+                ? "Selesai"
+                : "Menunggu"
+            }
+            size="small"
+            variant="outlined"
+            sx={{ fontWeight: 400 }}
+          />
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400, display: "block", mt: 0.3 }}>
+            {completedCount}/{totalCount} selesai
+          </Typography>
+        </Box>,
+
+        <Typography key={`started-${row.orderId}`} variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+          {row.startedAt ? formatDateTime(row.startedAt) : "—"}
+        </Typography>,
+
+        <Typography key={`completed-${row.orderId}`} variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+          {row.completedAt ? formatDateTime(row.completedAt) : "—"}
+        </Typography>,
+      ];
+    },
+    []
+  );
 
   /**
    * Konfigurasi tombol aksi tabel
-   * @type {Object[]}
    */
   const tableActions = useMemo(
     () => [
@@ -155,14 +185,11 @@ const TaskHistory = () => {
 
   /**
    * Handler perubahan halaman
-   * @param {Event} event - Event perubahan
-   * @param {number} newPage - Nomor halaman baru
    */
   const handlePageChange = useCallback((event, newPage) => setPage(newPage), []);
 
   /**
    * Handler perubahan jumlah baris per halaman
-   * @param {number} newLimit - Nilai jumlah baris per halaman baru
    */
   const handleRowsPerPageChange = useCallback((newLimit) => {
     setLimit(newLimit);
@@ -171,7 +198,6 @@ const TaskHistory = () => {
 
   /**
    * Handler perubahan input pencarian
-   * @param {Event} e - Event perubahan input
    */
   const onSearchChange = useCallback((e) => {
     setSearch(e.target.value);
@@ -185,7 +211,16 @@ const TaskHistory = () => {
         count={metadata.totalPages || 0}
         data={tableData}
         emptyStateMessage="Tidak ada riwayat tugas"
-        headers={headers}
+        headers={[
+          "No. Order",
+          "Status",
+          "Customer",
+          "Kendaraan",
+          "Layanan",
+          "Progress",
+          "Dimulai",
+          "Selesai",
+        ]}
         isLoading={isLoading}
         onChange={handlePageChange}
         onRowDoubleClick={handleRowDoubleClick}
@@ -195,7 +230,7 @@ const TaskHistory = () => {
         renderRow={renderRow}
         rowsPerPage={limit}
         rowsPerPageOptions={[5, 10, 25, 50]}
-        searchPlaceholder="Cari order, customer, atau kendaraan..."
+        searchPlaceholder="Cari riwayat..."
         searchVal={search}
         subtitle="Riwayat tugas yang telah dikerjakan"
         title="Riwayat Tugas"

@@ -38,7 +38,9 @@ import {
   Stack,
   TextField,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 import { ExpenseCategory } from "@shared/constant";
 import { formatToIdr, normalizeEnumText } from "@shared/utils";
@@ -50,6 +52,7 @@ import {
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const fileInputRef = useRef(null);
   const [receiptPreview, setReceiptPreview] = useState(null);
@@ -63,13 +66,11 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
     formState: { isDirty },
   } = useExpenseForm();
 
-  const receipt = watch("receipt");
-
   const createMutation = useCreateExpenseMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       dispatch(
         showNotification({
-          message: "Pengeluaran berhasil dicatat",
+          message: `Pengeluaran "${data?.title || "baru"}" berhasil dicatat`,
           type: "success",
           title: "Berhasil",
           variant: "snackbar",
@@ -78,10 +79,10 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
       );
       onClose?.();
     },
-    onFailed: (error) => {
+    onError: (error) => {
       dispatch(
         showNotification({
-          message: error.message || "Gagal mencatat pengeluaran",
+          message: error?.message || "Gagal mencatat pengeluaran",
           type: "error",
           title: "Error",
           variant: "snackbar",
@@ -92,10 +93,10 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
   });
 
   const updateMutation = useUpdateExpenseMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       dispatch(
         showNotification({
-          message: "Pengeluaran berhasil diperbarui",
+          message: `Pengeluaran "${data?.title || "baru"}" berhasil diperbarui`,
           type: "success",
           title: "Berhasil",
           variant: "snackbar",
@@ -107,7 +108,7 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
     onFailed: (error) => {
       dispatch(
         showNotification({
-          message: error.message || "Gagal memperbarui pengeluaran",
+          message: error?.message || "Gagal memperbarui pengeluaran",
           type: "error",
           title: "Error",
           variant: "snackbar",
@@ -121,15 +122,15 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
 
   const handleClose = useCallback(() => {
     reset();
-    if (receiptPreview) {
+    if (receiptPreview && !selectedExpense?.receipt?.fileUrl) {
       URL.revokeObjectURL(receiptPreview);
-      setReceiptPreview(null);
     }
+    setReceiptPreview(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
     onClose?.();
-  }, [reset, receiptPreview, onClose]);
+  }, [reset, receiptPreview, selectedExpense, onClose]);
 
   useEffect(() => {
     if (open) {
@@ -174,7 +175,7 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
     (e) => {
       const file = e.target.files?.[0];
       if (file) {
-        if (receiptPreview) {
+        if (receiptPreview && !selectedExpense?.receipt?.fileUrl) {
           URL.revokeObjectURL(receiptPreview);
         }
         setReceiptPreview(URL.createObjectURL(file));
@@ -184,7 +185,7 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
         fileInputRef.current.value = "";
       }
     },
-    [receiptPreview, setValue]
+    [receiptPreview, selectedExpense, setValue]
   );
 
   const handleClearReceipt = useCallback(() => {
@@ -199,41 +200,71 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
   }, [receiptPreview, selectedExpense, setValue]);
 
   return (
-    <Dialog fullWidth maxWidth="xs" onClose={handleClose} open={open}>
+    <Dialog
+      fullWidth
+      maxWidth="sm"
+      onClose={isSubmitting ? undefined : handleClose}
+      open={open}
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 400,
         }}
       >
         {mode === "create" ? "Catat Pengeluaran" : "Edit Pengeluaran"}
         <IconButton onClick={handleClose} disabled={isSubmitting} size="small">
-          <X size={20} />
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
       <Divider />
 
       <DialogContent>
-        <Stack spacing={2.5}>
-          <Controller
-            control={control}
-            name="title"
-            rules={{ required: "Judul wajib diisi" }}
-            render={({ field, fieldState }) => (
-              <TextField
-                {...field}
-                autoFocus
-                label="Judul"
-                error={!!fieldState.error}
-                helperText={fieldState.error?.message}
-                placeholder="Masukkan judul pengeluaran"
-                disabled={isSubmitting}
-              />
-            )}
-          />
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2.5,
+          }}
+        >
+          {/* Judul - Full Width */}
+          <Box sx={{ gridColumn: "1 / -1" }}>
+            <Controller
+              control={control}
+              name="title"
+              rules={{ required: "Judul wajib diisi" }}
+              render={({ field, fieldState }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  autoFocus
+                  label="Judul"
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+                  placeholder="Masukkan judul pengeluaran"
+                  disabled={isSubmitting}
+                  slotProps={{
+                    input: { sx: { fontWeight: 400 } },
+                    inputLabel: { sx: { fontWeight: 400 } },
+                    formHelperText: { sx: { fontWeight: 400 } },
+                  }}
+                />
+              )}
+            />
+          </Box>
 
+          {/* Jumlah */}
           <Controller
             control={control}
             name="amount"
@@ -244,6 +275,7 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
             render={({ field, fieldState }) => (
               <TextField
                 {...field}
+                fullWidth
                 label="Jumlah"
                 placeholder="Rp 0"
                 error={!!fieldState.error}
@@ -254,19 +286,25 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
                   field.onChange(raw ? Number(raw) : "");
                 }}
                 disabled={isSubmitting}
+                slotProps={{
+                  input: { sx: { fontWeight: 400 } },
+                  inputLabel: { sx: { fontWeight: 400 } },
+                  formHelperText: { sx: { fontWeight: 400 } },
+                }}
               />
             )}
           />
 
+          {/* Kategori */}
           <Controller
             control={control}
             name="category"
             render={({ field }) => (
-              <FormControl disabled={isSubmitting}>
-                <InputLabel>Kategori</InputLabel>
-                <Select {...field} label="Kategori">
+              <FormControl fullWidth disabled={isSubmitting}>
+                <InputLabel sx={{ fontWeight: 400 }}>Kategori</InputLabel>
+                <Select {...field} label="Kategori" sx={{ fontWeight: 400 }}>
                   {Object.entries(ExpenseCategory).map(([key, value]) => (
-                    <MenuItem key={key} value={value}>
+                    <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
                       {normalizeEnumText(value)}
                     </MenuItem>
                   ))}
@@ -275,37 +313,36 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
             )}
           />
 
-          <Controller
-            control={control}
-            name="description"
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Deskripsi"
-                placeholder="Deskripsi (opsional)"
-                multiline
-                rows={2}
-                disabled={isSubmitting}
-              />
-            )}
-          />
+          {/* Deskripsi - Full Width */}
+          <Box sx={{ gridColumn: "1 / -1" }}>
+            <Controller
+              control={control}
+              name="description"
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  label="Deskripsi"
+                  placeholder="Deskripsi (opsional)"
+                  multiline
+                  rows={2}
+                  disabled={isSubmitting}
+                  slotProps={{
+                    input: { sx: { fontWeight: 400 } },
+                    inputLabel: { sx: { fontWeight: 400 } },
+                  }}
+                />
+              )}
+            />
+          </Box>
 
-          {/* Receipt Upload */}
-          <Box>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ display: "block", mb: 1 }}
-            >
-              Bukti Pembayaran (Opsional)
-            </Typography>
-
+          {/* Receipt Upload - Full Width */}
+          <Box sx={{ gridColumn: "1 / -1" }}>
             {receiptPreview ? (
               <Box
                 sx={{
-                  border: 1,
-                  borderColor: "divider",
-                  borderRadius: 1,
+                  border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                  borderRadius: `${theme.shape.borderRadius}px`,
                   p: 1,
                   position: "relative",
                 }}
@@ -319,10 +356,14 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
                     right: 4,
                     top: 4,
                     bgcolor: "background.paper",
-                    boxShadow: 1,
+                    borderRadius: `${theme.shape.borderRadius}px`,
+                    boxShadow: `0 1px 4px ${alpha(
+                      theme.palette.common.black,
+                      0.1
+                    )}`,
                   }}
                 >
-                  <X size={14} />
+                  <X size={14} strokeWidth={1.5} />
                 </IconButton>
                 <Box
                   component="img"
@@ -330,10 +371,10 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
                   src={receiptPreview}
                   sx={{
                     display: "block",
-                    maxHeight: 160,
-                    objectFit: "contain",
+                    height: 300,
+                    objectFit: "cover",
                     width: "100%",
-                    borderRadius: 0.5,
+                    borderRadius: `${theme.shape.borderRadius}px`,
                   }}
                 />
               </Box>
@@ -341,38 +382,53 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
               <Box
                 onClick={() => !isSubmitting && fileInputRef.current?.click()}
                 sx={{
-                  p: 3,
+                  p: 2.5,
+                  height: 300,
                   border: "2px dashed",
-                  borderColor: "divider",
-                  borderRadius: 1,
+                  borderColor: alpha(theme.palette.divider, 0.6),
+                  borderRadius: `${theme.shape.borderRadius}px`,
                   cursor: isSubmitting ? "not-allowed" : "pointer",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 1,
-                  bgcolor: "action.hover",
-                  transition: (theme) =>
-                    theme.transitions.create(["border-color", "background-color"]),
+                  bgcolor: alpha(theme.palette.secondary.main, 0.03),
+                  transition: theme.transitions.create([
+                    "border-color",
+                    "background-color",
+                  ]),
                   "&:hover": {
-                    borderColor: isSubmitting ? "divider" : "text.primary",
-                    bgcolor: isSubmitting ? "action.hover" : "action.selected",
+                    borderColor: isSubmitting
+                      ? alpha(theme.palette.divider, 0.6)
+                      : theme.palette.secondary.main,
+                    bgcolor: isSubmitting
+                      ? alpha(theme.palette.secondary.main, 0.03)
+                      : alpha(theme.palette.secondary.main, 0.06),
                   },
                 }}
               >
-                <Upload size={24} style={{ opacity: 0.3 }} />
+                <Upload size={20} strokeWidth={1.5} style={{ opacity: 0.3 }} />
                 <Box textAlign="center">
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ fontWeight: 400 }}
+                  >
                     Klik untuk unggah bukti
                   </Typography>
-                  <Typography variant="caption" color="text.disabled">
+                  <Typography
+                    variant="caption"
+                    color="text.disabled"
+                    sx={{ fontWeight: 400 }}
+                  >
                     JPG, PNG, atau WEBP
                   </Typography>
                 </Box>
               </Box>
             )}
           </Box>
-        </Stack>
+        </Box>
       </DialogContent>
 
       <Divider />
@@ -383,6 +439,7 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
           variant="outlined"
           disabled={isSubmitting}
           onClick={handleClose}
+          sx={{ fontWeight: 400 }}
         >
           Batal
         </Button>
@@ -393,6 +450,15 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
           startIcon={
             isSubmitting ? <CircularProgress size={14} color="inherit" /> : null
           }
+          sx={{
+            fontWeight: 400,
+            "&:hover": {
+              boxShadow: `0 4px 14px 0 ${alpha(
+                theme.palette.secondary.main,
+                0.3
+              )}`,
+            },
+          }}
         >
           {isSubmitting
             ? "Menyimpan..."

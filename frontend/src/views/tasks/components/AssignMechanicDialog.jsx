@@ -22,6 +22,8 @@ import { useDispatch } from "react-redux";
 import { useQuery } from "@tanstack/react-query";
 
 import {
+  Avatar,
+  Box,
   Button,
   Card,
   CardContent,
@@ -35,7 +37,9 @@ import {
   Stack,
   TextField,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 import { getOrder } from "@api/orderApi.js";
 import { formatToIdr } from "@shared/utils";
@@ -53,6 +57,7 @@ const AssignMechanicDialog = ({
   onNextStep,
   onDataFetched,
 }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
 
   const orderQuery = useQuery({
@@ -117,26 +122,41 @@ const AssignMechanicDialog = ({
         onClose={onClose}
         maxWidth="xs"
         fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: `${theme.shape.borderRadius}px`,
+              border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+            },
+          },
+        }}
       >
-        <DialogTitle>Assign Mekanik</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 400 }}>
+          Assign Mekanik
+        </DialogTitle>
 
         <Divider />
 
         <DialogContent>
-          <Stack spacing={2.5}>
-            <Typography variant="body2" color="text.secondary">
+          <Stack sx={{ gap: 2.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
               Masukkan nomor order atau ID pesanan yang akan ditugaskan ke{" "}
               <strong>{selectedMechanic?.fullName}</strong>
             </Typography>
 
             <TextField
               autoFocus
+              fullWidth
               label="Nomor Order / ID"
               value={orderIdentifier}
               onChange={(e) => onOrderIdentifierChange(e.target.value)}
               placeholder="ORD-20260215-XXXX"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleNextStep();
+              }}
+              slotProps={{
+                input: { sx: { fontWeight: 400 } },
+                inputLabel: { sx: { fontWeight: 400 } },
               }}
             />
           </Stack>
@@ -150,6 +170,7 @@ const AssignMechanicDialog = ({
             variant="outlined"
             onClick={onClose}
             disabled={orderQuery.isFetching}
+            sx={{ fontWeight: 400 }}
           >
             Batal
           </Button>
@@ -160,6 +181,12 @@ const AssignMechanicDialog = ({
             startIcon={
               orderQuery.isFetching ? <CircularProgress size={14} color="inherit" /> : null
             }
+            sx={{
+              fontWeight: 400,
+              "&:hover": {
+                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+              },
+            }}
           >
             {orderQuery.isFetching ? "Mencari..." : "Lanjut"}
           </Button>
@@ -172,40 +199,79 @@ const AssignMechanicDialog = ({
         onClose={onClose}
         maxWidth="sm"
         fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: `${theme.shape.borderRadius}px`,
+              border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+            },
+          },
+        }}
       >
-        <DialogTitle>Konfirmasi Penugasan</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 400 }}>
+          Konfirmasi Penugasan
+        </DialogTitle>
 
         <Divider />
 
         <DialogContent>
-          <Stack spacing={3}>
+          <Stack sx={{ gap: 3 }}>
             {/* Detail Pesanan */}
-            <Card>
-              <CardContent>
-                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
+            <Card
+              sx={{
+                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                boxShadow: "none",
+              }}
+            >
+              <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
                   Detail Pesanan
                 </Typography>
-                <Stack spacing={1.5}>
+                <Stack sx={{ gap: 1.5 }}>
                   <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary">No. Order</Typography>
-                    <Typography variant="body2" fontWeight={600}>{orderData?.orderNumber}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                      No. Order
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                      {orderData?.orderNumber}
+                    </Typography>
                   </Stack>
                   <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                    <Typography variant="body2" color="text.secondary">Status</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                      Status
+                    </Typography>
                     <Chip
                       label={OrderStatus[orderData?.status] || orderData?.status}
                       color={statusColorMap[orderData?.status] || "default"}
                       size="small"
                       variant="outlined"
+                      sx={{ fontWeight: 400 }}
                     />
                   </Stack>
                   <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary">Pelanggan</Typography>
-                    <Typography variant="body2" fontWeight={500}>{orderData?.customer?.name || "—"}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                      Pelanggan
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                      {orderData?.customer?.name || "—"}
+                    </Typography>
                   </Stack>
+                  {orderData?.vehicle?.plateNumber && (
+                    <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                        Kendaraan
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                        {orderData.vehicle.plateNumber}
+                        {orderData.vehicle.brand && ` · ${orderData.vehicle.brand} ${orderData.vehicle.model || ""}`}
+                      </Typography>
+                    </Stack>
+                  )}
                   <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary">Total</Typography>
-                    <Typography variant="body2" fontWeight={700} color="primary.main">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                      Total
+                    </Typography>
+                    <Typography variant="body2" color="secondary" sx={{ fontWeight: 400 }}>
                       {formatToIdr(orderData?.total || 0)}
                     </Typography>
                   </Stack>
@@ -213,16 +279,89 @@ const AssignMechanicDialog = ({
               </CardContent>
             </Card>
 
+            {/* Items */}
+            {orderData?.items?.length > 0 && (
+              <Card
+                sx={{
+                  border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                  boxShadow: "none",
+                }}
+              >
+                <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
+                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+                    Item Pesanan ({orderData.items.length})
+                  </Typography>
+                  <Stack spacing={0}>
+                    {orderData.items.map((item, index) => (
+                      <Box key={item.id}>
+                        <Stack direction="row" sx={{ gap: 2, alignItems: "flex-start" }}>
+                          <Avatar
+                            alt={item.productName || item.product?.name}
+                            src={item.product?.image?.url || ""}
+                            variant="rounded"
+                            sx={{
+                              width: 36,
+                              height: 36,
+                              flexShrink: 0,
+                              borderRadius: `${theme.shape.borderRadius}px`,
+                              bgcolor: !item.product?.image?.url
+                                ? alpha(theme.palette.secondary.main, 0.08)
+                                : "transparent",
+                              color: !item.product?.image?.url
+                                ? theme.palette.secondary.main
+                                : "transparent",
+                              fontSize: "0.8125rem",
+                              fontWeight: 400,
+                            }}
+                          >
+                            {!item.product?.image?.url &&
+                              (item.productName || item.product?.name)?.charAt(0)?.toUpperCase()}
+                          </Avatar>
+                          <Stack sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 400 }} noWrap>
+                              {item.productName || item.product?.name}
+                            </Typography>
+                            <Stack direction="row" sx={{ gap: 1, alignItems: "center", mt: 0.3 }}>
+                              <Chip
+                                label={item.product?.type === "SERVICE" ? "Servis" : "Sparepart"}
+                                size="small"
+                                variant="outlined"
+                                color={item.product?.type === "SERVICE" ? "secondary" : "warning"}
+                                sx={{ fontWeight: 400, height: 20, fontSize: "0.6875rem" }}
+                              />
+                              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                                {item.quantity} × {formatToIdr(item.unitPrice)}
+                              </Typography>
+                            </Stack>
+                          </Stack>
+                          <Typography variant="body2" sx={{ fontWeight: 400 }} noWrap>
+                            {formatToIdr(item.subtotal)}
+                          </Typography>
+                        </Stack>
+                        {index < orderData.items.length - 1 && <Divider sx={{ my: 1.5 }} />}
+                      </Box>
+                    ))}
+                  </Stack>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Info Mekanik */}
-            <Card>
-              <CardContent>
-                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
+            <Card
+              sx={{
+                border: `1px solid ${alpha(theme.palette.secondary.main, 0.15)}`,
+                bgcolor: alpha(theme.palette.secondary.main, 0.02),
+                boxShadow: "none",
+              }}
+            >
+              <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
+                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 400 }}>
                   Mekanik yang Ditugaskan
                 </Typography>
-                <Typography variant="body1" fontWeight={600}>
+                <Typography variant="body1" sx={{ fontWeight: 400 }}>
                   {selectedMechanic?.fullName}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block", fontWeight: 400 }}>
                   Task aktif: {selectedMechanic?.activeTaskCount}
                 </Typography>
               </CardContent>
@@ -238,6 +377,7 @@ const AssignMechanicDialog = ({
             variant="outlined"
             onClick={onClose}
             disabled={isSubmitting}
+            sx={{ fontWeight: 400 }}
           >
             Batal
           </Button>
@@ -248,6 +388,12 @@ const AssignMechanicDialog = ({
             startIcon={
               isSubmitting ? <CircularProgress size={14} color="inherit" /> : null
             }
+            sx={{
+              fontWeight: 400,
+              "&:hover": {
+                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+              },
+            }}
           >
             {isSubmitting ? "Menugaskan..." : "Ya, Tugaskan"}
           </Button>

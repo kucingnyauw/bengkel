@@ -12,7 +12,9 @@ import {
   CircularProgress,
   Skeleton,
   Divider,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { getSettings, bulkUpdateSettings } from "@api/settingApi.js";
 import { STALE_TIME } from "@shared/constant";
 import { formatToIdr } from "@shared/utils";
@@ -56,6 +58,7 @@ const validationRules = {
 const currencyFields = ["shift_min_starting_cash"];
 
 const Settings = () => {
+  const theme = useTheme();
   const queryClient = useQueryClient();
 
   const { data: settings, isLoading } = useQuery({
@@ -75,6 +78,7 @@ const Settings = () => {
     mutationFn: bulkUpdateSettings,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
+      window.location.reload();
     },
   });
 
@@ -103,10 +107,16 @@ const Settings = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ p: 4 }}>
-        <Card variant="outlined" sx={{     borderRadius: (theme) => `${theme.shape.borderRadius}px`, }}>
+    
+        <Card
+          sx={{
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+            boxShadow: "none",
+          }}
+        >
           <CardContent sx={{ p: 4 }}>
-            <Typography variant="h5" fontWeight={700} sx={{ mb: 4 }}>
+            <Typography variant="h5" sx={{ mb: 4, fontWeight: 400 }}>
               Pengaturan Sistem
             </Typography>
             <Stack spacing={2}>
@@ -116,14 +126,20 @@ const Settings = () => {
             </Stack>
           </CardContent>
         </Card>
-      </Box>
+      
     );
   }
 
   return (
     <Box>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <Card variant="outlined" sx={{     borderRadius: (theme) => `${theme.shape.borderRadius}px`, }}>
+        <Card
+          sx={{
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+            boxShadow: "none",
+          }}
+        >
           <CardContent sx={{ p: 4 }}>
             <Box
               sx={{
@@ -134,10 +150,10 @@ const Settings = () => {
               }}
             >
               <Box>
-                <Typography variant="h5" fontWeight={700}>
+                <Typography variant="h5" sx={{ fontWeight: 400 }}>
                   Pengaturan Sistem
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
                   Konfigurasi parameter operasional bengkel
                 </Typography>
               </Box>
@@ -149,12 +165,15 @@ const Settings = () => {
                 sx={{
                   minWidth: 140,
                   px: 3,
-        
+                  fontWeight: 400,
+                  "&:hover": {
+                    boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+                  },
                 }}
               >
                 {isSubmitting ? (
                   <>
-                    <CircularProgress size={14} sx={{ mr: 1 }} />
+                    <CircularProgress size={14} sx={{ mr: 1 }} color="inherit" />
                     Menyimpan...
                   </>
                 ) : (
@@ -178,13 +197,13 @@ const Settings = () => {
                   }}
                 >
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="subtitle1" fontWeight={600}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
                       {labelMap[setting.key] || setting.key}
                     </Typography>
                     <Typography
                       variant="body2"
                       color="text.secondary"
-                      sx={{ mt: 0.5 }}
+                      sx={{ mt: 0.5, fontWeight: 400 }}
                     >
                       {helperMap[setting.key] || ""}
                     </Typography>
@@ -216,16 +235,16 @@ const Settings = () => {
                         }}
                         slotProps={{
                           input: {
+                            sx: { fontWeight: 400 },
                             endAdornment:
                               setting.key === "tax_rate" ? (
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                >
+                                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
                                   %
                                 </Typography>
                               ) : null,
                           },
+                          inputLabel: { sx: { fontWeight: 400 } },
+                          formHelperText: { sx: { fontWeight: 400 } },
                         }}
                       />
                     )}

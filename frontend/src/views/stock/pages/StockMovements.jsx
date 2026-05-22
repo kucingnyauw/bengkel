@@ -14,14 +14,15 @@ import {
   Trash2,
 } from "lucide-react";
 import {
+  Box,
   Chip,
   IconButton,
   Stack,
   Tooltip,
   Typography,
-  alpha,
   useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 import { AppTable } from "@components";
 import { useDebounce } from "@hooks";
@@ -73,28 +74,6 @@ const StockMovements = () => {
     openDetailDialog,
   } = useStockDialog();
 
-  /**
-   * Table headers configuration
-   * @type {string[]}
-   */
-  const headers = useMemo(
-    () => [
-      "Produk",
-      "Tipe",
-      "Sumber",
-      "Jumlah",
-      "Catatan",
-      "Dicatat Oleh",
-      "Tanggal",
-      "Aksi",
-    ],
-    []
-  );
-
-  /**
-   * Query parameters for stock movements
-   * @type {Object}
-   */
   const params = useMemo(
     () => ({
       endDate: activeFilters.endDate
@@ -120,7 +99,6 @@ const StockMovements = () => {
 
   /**
    * Handle apply filter and reset to first page
-   * @type {Function}
    */
   const handleApplyFilter = useCallback(() => {
     applyFilter();
@@ -129,7 +107,6 @@ const StockMovements = () => {
 
   /**
    * Handle reset filter and reset to first page
-   * @type {Function}
    */
   const handleResetFilter = useCallback(() => {
     resetFilter();
@@ -138,8 +115,6 @@ const StockMovements = () => {
 
   /**
    * Handle open create dialog for stock movement
-   * @type {Function}
-   * @param {string} type - Movement type ("in", "out", or "adjustment")
    */
   const handleOpenCreate = useCallback(
     (type) => {
@@ -150,7 +125,6 @@ const StockMovements = () => {
 
   /**
    * Handle close create dialog
-   * @type {Function}
    */
   const handleCloseCreate = useCallback(() => {
     closeCreateDialog();
@@ -158,8 +132,6 @@ const StockMovements = () => {
 
   /**
    * Handle row double click to open detail dialog
-   * @type {Function}
-   * @param {Object} row - Stock movement row data
    */
   const handleRowDoubleClick = useCallback(
     (row) => {
@@ -170,8 +142,6 @@ const StockMovements = () => {
 
   /**
    * Handle delete button click
-   * @type {Function}
-   * @param {Object} row - Stock movement row data
    */
   const handleDeleteClick = useCallback(
     (row) => {
@@ -182,74 +152,104 @@ const StockMovements = () => {
 
   /**
    * Custom row renderer for stock movements table
-   * @type {Function}
-   * @param {Object} row - Stock movement data
-   * @returns {JSX.Element[]} Array of cell components
    */
   const renderRow = useCallback(
     (row) => [
-      <Typography key={`product-${row.id}`} fontWeight={500} variant="body2">
-        {row.product?.name || "-"}
-      </Typography>,
+      <Box key={`product-${row.id}`}>
+        <Typography variant="body2" sx={{ fontWeight: 400 }}>
+          {row.product?.name || "—"}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+          SKU: {row.product?.sku || "—"} · Stok: {row.product?.stock ?? 0}
+        </Typography>
+      </Box>,
+
       <Chip
         key={`type-${row.id}`}
         color={stockMovementTypeColorMap[row.type] || "default"}
-        label={row.type}
+        label={row.type === "IN" ? "Masuk" : row.type === "OUT" ? "Keluar" : "Adjustment"}
         size="small"
         variant="outlined"
+        sx={{ fontWeight: 400 }}
       />,
-      <Typography key={`source-${row.id}`} variant="body2">
-        {row.sourceType}
+
+      <Typography key={`source-${row.id}`} variant="body2" sx={{ fontWeight: 400 }}>
+        {row.sourceType === "SALE" && "Penjualan"}
+        {row.sourceType === "PURCHASE" && "Pembelian"}
+        {row.sourceType === "MANUAL" && "Manual"}
+        {row.sourceType === "RETURN" && "Retur"}
+        {row.sourceType === "ADJUSTMENT" && "Penyesuaian"}
+        {!["SALE", "PURCHASE", "MANUAL", "RETURN", "ADJUSTMENT"].includes(row.sourceType) && (row.sourceType || "—")}
       </Typography>,
+
       <Typography
         key={`qty-${row.id}`}
-        fontWeight={500}
         variant="body2"
-        color={row.quantity > 0 ? "success.main" : "error.main"}
+        color={row.type === "IN" ? "success.main" : "error.main"}
+        sx={{ fontWeight: 400 }}
       >
-        {row.quantity > 0 ? "+" : ""}
+        {row.type === "IN" ? "+" : ""}
         {row.quantity}
       </Typography>,
-      <Typography
-        key={`note-${row.id}`}
-        variant="body2"
-        sx={{
-          maxWidth: 200,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {row.note || "-"}
+
+      <Box key={`note-${row.id}`}>
+        <Typography
+          variant="body2"
+          sx={{
+            maxWidth: 200,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontWeight: 400,
+          }}
+        >
+          {row.note || "—"}
+        </Typography>
+        {row.orderItem?.order?.orderNumber && (
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+            {row.orderItem.order.orderNumber}
+          </Typography>
+        )}
+      </Box>,
+
+      <Typography key={`user-${row.id}`} variant="body2" sx={{ fontWeight: 400 }}>
+        {row.recordedBy?.fullName || "—"}
       </Typography>,
-      <Typography key={`user-${row.id}`} variant="body2">
-        {row.recordedBy?.fullName || "-"}
-      </Typography>,
-      <Typography key={`date-${row.id}`} variant="body2">
+
+      <Typography key={`date-${row.id}`} variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
         {formatDateTime(row.createdAt)}
       </Typography>,
-      <Stack key={`action-${row.id}`} direction="row" spacing={0.5}>
+
+      <Stack key={`action-${row.id}`} direction="row" sx={{ gap: 0.5 }}>
         <Tooltip title="Hapus">
-          <span>
+          <Box component="span" sx={{ display: "inline-flex" }}>
             <IconButton
               onClick={(e) => {
                 e.stopPropagation();
                 handleDeleteClick(row);
               }}
               size="small"
+              aria-label="Hapus"
               sx={{
                 border: "1px solid",
-                borderColor: alpha(theme.palette.error.main, 0.3),
-                color: theme.palette.error.main,
+                borderColor: alpha(theme.palette.divider, 0.8),
+                borderRadius: `${theme.shape.borderRadius}px`,
+                bgcolor: alpha(theme.palette.background.paper, 0.6),
+                color: theme.palette.text.secondary,
+                transition: theme.transitions.create(
+                  ["background-color", "border-color", "color"],
+                  { duration: theme.transitions.duration.shorter }
+                ),
                 "&:hover": {
-                  bgcolor: alpha(theme.palette.error.main, 0.08),
-                  borderColor: theme.palette.error.main,
+                  bgcolor: alpha(theme.palette.error.main, 0.06),
+                  borderColor: alpha(theme.palette.error.main, 0.4),
+                  color: theme.palette.error.main,
                 },
               }}
             >
-              <Trash2 size={16} />
+              <Trash2 size={16} strokeWidth={1.5} />
             </IconButton>
-          </span>
+          </Box>
         </Tooltip>
       </Stack>,
     ],
@@ -258,7 +258,6 @@ const StockMovements = () => {
 
   /**
    * Table action buttons configuration
-   * @type {Object[]}
    */
   const tableActions = useMemo(
     () => [
@@ -285,9 +284,6 @@ const StockMovements = () => {
 
   /**
    * Handle page change
-   * @type {Function}
-   * @param {Event} event - Change event
-   * @param {number} newPage - New page number
    */
   const handlePageChange = useCallback((event, newPage) => {
     setPage(newPage);
@@ -295,8 +291,6 @@ const StockMovements = () => {
 
   /**
    * Handle rows per page change
-   * @type {Function}
-   * @param {number} newLimit - New rows per page value
    */
   const handleRowsPerPageChange = useCallback((newLimit) => {
     setLimit(newLimit);
@@ -305,8 +299,6 @@ const StockMovements = () => {
 
   /**
    * Handle search input change
-   * @type {Function}
-   * @param {Event} e - Input change event
    */
   const onSearchChange = useCallback((e) => {
     setSearch(e.target.value);
@@ -319,9 +311,17 @@ const StockMovements = () => {
         actions={tableActions}
         count={metadata.totalPages || 0}
         data={tableData}
-        emptyStateIcon={SlidersHorizontal}
         emptyStateMessage="Tidak ada mutasi stok ditemukan"
-        headers={headers}
+        headers={[
+          "Produk",
+          "Tipe",
+          "Sumber",
+          "Jumlah",
+          "Catatan",
+          "Dicatat Oleh",
+          "Tanggal",
+          "Aksi",
+        ]}
         isLoading={isLoading}
         onChange={handlePageChange}
         onRowDoubleClick={handleRowDoubleClick}

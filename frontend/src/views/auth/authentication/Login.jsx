@@ -1,11 +1,8 @@
-import { useDispatch, useSelector } from "react-redux";
-import { useEffect } from "react";
-import { loginWithEmail, loginWithGoogle } from "@store/auth/authThunk.js";
-import {
-  selectAuthError,
-  selectAuthLoading,
-  selectMagicLinkSent,
-} from "@store/auth/authSelector.js";
+import { useMutation } from "@tanstack/react-query";
+import { useDispatch } from "react-redux";
+import { signInWithEmailOtp } from "@api/supabaseApi.js";
+import { validateUserEmail } from "@api/userApi.js";
+import { showNotification } from "@store/notifications/notificationsSlice.js";
 import AuthCardWrapper from "@views/auth/authWrapper/AuthCardWrapper.jsx";
 import AuthWrapper from "@views/auth/authWrapper/AuthWrapper.jsx";
 import LoginForm from "@views/auth/authForm/LoginForm.jsx";
@@ -13,28 +10,37 @@ import LoginForm from "@views/auth/authForm/LoginForm.jsx";
 const Login = () => {
   const dispatch = useDispatch();
 
-  const authError = useSelector(selectAuthError);
-  const authLoading = useSelector(selectAuthLoading);
-  const magicLinkSent = useSelector(selectMagicLinkSent);
-
-  useEffect(() => {
-    if (!authError) return;
-
-
-  }, [authError, dispatch]);
-
-  useEffect(() => {
-    if (!magicLinkSent) return;
-
- 
-  }, [magicLinkSent, dispatch]);
+  const emailMutation = useMutation({
+    mutationFn: async (email) => {
+      await validateUserEmail(email);
+      await signInWithEmailOtp(email);
+    },
+    onSuccess: () => {
+      dispatch(
+        showNotification({
+          message: "Link login telah dikirim ke email Anda. Silakan cek inbox.",
+          type: "success",
+          title: "Berhasil",
+          variant: "snackbar",
+          autoHide: 6000,
+        })
+      );
+    },
+    onError: (error) => {
+      dispatch(
+        showNotification({
+          message: error?.message || "Gagal mengirim link login",
+          type: "error",
+          title: "Error",
+          variant: "snackbar",
+          autoHide: 5000,
+        })
+      );
+    },
+  });
 
   const handleEmailSubmit = (email) => {
-    dispatch(loginWithEmail(email));
-  };
-
-  const handleGoogleSubmit = () => {
-    dispatch(loginWithGoogle());
+    emailMutation.mutate(email);
   };
 
   return (
@@ -42,8 +48,7 @@ const Login = () => {
       <AuthCardWrapper>
         <LoginForm
           onEmailSubmit={handleEmailSubmit}
-          onGoogleSubmit={handleGoogleSubmit}
-          isLoading={authLoading}
+          isLoading={emailMutation.isPending}
         />
       </AuthCardWrapper>
     </AuthWrapper>

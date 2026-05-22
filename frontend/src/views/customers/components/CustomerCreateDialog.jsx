@@ -19,6 +19,7 @@
  * @returns {JSX.Element} Dialog multi-step customer baru
  */
 import { useCallback } from "react";
+import { useDispatch } from "react-redux";
 import { Controller } from "react-hook-form";
 import { X } from "lucide-react";
 
@@ -34,9 +35,12 @@ import {
   IconButton,
   Stack,
   TextField,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 import { useCreateCustomerMutation } from "@views/customers/hooks";
+import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const CustomerCreateDialog = ({
   activeStep,
@@ -49,8 +53,33 @@ const CustomerCreateDialog = ({
   trigger,
   formState,
 }) => {
+  const theme = useTheme();
+  const dispatch = useDispatch();
+
   const { createCustomerAndVehicle, isPending } = useCreateCustomerMutation({
-    onSuccess: () => onClose?.(),
+    onSuccess: (data) => {
+      dispatch(
+        showNotification({
+          message: `Pelanggan "${data?.name || "baru"}" berhasil ditambahkan`,
+          type: "success",
+          title: "Berhasil",
+          variant: "snackbar",
+          autoHide: 3000,
+        })
+      );
+      onClose?.();
+    },
+    onFailed: (error) => {
+      dispatch(
+        showNotification({
+          message: error?.message || "Gagal menambahkan pelanggan",
+          type: "error",
+          title: "Error",
+          variant: "snackbar",
+          autoHide: 5000,
+        })
+      );
+    },
   });
 
   const isDirty = formState?.isDirty;
@@ -66,17 +95,31 @@ const CustomerCreateDialog = ({
   };
 
   return (
-    <Dialog fullWidth maxWidth="xs" onClose={onClose} open={open}>
+    <Dialog
+      fullWidth
+      maxWidth="xs"
+      onClose={isPending ? undefined : onClose}
+      open={open}
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 400,
         }}
       >
         Pelanggan Baru
         <IconButton onClick={onClose} disabled={isPending} size="small">
-          <X size={20} />
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
@@ -89,7 +132,7 @@ const CustomerCreateDialog = ({
           onSubmit={handleSubmit(onSubmit)}
         >
           {activeStep === 0 && (
-            <Stack spacing={2.5}>
+            <Stack sx={{ gap: 2.5 }}>
               <Controller
                 control={control}
                 name="name"
@@ -97,12 +140,18 @@ const CustomerCreateDialog = ({
                 render={({ field, fieldState }) => (
                   <TextField
                     {...field}
+                    fullWidth
                     autoFocus
                     error={!!fieldState.error}
                     helperText={fieldState.error?.message}
                     label="Nama Pelanggan"
                     placeholder="Masukkan nama lengkap"
                     disabled={isPending}
+                    slotProps={{
+                      input: { sx: { fontWeight: 400 } },
+                      inputLabel: { sx: { fontWeight: 400 } },
+                      formHelperText: { sx: { fontWeight: 400 } },
+                    }}
                   />
                 )}
               />
@@ -113,11 +162,17 @@ const CustomerCreateDialog = ({
                 render={({ field, fieldState }) => (
                   <TextField
                     {...field}
+                    fullWidth
                     error={!!fieldState.error}
                     helperText={fieldState.error?.message}
                     label="Telepon"
                     placeholder="Contoh: 08123456789"
                     disabled={isPending}
+                    slotProps={{
+                      input: { sx: { fontWeight: 400 } },
+                      inputLabel: { sx: { fontWeight: 400 } },
+                      formHelperText: { sx: { fontWeight: 400 } },
+                    }}
                   />
                 )}
               />
@@ -125,7 +180,7 @@ const CustomerCreateDialog = ({
           )}
 
           {activeStep === 1 && (
-            <Stack spacing={2.5}>
+            <Stack sx={{ gap: 2.5 }}>
               <Controller
                 control={control}
                 name="plateNumber"
@@ -133,12 +188,18 @@ const CustomerCreateDialog = ({
                 render={({ field, fieldState }) => (
                   <TextField
                     {...field}
+                    fullWidth
                     autoFocus
                     error={!!fieldState.error}
                     helperText={fieldState.error?.message}
                     label="Plat Nomor"
                     placeholder="Contoh: B 1234 ABC"
                     disabled={isPending}
+                    slotProps={{
+                      input: { sx: { fontWeight: 400 } },
+                      inputLabel: { sx: { fontWeight: 400 } },
+                      formHelperText: { sx: { fontWeight: 400 } },
+                    }}
                   />
                 )}
               />
@@ -148,9 +209,14 @@ const CustomerCreateDialog = ({
                 render={({ field }) => (
                   <TextField
                     {...field}
+                    fullWidth
                     label="Merek"
                     placeholder="Contoh: Honda, Yamaha (opsional)"
                     disabled={isPending}
+                    slotProps={{
+                      input: { sx: { fontWeight: 400 } },
+                      inputLabel: { sx: { fontWeight: 400 } },
+                    }}
                   />
                 )}
               />
@@ -160,9 +226,14 @@ const CustomerCreateDialog = ({
                 render={({ field }) => (
                   <TextField
                     {...field}
+                    fullWidth
                     label="Model"
                     placeholder="Contoh: Vario, Beat (opsional)"
                     disabled={isPending}
+                    slotProps={{
+                      input: { sx: { fontWeight: 400 } },
+                      inputLabel: { sx: { fontWeight: 400 } },
+                    }}
                   />
                 )}
               />
@@ -180,13 +251,23 @@ const CustomerCreateDialog = ({
             variant="outlined"
             onClick={onBack}
             disabled={isPending}
+            sx={{ fontWeight: 400 }}
           >
             Kembali
           </Button>
         )}
         <Box sx={{ flex: 1 }} />
         {activeStep === 0 ? (
-          <Button variant="contained" onClick={handleNext}>
+          <Button
+            variant="contained"
+            onClick={handleNext}
+            sx={{
+              fontWeight: 400,
+              "&:hover": {
+                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+              },
+            }}
+          >
             Lanjut
           </Button>
         ) : (
@@ -198,6 +279,12 @@ const CustomerCreateDialog = ({
             startIcon={
               isPending ? <CircularProgress size={14} color="inherit" /> : null
             }
+            sx={{
+              fontWeight: 400,
+              "&:hover": {
+                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+              },
+            }}
           >
             {isPending ? "Menyimpan..." : "Simpan"}
           </Button>

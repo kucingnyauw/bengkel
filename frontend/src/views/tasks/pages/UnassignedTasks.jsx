@@ -6,7 +6,7 @@
  */
 import { useCallback, useMemo, useState } from "react";
 import { RotateCcw } from "lucide-react";
-import { Chip, Typography } from "@mui/material";
+import { Box, Chip, Typography, useTheme } from "@mui/material";
 
 import { AppTable } from "@components";
 import { useDebounce } from "@hooks";
@@ -15,33 +15,13 @@ import { formatDateTime, normalizeEnumText } from "@shared/utils";
 import { useUnassignedTasksQuery } from "@views/tasks/hooks";
 
 const UnassignedTasks = () => {
+  const theme = useTheme();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
 
   const debouncedSearch = useDebounce(search);
 
-  /**
-   * Konfigurasi header tabel
-   * @type {string[]}
-   */
-  const headers = useMemo(
-    () => [
-      "No. Order",
-      "Layanan",
-      "Jumlah",
-      "Status",
-      "Customer",
-      "Kendaraan",
-      "Tanggal",
-    ],
-    []
-  );
-
-  /**
-   * Parameter query
-   * @type {Object}
-   */
   const params = useMemo(
     () => ({ limit, page, search: debouncedSearch }),
     [limit, page, debouncedSearch]
@@ -54,43 +34,70 @@ const UnassignedTasks = () => {
 
   /**
    * Render baris kustom
-   * @param {Object} row - Data tugas
-   * @returns {JSX.Element[]} Array komponen sel
    */
   const renderRow = useCallback(
     (row) => [
-      <Typography key={`order-${row.orderId}`} fontWeight={500} variant="body2">
+      <Typography key={`order-${row.orderId}`} variant="body2" sx={{ fontWeight: 400 }}>
         {row.orderNumber}
       </Typography>,
-      <Typography
-        key={`services-${row.orderId}`}
-        variant="body2"
-        noWrap
-        sx={{ maxWidth: 250 }}
-      >
-        {row.services?.map((s) => s.name).join(", ") || "—"}
-      </Typography>,
-      <Typography
-        key={`count-${row.orderId}`}
-        variant="body2"
-        textAlign="center"
-      >
+
+      <Box key={`services-${row.orderId}`}>
+        {row.services?.slice(0, 2).map((s, i) => (
+          <Typography
+            key={i}
+            variant="body2"
+            sx={{
+              fontWeight: 400,
+              maxWidth: 250,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {s.name}
+          </Typography>
+        ))}
+        {row.services?.length > 2 && (
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+            +{row.services.length - 2} layanan lainnya
+          </Typography>
+        )}
+        {(!row.services || row.services.length === 0) && (
+          <Typography variant="body2" color="text.disabled" sx={{ fontWeight: 400 }}>
+            —
+          </Typography>
+        )}
+      </Box>,
+
+      <Typography key={`count-${row.orderId}`} variant="body2" sx={{ fontWeight: 400, textAlign: "center" }}>
         {row.services?.length || 0}
       </Typography>,
+
       <Chip
         key={`status-${row.orderId}`}
         color={statusColorMap[row.status] || "default"}
         label={normalizeEnumText(OrderStatus[row.status] || row.status)}
         size="small"
         variant="outlined"
+        sx={{ fontWeight: 400 }}
       />,
-      <Typography key={`customer-${row.orderId}`} variant="body2">
+
+      <Typography key={`customer-${row.orderId}`} variant="body2" sx={{ fontWeight: 400 }}>
         {row.customer?.name || "—"}
       </Typography>,
-      <Typography key={`vehicle-${row.orderId}`} variant="body2">
-        {row.vehicle?.plateNumber || "—"}
-      </Typography>,
-      <Typography key={`date-${row.orderId}`} variant="body2">
+
+      <Box key={`vehicle-${row.orderId}`}>
+        <Typography variant="body2" sx={{ fontWeight: 400 }}>
+          {row.vehicle?.plateNumber || "—"}
+        </Typography>
+        {row.vehicle?.brand && (
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+            {row.vehicle.brand} {row.vehicle.model || ""}
+          </Typography>
+        )}
+      </Box>,
+
+      <Typography key={`date-${row.orderId}`} variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
         {formatDateTime(row.createdAt)}
       </Typography>,
     ],
@@ -99,7 +106,6 @@ const UnassignedTasks = () => {
 
   /**
    * Konfigurasi tombol aksi tabel
-   * @type {Object[]}
    */
   const tableActions = useMemo(
     () => [{ icon: RotateCcw, label: "Refresh", onClick: () => refetch() }],
@@ -108,8 +114,6 @@ const UnassignedTasks = () => {
 
   /**
    * Handler perubahan halaman
-   * @param {Event} event - Event perubahan
-   * @param {number} newPage - Nomor halaman baru
    */
   const handlePageChange = useCallback((event, newPage) => {
     setPage(newPage);
@@ -117,7 +121,6 @@ const UnassignedTasks = () => {
 
   /**
    * Handler perubahan jumlah baris per halaman
-   * @param {number} newLimit - Nilai jumlah baris per halaman baru
    */
   const handleRowsPerPageChange = useCallback((newLimit) => {
     setLimit(newLimit);
@@ -126,7 +129,6 @@ const UnassignedTasks = () => {
 
   /**
    * Handler perubahan input pencarian
-   * @param {Event} e - Event perubahan input
    */
   const onSearchChange = useCallback((e) => {
     setSearch(e.target.value);
@@ -139,7 +141,15 @@ const UnassignedTasks = () => {
       count={metadata.totalPages || 0}
       data={tableData}
       emptyStateMessage="Tidak ada tugas yang belum ditugaskan"
-      headers={headers}
+      headers={[
+        "No. Order",
+        "Layanan",
+        "Jumlah",
+        "Status",
+        "Customer",
+        "Kendaraan",
+        "Tanggal",
+      ]}
       isLoading={isLoading}
       onChange={handlePageChange}
       onRowsPerPageChange={handleRowsPerPageChange}

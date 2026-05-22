@@ -1,12 +1,13 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Typography, CircularProgress, Box, Fade } from "@mui/material";
-import supabase from "@lib/supabase.js";
+import { useTheme } from "@mui/material/styles";
+import { verifyCallbackSession } from "@api/supabaseApi.js";
 import AuthWrapper from "@views/auth/authWrapper/AuthWrapper.jsx";
 
 const Callback = () => {
+  const theme = useTheme();
   const navigate = useNavigate();
-  const [status, setStatus] = useState({ loading: true, error: null });
   const hasProcessed = useRef(false);
 
   useEffect(() => {
@@ -14,31 +15,12 @@ const Callback = () => {
     hasProcessed.current = true;
 
     const processAuth = async () => {
-      const currentHash = window.location.hash;
-      const params = new URLSearchParams(currentHash.replace(/^#/, ""));
-      const errorDesc = params.get("error_description");
-      const accessToken = params.get("access_token");
-
-      const handleError = (message) => {
-        setStatus({ loading: false, error: message });
+      try {
+        await verifyCallbackSession();
+        navigate("/dashboard", { replace: true });
+      } catch {
         setTimeout(() => navigate("/login", { replace: true }), 3000);
-      };
-
-      if (errorDesc) {
-        return handleError(decodeURIComponent(errorDesc.replace(/\+/g, " ")));
       }
-
-      if (!accessToken) {
-        return navigate("/login", { replace: true });
-      }
-
-      const { data: { session }, error } = await supabase.auth.getSession();
-
-      if (error || !session) {
-        return handleError("Sesi tidak valid atau telah kedaluwarsa.");
-      }
-
-      navigate("/dashboard", { replace: true });
     };
 
     processAuth();
@@ -55,30 +37,17 @@ const Callback = () => {
           textAlign="center"
           maxWidth={360}
         >
-          {status.loading ? (
-            <>
-              <CircularProgress 
-                size={32} 
-                thickness={3} 
-                sx={{ mb: 2, color: "text.primary" }} 
-              />
-              <Typography variant="body1" fontWeight={500} color="text.primary">
-                Memverifikasi...
-              </Typography>
-            </>
-          ) : (
-            <>
-              <Typography variant="body1" fontWeight={600} color="error.main" gutterBottom>
-                Verifikasi Gagal
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                {status.error}
-              </Typography>
-              <Typography variant="caption" color="text.disabled" letterSpacing={0.5}>
-                MENGALIHKAN...
-              </Typography>
-            </>
-          )}
+          <CircularProgress
+            size={32}
+            thickness={3}
+            sx={{ mb: 2, color: theme.palette.secondary.main }}
+          />
+          <Typography variant="body1" sx={{ fontWeight: 400 }}>
+            Memverifikasi...
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, fontWeight: 400 }}>
+            Mohon tunggu sebentar
+          </Typography>
         </Box>
       </Fade>
     </AuthWrapper>

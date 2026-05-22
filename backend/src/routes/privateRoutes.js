@@ -17,6 +17,7 @@ import VehicleController from "#controller/vehicleController.js";
 import authMiddleware from "#middleware/authMiddleware.js";
 import roleMiddleware from "#middleware/roleMiddleware.js";
 import timeoutMiddleware from "#middleware/timeoutMiddleware.js";
+import rateLimiterMiddleware from "#middleware/rateLimiterMiddleware.js";
 
 import {
   fileUploadSingle,
@@ -29,25 +30,22 @@ const prefix = `/api/${version}`;
 
 privateRouter.use(authMiddleware);
 
-const adminOnly = roleMiddleware({ allowedRoles: ["ADMIN", "SUPERADMIN"] });
-const cashierOnly = roleMiddleware({ allowedRoles: ["CASHIER", "SUPERADMIN"] });
-const mechanicOnly = roleMiddleware({
-  allowedRoles: ["MECHANIC", "SUPERADMIN"],
-});
-const adminAndCashier = roleMiddleware({
-  allowedRoles: ["ADMIN", "CASHIER", "SUPERADMIN"],
-});
-const adminAndMechanic = roleMiddleware({
-  allowedRoles: ["ADMIN", "MECHANIC", "SUPERADMIN"],
-});
-const allRoles = roleMiddleware({
-  allowedRoles: ["ADMIN", "CASHIER", "MECHANIC", "SUPERADMIN"],
-});
+const adminOnly = roleMiddleware({ allowedRoles: ["ADMIN"] });
+const cashierOnly = roleMiddleware({ allowedRoles: ["CASHIER"] });
+const mechanicOnly = roleMiddleware({ allowedRoles: ["MECHANIC"] });
+const adminAndCashier = roleMiddleware({ allowedRoles: ["ADMIN", "CASHIER"] });
+const adminAndMechanic = roleMiddleware({ allowedRoles: ["ADMIN", "MECHANIC"] });
+const allRoles = roleMiddleware({ allowedRoles: ["ADMIN", "CASHIER", "MECHANIC"] });
 
 const shortTimeout = timeoutMiddleware({ timeoutMs: 10000 });
 const mediumTimeout = timeoutMiddleware({ timeoutMs: 20000 });
 const longTimeout = timeoutMiddleware({ timeoutMs: 45000 });
 const reportTimeout = timeoutMiddleware({ timeoutMs: 60000 });
+
+const generalLimiter = rateLimiterMiddleware({ windowMs: 60000, max: 100 });
+const createLimiter = rateLimiterMiddleware({ windowMs: 60000, max: 30 });
+const reportLimiter = rateLimiterMiddleware({ windowMs: 60000, max: 20 });
+const authLimiter = rateLimiterMiddleware({ windowMs: 60000, max: 10 });
 
 /**
  * ============================================================================
@@ -58,33 +56,36 @@ const reportTimeout = timeoutMiddleware({ timeoutMs: 60000 });
 /**
  * @route POST /api/{version}/customers
  * @description Membuat pelanggan baru
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.post(
   `${prefix}/customers`,
   adminAndCashier,
+  createLimiter,
   CustomerController.createCustomer
 );
 
 /**
  * @route PUT /api/{version}/customers/upsert
  * @description Membuat atau memperbarui data pelanggan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.put(
   `${prefix}/customers/upsert`,
   adminAndCashier,
+  createLimiter,
   CustomerController.upsertCustomer
 );
 
 /**
  * @route GET /api/{version}/customers
  * @description Mendapatkan semua pelanggan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/customers`,
   adminAndCashier,
+  generalLimiter,
   shortTimeout,
   CustomerController.getCustomers
 );
@@ -92,55 +93,60 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/customers/phone/check
  * @description Memeriksa ketersediaan nomor telepon pelanggan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/customers/phone/check`,
   adminAndCashier,
+  generalLimiter,
   CustomerController.checkPhoneAvailability
 );
 
 /**
  * @route GET /api/{version}/customers/phone/:phone
  * @description Mendapatkan pelanggan berdasarkan nomor telepon
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/customers/phone/:phone`,
   adminAndCashier,
+  generalLimiter,
   CustomerController.getCustomerByPhone
 );
 
 /**
  * @route GET /api/{version}/customers/:id
  * @description Mendapatkan pelanggan berdasarkan ID
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/customers/:id`,
   adminAndCashier,
+  generalLimiter,
   CustomerController.getCustomerById
 );
 
 /**
  * @route PUT /api/{version}/customers/:id
  * @description Memperbarui data pelanggan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.put(
   `${prefix}/customers/:id`,
   adminAndCashier,
+  createLimiter,
   CustomerController.updateCustomer
 );
 
 /**
  * @route DELETE /api/{version}/customers/:id
  * @description Menghapus pelanggan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.delete(
   `${prefix}/customers/:id`,
   adminAndCashier,
+  createLimiter,
   CustomerController.deleteCustomer
 );
 
@@ -153,11 +159,12 @@ privateRouter.delete(
 /**
  * @route POST /api/{version}/expenses
  * @description Membuat pengeluaran baru
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.post(
   `${prefix}/expenses`,
   cashierOnly,
+  createLimiter,
   fileUploadOptional("receipt"),
   ExpenseController.createExpense
 );
@@ -165,11 +172,12 @@ privateRouter.post(
 /**
  * @route GET /api/{version}/expenses
  * @description Mendapatkan semua pengeluaran
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/expenses`,
   adminAndCashier,
+  generalLimiter,
   shortTimeout,
   ExpenseController.getExpenses
 );
@@ -177,11 +185,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/expenses/cashier
  * @description Mendapatkan pengeluaran berdasarkan kasir yang login
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.get(
   `${prefix}/expenses/cashier`,
   cashierOnly,
+  generalLimiter,
   shortTimeout,
   ExpenseController.getExpensesByCashier
 );
@@ -189,33 +198,36 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/expenses/shift/:shiftId
  * @description Mendapatkan pengeluaran berdasarkan shift
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/expenses/shift/:shiftId`,
   adminAndCashier,
+  generalLimiter,
   ExpenseController.getExpensesByShift
 );
 
 /**
  * @route GET /api/{version}/expenses/:id
  * @description Mendapatkan pengeluaran berdasarkan ID
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/expenses/:id`,
   adminAndCashier,
+  generalLimiter,
   ExpenseController.getExpenseById
 );
 
 /**
  * @route PUT /api/{version}/expenses/:id
  * @description Memperbarui pengeluaran
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.put(
   `${prefix}/expenses/:id`,
   cashierOnly,
+  createLimiter,
   fileUploadOptional("receipt"),
   ExpenseController.updateExpense
 );
@@ -223,11 +235,12 @@ privateRouter.put(
 /**
  * @route DELETE /api/{version}/expenses/:id
  * @description Menghapus pengeluaran
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.delete(
   `${prefix}/expenses/:id`,
   cashierOnly,
+  createLimiter,
   ExpenseController.deleteExpense
 );
 
@@ -240,22 +253,24 @@ privateRouter.delete(
 /**
  * @route POST /api/{version}/notifications
  * @description Membuat notifikasi baru
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.post(
   `${prefix}/notifications`,
   adminOnly,
+  createLimiter,
   NotificationController.createNotification
 );
 
 /**
  * @route POST /api/{version}/notifications/bulk
  * @description Membuat notifikasi untuk multiple users
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.post(
   `${prefix}/notifications/bulk`,
   adminOnly,
+  createLimiter,
   NotificationController.createBulkNotification
 );
 
@@ -267,6 +282,7 @@ privateRouter.post(
 privateRouter.get(
   `${prefix}/notifications/me`,
   allRoles,
+  generalLimiter,
   shortTimeout,
   NotificationController.getMyNotifications
 );
@@ -279,6 +295,7 @@ privateRouter.get(
 privateRouter.get(
   `${prefix}/notifications/unread-count`,
   allRoles,
+  generalLimiter,
   NotificationController.getUnreadCount
 );
 
@@ -290,6 +307,7 @@ privateRouter.get(
 privateRouter.get(
   `${prefix}/notifications/total-count`,
   allRoles,
+  generalLimiter,
   NotificationController.getTotalCount
 );
 
@@ -301,6 +319,7 @@ privateRouter.get(
 privateRouter.get(
   `${prefix}/notifications/:id`,
   allRoles,
+  generalLimiter,
   NotificationController.getNotificationById
 );
 
@@ -312,6 +331,7 @@ privateRouter.get(
 privateRouter.patch(
   `${prefix}/notifications/read-all`,
   allRoles,
+  createLimiter,
   NotificationController.markAllAsRead
 );
 
@@ -323,6 +343,7 @@ privateRouter.patch(
 privateRouter.patch(
   `${prefix}/notifications/:id/read`,
   allRoles,
+  createLimiter,
   NotificationController.markAsRead
 );
 
@@ -334,6 +355,7 @@ privateRouter.patch(
 privateRouter.delete(
   `${prefix}/notifications`,
   allRoles,
+  createLimiter,
   NotificationController.deleteAllNotifications
 );
 
@@ -345,6 +367,7 @@ privateRouter.delete(
 privateRouter.delete(
   `${prefix}/notifications/:id`,
   allRoles,
+  createLimiter,
   NotificationController.deleteNotification
 );
 
@@ -357,11 +380,12 @@ privateRouter.delete(
 /**
  * @route POST /api/{version}/orders
  * @description Membuat pesanan baru
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.post(
   `${prefix}/orders`,
   cashierOnly,
+  createLimiter,
   longTimeout,
   OrderController.createOrder
 );
@@ -369,11 +393,12 @@ privateRouter.post(
 /**
  * @route POST /api/{version}/orders/calculate
  * @description Menghitung total pesanan
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.post(
   `${prefix}/orders/calculate`,
   cashierOnly,
+  createLimiter,
   mediumTimeout,
   OrderController.calculateTotal
 );
@@ -381,11 +406,12 @@ privateRouter.post(
 /**
  * @route GET /api/{version}/orders
  * @description Mendapatkan semua pesanan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/orders`,
   adminAndCashier,
+  generalLimiter,
   mediumTimeout,
   OrderController.getOrders
 );
@@ -393,11 +419,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/orders/active
  * @description Mendapatkan pesanan yang sedang aktif
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.get(
   `${prefix}/orders/active`,
   cashierOnly,
+  generalLimiter,
   shortTimeout,
   OrderController.getActiveOrders
 );
@@ -405,11 +432,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/orders/:identifier
  * @description Mendapatkan pesanan berdasarkan ID atau nomor invoice
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/orders/:identifier`,
   adminAndCashier,
+  generalLimiter,
   OrderController.getOrder
 );
 
@@ -421,6 +449,7 @@ privateRouter.get(
 privateRouter.patch(
   `${prefix}/orders/:id/status`,
   allRoles,
+  createLimiter,
   longTimeout,
   OrderController.updateOrderStatus
 );
@@ -428,22 +457,24 @@ privateRouter.patch(
 /**
  * @route PATCH /api/{version}/orders/:id/close
  * @description Menutup pesanan (COMPLETED → CLOSED)
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.patch(
   `${prefix}/orders/:id/close`,
   adminAndCashier,
+  createLimiter,
   OrderController.closeOrder
 );
 
 /**
  * @route POST /api/{version}/orders/:id/cancel
  * @description Membatalkan pesanan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.post(
   `${prefix}/orders/:id/cancel`,
   adminAndCashier,
+  createLimiter,
   longTimeout,
   OrderController.cancelOrder
 );
@@ -451,22 +482,24 @@ privateRouter.post(
 /**
  * @route POST /api/{version}/orders/:id/restore
  * @description Mengembalikan pesanan yang telah dihapus
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.post(
   `${prefix}/orders/:id/restore`,
   adminOnly,
+  authLimiter,
   OrderController.restoreOrder
 );
 
 /**
  * @route DELETE /api/{version}/orders/:id
  * @description Menghapus pesanan secara lunak (soft delete)
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.delete(
   `${prefix}/orders/:id`,
   adminOnly,
+  authLimiter,
   OrderController.softDeleteOrder
 );
 
@@ -479,11 +512,12 @@ privateRouter.delete(
 /**
  * @route POST /api/{version}/payments
  * @description Membuat pembayaran baru
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.post(
   `${prefix}/payments`,
   cashierOnly,
+  createLimiter,
   longTimeout,
   PaymentController.createPayment
 );
@@ -491,11 +525,12 @@ privateRouter.post(
 /**
  * @route GET /api/{version}/payments
  * @description Mendapatkan semua pembayaran
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/payments`,
   adminAndCashier,
+  generalLimiter,
   shortTimeout,
   PaymentController.getPayments
 );
@@ -503,22 +538,24 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/payments/order/:orderId
  * @description Mendapatkan pembayaran berdasarkan pesanan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/payments/order/:orderId`,
   adminAndCashier,
+  generalLimiter,
   PaymentController.getPaymentByOrder
 );
 
 /**
  * @route GET /api/{version}/payments/order/:orderId/status
  * @description Mendapatkan status pembayaran QRIS dari Midtrans
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/payments/order/:orderId/status`,
   adminAndCashier,
+  generalLimiter,
   mediumTimeout,
   PaymentController.getPaymentStatus
 );
@@ -526,22 +563,24 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/payments/:id
  * @description Mendapatkan pembayaran berdasarkan ID
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/payments/:id`,
   adminAndCashier,
+  generalLimiter,
   PaymentController.getPaymentById
 );
 
 /**
  * @route POST /api/{version}/payments/:id/refund
  * @description Melakukan refund pembayaran
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.post(
   `${prefix}/payments/:id/refund`,
   adminAndCashier,
+  authLimiter,
   longTimeout,
   PaymentController.refundPayment
 );
@@ -555,11 +594,12 @@ privateRouter.post(
 /**
  * @route POST /api/{version}/products
  * @description Membuat produk baru
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.post(
   `${prefix}/products`,
   adminOnly,
+  createLimiter,
   fileUploadSingle("image"),
   ProductController.createProduct
 );
@@ -567,11 +607,12 @@ privateRouter.post(
 /**
  * @route GET /api/{version}/products
  * @description Mendapatkan semua produk
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/products`,
   adminAndCashier,
+  generalLimiter,
   shortTimeout,
   ProductController.getProducts
 );
@@ -579,77 +620,84 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/products/services
  * @description Mendapatkan produk jenis jasa
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/products/services`,
   adminAndCashier,
+  generalLimiter,
   ProductController.getServices
 );
 
 /**
  * @route GET /api/{version}/products/spareparts
  * @description Mendapatkan produk jenis sparepart
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/products/spareparts`,
   adminAndCashier,
+  generalLimiter,
   ProductController.getSpareparts
 );
 
 /**
  * @route GET /api/{version}/products/low-stock
  * @description Mendapatkan produk dengan stok rendah
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/products/low-stock`,
   adminOnly,
+  generalLimiter,
   ProductController.getLowStockProducts
 );
 
 /**
  * @route GET /api/{version}/products/check/sku
  * @description Memeriksa ketersediaan SKU
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/products/check/sku`,
   adminOnly,
+  generalLimiter,
   ProductController.checkSkuAvailability
 );
 
 /**
  * @route GET /api/{version}/products/sku/:sku
  * @description Mendapatkan produk berdasarkan SKU
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/products/sku/:sku`,
   adminAndCashier,
+  generalLimiter,
   ProductController.getProductBySku
 );
 
 /**
  * @route GET /api/{version}/products/:id
  * @description Mendapatkan produk berdasarkan ID
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/products/:id`,
   adminAndCashier,
+  generalLimiter,
   ProductController.getProductById
 );
 
 /**
  * @route PUT /api/{version}/products/:id
  * @description Memperbarui produk
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.put(
   `${prefix}/products/:id`,
   adminOnly,
+  createLimiter,
   fileUploadOptional("image"),
   ProductController.updateProduct
 );
@@ -657,11 +705,12 @@ privateRouter.put(
 /**
  * @route PATCH /api/{version}/products/:id/status
  * @description Memperbarui status produk / Toggle status aktif/nonaktif (soft delete)
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.patch(
   `${prefix}/products/:id/status`,
   adminOnly,
+  createLimiter,
   ProductController.updateProductStatus
 );
 
@@ -679,6 +728,7 @@ privateRouter.patch(
 privateRouter.get(
   `${prefix}/reports/dashboard`,
   allRoles,
+  reportLimiter,
   reportTimeout,
   ReportController.getDashboardSummary
 );
@@ -686,11 +736,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/reports/sales
  * @description Mendapatkan laporan penjualan
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/reports/sales`,
   adminOnly,
+  reportLimiter,
   reportTimeout,
   ReportController.getSalesSummary
 );
@@ -698,11 +749,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/reports/profit-loss
  * @description Mendapatkan laporan laba rugi
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/reports/profit-loss`,
   adminOnly,
+  reportLimiter,
   reportTimeout,
   ReportController.getProfitLossReport
 );
@@ -710,11 +762,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/reports/inventory
  * @description Mendapatkan laporan inventaris
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/reports/inventory`,
   adminOnly,
+  reportLimiter,
   reportTimeout,
   ReportController.getInventoryReport
 );
@@ -722,11 +775,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/reports/expenses
  * @description Mendapatkan laporan pengeluaran
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/reports/expenses`,
   adminOnly,
+  reportLimiter,
   mediumTimeout,
   ReportController.getExpenseReport
 );
@@ -734,11 +788,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/reports/payments
  * @description Mendapatkan laporan pembayaran
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/reports/payments`,
   adminOnly,
+  reportLimiter,
   mediumTimeout,
   ReportController.getPaymentReport
 );
@@ -746,11 +801,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/reports/products/top
  * @description Mendapatkan laporan produk terlaris
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/reports/products/top`,
   adminOnly,
+  reportLimiter,
   reportTimeout,
   ReportController.getTopProductsReport
 );
@@ -758,11 +814,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/reports/mechanics/performance
  * @description Mendapatkan laporan performa mekanik
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/reports/mechanics/performance`,
   adminOnly,
+  reportLimiter,
   reportTimeout,
   ReportController.getMechanicPerformanceReport
 );
@@ -770,22 +827,24 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/reports/mechanics/:mechanicId/tasks
  * @description Mendapatkan statistik tugas mekanik
- * @access Admin, Mekanik & Superadmin
+ * @access Admin, Mekanik
  */
 privateRouter.get(
   `${prefix}/reports/mechanics/:mechanicId/tasks`,
   adminAndMechanic,
+  generalLimiter,
   ReportController.getMechanicTaskStats
 );
 
 /**
  * @route GET /api/{version}/reports/mechanics/:mechanicId/earnings
  * @description Mendapatkan pendapatan mekanik
- * @access Admin, Mekanik & Superadmin
+ * @access Admin, Mekanik
  */
 privateRouter.get(
   `${prefix}/reports/mechanics/:mechanicId/earnings`,
   adminAndMechanic,
+  generalLimiter,
   mediumTimeout,
   ReportController.getMechanicEarnings
 );
@@ -793,11 +852,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/reports/shift/:shiftId
  * @description Mendapatkan laporan berdasarkan shift
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/reports/shift/:shiftId`,
   adminOnly,
+  generalLimiter,
   mediumTimeout,
   ReportController.getShiftReport
 );
@@ -805,11 +865,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/reports/stock/:productId/movements
  * @description Mendapatkan laporan pergerakan stok produk
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/reports/stock/:productId/movements`,
   adminOnly,
+  generalLimiter,
   mediumTimeout,
   ReportController.getStockMovementReport
 );
@@ -817,11 +878,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/reports/orders/:orderId/tasks
  * @description Mendapatkan statistik tugas berdasarkan pesanan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/reports/orders/:orderId/tasks`,
   adminAndCashier,
+  generalLimiter,
   ReportController.getTaskStatsByOrder
 );
 
@@ -834,40 +896,48 @@ privateRouter.get(
 /**
  * @route PUT /api/{version}/settings
  * @description Bulk update settings
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.put(
   `${prefix}/settings`,
   adminOnly,
+  authLimiter,
   SettingController.bulkUpdate
 );
 
 /**
  * @route GET /api/{version}/settings
  * @description Mendapatkan semua settings
- * @access Admin & Superadmin
+ * @access Admin
  */
-privateRouter.get(`${prefix}/settings`, adminOnly, SettingController.getAll);
+privateRouter.get(
+  `${prefix}/settings`,
+  adminOnly,
+  generalLimiter,
+  SettingController.getAll
+);
 
 /**
  * @route GET /api/{version}/settings/:key
  * @description Mendapatkan setting berdasarkan key
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/settings/:key`,
   adminOnly,
+  generalLimiter,
   SettingController.getByKey
 );
 
 /**
  * @route PUT /api/{version}/settings/:key
  * @description Update satu setting
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.put(
   `${prefix}/settings/:key`,
   adminOnly,
+  authLimiter,
   SettingController.update
 );
 
@@ -880,22 +950,24 @@ privateRouter.put(
 /**
  * @route POST /api/{version}/shifts/open
  * @description Membuka shift baru
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.post(
   `${prefix}/shifts/open`,
   cashierOnly,
+  createLimiter,
   ShiftController.openShift
 );
 
 /**
  * @route GET /api/{version}/shifts
  * @description Mendapatkan semua shift
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/shifts`,
   adminOnly,
+  generalLimiter,
   shortTimeout,
   ShiftController.getShifts
 );
@@ -903,33 +975,36 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/shifts/active
  * @description Mendapatkan shift yang sedang aktif
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.get(
   `${prefix}/shifts/active`,
   cashierOnly,
+  generalLimiter,
   ShiftController.getActiveShift
 );
 
 /**
  * @route GET /api/{version}/shifts/active/check
  * @description Memeriksa apakah ada shift yang aktif
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.get(
   `${prefix}/shifts/active/check`,
   cashierOnly,
+  generalLimiter,
   ShiftController.checkActiveShift
 );
 
 /**
  * @route GET /api/{version}/shifts/cashiers
  * @description Mendapatkan daftar shift berdasarkan kasir
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.get(
   `${prefix}/shifts/cashiers`,
   cashierOnly,
+  generalLimiter,
   shortTimeout,
   ShiftController.getShiftListByCashierId
 );
@@ -937,33 +1012,36 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/shifts/starting-cash-suggestion
  * @description Mendapatkan saran starting cash berdasarkan shift sebelumnya
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.get(
   `${prefix}/shifts/starting-cash-suggestion`,
   cashierOnly,
+  generalLimiter,
   ShiftController.getStartingCashSuggestion
 );
 
 /**
  * @route GET /api/{version}/shifts/:id
  * @description Mendapatkan shift berdasarkan ID
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/shifts/:id`,
   adminAndCashier,
+  generalLimiter,
   ShiftController.getShiftById
 );
 
 /**
  * @route GET /api/{version}/shifts/:id/expected-cash
  * @description Menghitung expected cash shift berdasarkan data sistem
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/shifts/:id/expected-cash`,
   adminAndCashier,
+  generalLimiter,
   mediumTimeout,
   ShiftController.getExpectedCash
 );
@@ -971,11 +1049,12 @@ privateRouter.get(
 /**
  * @route POST /api/{version}/shifts/:id/close
  * @description Menutup shift
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.post(
   `${prefix}/shifts/:id/close`,
   cashierOnly,
+  createLimiter,
   longTimeout,
   ShiftController.closeShift
 );
@@ -983,22 +1062,24 @@ privateRouter.post(
 /**
  * @route POST /api/{version}/shifts/:id/cash-in
  * @description Mencatat pemasukan kas
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.post(
   `${prefix}/shifts/:id/cash-in`,
   cashierOnly,
+  createLimiter,
   ShiftController.recordCashIn
 );
 
 /**
  * @route POST /api/{version}/shifts/:id/cash-out
  * @description Mencatat pengeluaran kas
- * @access Kasir & Superadmin
+ * @access Kasir
  */
 privateRouter.post(
   `${prefix}/shifts/:id/cash-out`,
   cashierOnly,
+  createLimiter,
   ShiftController.recordCashOut
 );
 
@@ -1011,66 +1092,72 @@ privateRouter.post(
 /**
  * @route POST /api/{version}/stock/in
  * @description Mencatat stok masuk
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.post(
   `${prefix}/stock/in`,
   adminOnly,
+  createLimiter,
   StockController.recordStockIn
 );
 
 /**
  * @route POST /api/{version}/stock/out
  * @description Mencatat stok keluar
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.post(
   `${prefix}/stock/out`,
   adminOnly,
+  createLimiter,
   StockController.recordStockOut
 );
 
 /**
  * @route POST /api/{version}/stock/sale
  * @description Mencatat stok keluar karena penjualan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.post(
   `${prefix}/stock/sale`,
   adminAndCashier,
+  createLimiter,
   StockController.recordSaleOut
 );
 
 /**
  * @route POST /api/{version}/stock/return
  * @description Mencatat stok masuk karena retur
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.post(
   `${prefix}/stock/return`,
   adminAndCashier,
+  createLimiter,
   StockController.recordReturnIn
 );
 
 /**
  * @route POST /api/{version}/stock/adjust
  * @description Mencatat penyesuaian stok
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.post(
   `${prefix}/stock/adjust`,
   adminOnly,
+  createLimiter,
   StockController.recordAdjustment
 );
 
 /**
  * @route GET /api/{version}/stock/movements
  * @description Mendapatkan semua pergerakan stok
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/stock/movements`,
   adminOnly,
+  generalLimiter,
   mediumTimeout,
   StockController.getStockMovements
 );
@@ -1078,22 +1165,24 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/stock/movements/:id
  * @description Mendapatkan pergerakan stok berdasarkan ID
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/stock/movements/:id`,
   adminOnly,
+  generalLimiter,
   StockController.getStockMovementById
 );
 
 /**
  * @route GET /api/{version}/stock/products/:productId/movements
  * @description Mendapatkan pergerakan stok berdasarkan produk
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/stock/products/:productId/movements`,
   adminOnly,
+  generalLimiter,
   shortTimeout,
   StockController.getMovementsByProduct
 );
@@ -1101,22 +1190,24 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/stock/orders/:orderId/movements
  * @description Mendapatkan pergerakan stok berdasarkan pesanan
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/stock/orders/:orderId/movements`,
   adminOnly,
+  generalLimiter,
   StockController.getMovementsByOrder
 );
 
 /**
  * @route DELETE /api/{version}/stock/movements/:id
  * @description Menghapus catatan pergerakan stok
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.delete(
   `${prefix}/stock/movements/:id`,
   adminOnly,
+  authLimiter,
   StockController.deleteStockMovement
 );
 
@@ -1129,22 +1220,24 @@ privateRouter.delete(
 /**
  * @route POST /api/{version}/tasks/assign
  * @description Menugaskan mekanik ke tugas
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.post(
   `${prefix}/tasks/assign`,
   adminAndCashier,
+  createLimiter,
   TaskController.assignMechanic
 );
 
 /**
  * @route POST /api/{version}/tasks/bulk-assign
  * @description Menugaskan mekanik ke banyak tugas sekaligus
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.post(
   `${prefix}/tasks/bulk-assign`,
   adminAndCashier,
+  createLimiter,
   TaskController.bulkAssignMechanics
 );
 
@@ -1156,6 +1249,7 @@ privateRouter.post(
 privateRouter.get(
   `${prefix}/tasks`,
   allRoles,
+  generalLimiter,
   mediumTimeout,
   TaskController.getTasks
 );
@@ -1163,11 +1257,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/tasks/me
  * @description Mendapatkan tugas mekanik yang sedang login (aktif)
- * @access Mekanik & Superadmin
+ * @access Mekanik
  */
 privateRouter.get(
   `${prefix}/tasks/me`,
   mechanicOnly,
+  generalLimiter,
   shortTimeout,
   TaskController.getMyTasks
 );
@@ -1175,11 +1270,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/tasks/me/history
  * @description Mendapatkan riwayat tugas mekanik yang sedang login (selesai)
- * @access Mekanik & Superadmin
+ * @access Mekanik
  */
 privateRouter.get(
   `${prefix}/tasks/me/history`,
   mechanicOnly,
+  generalLimiter,
   mediumTimeout,
   TaskController.getMyTaskHistory
 );
@@ -1187,11 +1283,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/tasks/unassigned
  * @description Mendapatkan tugas yang belum ditugaskan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/tasks/unassigned`,
   adminAndCashier,
+  generalLimiter,
   shortTimeout,
   TaskController.getUnassignedTasks
 );
@@ -1199,11 +1296,12 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/tasks/mechanics/available
  * @description Mendapatkan mekanik yang tersedia
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/tasks/mechanics/available`,
   adminAndCashier,
+  generalLimiter,
   shortTimeout,
   TaskController.getAvailableMechanics
 );
@@ -1216,6 +1314,7 @@ privateRouter.get(
 privateRouter.get(
   `${prefix}/tasks/mechanic/:mechanicId`,
   allRoles,
+  generalLimiter,
   TaskController.getTasksByMechanic
 );
 
@@ -1227,17 +1326,19 @@ privateRouter.get(
 privateRouter.get(
   `${prefix}/tasks/order/:orderId`,
   allRoles,
+  generalLimiter,
   TaskController.getTasksByOrderId
 );
 
 /**
  * @route GET /api/{version}/tasks/order-item/:orderItemId/check
  * @description Memeriksa apakah mekanik sudah ditugaskan ke item pesanan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/tasks/order-item/:orderItemId/check`,
   adminAndCashier,
+  generalLimiter,
   TaskController.checkMechanicAssigned
 );
 
@@ -1246,38 +1347,46 @@ privateRouter.get(
  * @description Mendapatkan tugas berdasarkan ID
  * @access Semua role
  */
-privateRouter.get(`${prefix}/tasks/:id`, allRoles, TaskController.getTaskById);
+privateRouter.get(
+  `${prefix}/tasks/:id`,
+  allRoles,
+  generalLimiter,
+  TaskController.getTaskById
+);
 
 /**
  * @route POST /api/{version}/tasks/order/:orderId/unassign
  * @description Membatalkan penugasan mekanik dari pesanan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.post(
   `${prefix}/tasks/order/:orderId/unassign`,
   adminAndCashier,
+  createLimiter,
   TaskController.unassignMechanicFromOrder
 );
 
 /**
  * @route POST /api/{version}/tasks/order/:orderId/start
  * @description Memulai pengerjaan semua tugas dalam pesanan
- * @access Mekanik & Superadmin
+ * @access Mekanik
  */
 privateRouter.post(
   `${prefix}/tasks/order/:orderId/start`,
   mechanicOnly,
+  createLimiter,
   TaskController.startOrder
 );
 
 /**
  * @route POST /api/{version}/tasks/order/:orderId/complete
  * @description Menyelesaikan semua tugas dalam pesanan
- * @access Mekanik & Superadmin
+ * @access Mekanik
  */
 privateRouter.post(
   `${prefix}/tasks/order/:orderId/complete`,
   mechanicOnly,
+  createLimiter,
   TaskController.completeOrder
 );
 
@@ -1290,18 +1399,24 @@ privateRouter.post(
 /**
  * @route POST /api/{version}/users
  * @description Membuat user baru
- * @access Admin & Superadmin
+ * @access Admin
  */
-privateRouter.post(`${prefix}/users`, adminOnly, UserController.createUser);
+privateRouter.post(
+  `${prefix}/users`,
+  adminOnly,
+  createLimiter,
+  UserController.createUser
+);
 
 /**
  * @route GET /api/{version}/users
  * @description Mendapatkan semua user
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/users`,
   adminOnly,
+  generalLimiter,
   shortTimeout,
   UserController.getUsers
 );
@@ -1314,6 +1429,7 @@ privateRouter.get(
 privateRouter.get(
   `${prefix}/users/me`,
   allRoles,
+  generalLimiter,
   UserController.getCurrentUser
 );
 
@@ -1325,6 +1441,7 @@ privateRouter.get(
 privateRouter.get(
   `${prefix}/users/employees`,
   allRoles,
+  generalLimiter,
   shortTimeout,
   UserController.getEmployees
 );
@@ -1332,66 +1449,72 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/users/admins
  * @description Mendapatkan daftar admin
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/users/admins`,
   adminOnly,
+  generalLimiter,
   UserController.getAdmins
 );
 
 /**
  * @route GET /api/{version}/users/check/email
  * @description Memeriksa ketersediaan email
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/users/check/email`,
   adminOnly,
+  generalLimiter,
   UserController.checkEmailExists
 );
 
 /**
  * @route GET /api/{version}/users/check/phone
  * @description Memeriksa ketersediaan nomor telepon
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/users/check/phone`,
   adminOnly,
+  generalLimiter,
   UserController.checkPhoneExists
 );
 
 /**
  * @route GET /api/{version}/users/role/:role
  * @description Mendapatkan user berdasarkan role
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/users/role/:role`,
   adminOnly,
+  generalLimiter,
   UserController.getUsersByRole
 );
 
 /**
  * @route GET /api/{version}/users/email/:email
  * @description Mendapatkan user berdasarkan email
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/users/email/:email`,
   adminOnly,
+  generalLimiter,
   UserController.getUserByEmail
 );
 
 /**
  * @route GET /api/{version}/users/phone/:phone
  * @description Mendapatkan user berdasarkan nomor telepon
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.get(
   `${prefix}/users/phone/:phone`,
   adminOnly,
+  generalLimiter,
   UserController.getUserByPhone
 );
 
@@ -1400,34 +1523,46 @@ privateRouter.get(
  * @description Mendapatkan user berdasarkan ID
  * @access Semua role
  */
-privateRouter.get(`${prefix}/users/:id`, allRoles, UserController.getUserById);
+privateRouter.get(
+  `${prefix}/users/:id`,
+  allRoles,
+  generalLimiter,
+  UserController.getUserById
+);
 
 /**
  * @route PUT /api/{version}/users/:id
  * @description Memperbarui data user
- * @access Admin & Superadmin
+ * @access Admin
  */
-privateRouter.put(`${prefix}/users/:id`, adminOnly, UserController.updateUser);
+privateRouter.put(
+  `${prefix}/users/:id`,
+  adminOnly,
+  createLimiter,
+  UserController.updateUser
+);
 
 /**
  * @route DELETE /api/{version}/users/:id
  * @description Menghapus user
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.delete(
   `${prefix}/users/:id`,
   adminOnly,
+  authLimiter,
   UserController.deleteUser
 );
 
 /**
  * @route POST /api/{version}/users/:id/resend-magic-link
  * @description Generate ulang Magic Link untuk user yang belum terautentikasi
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.post(
   `${prefix}/users/:id/resend-magic-link`,
   adminOnly,
+  authLimiter,
   UserController.resendMagicLink
 );
 
@@ -1440,22 +1575,24 @@ privateRouter.post(
 /**
  * @route POST /api/{version}/vehicles
  * @description Mendaftarkan kendaraan baru
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.post(
   `${prefix}/vehicles`,
   adminAndCashier,
+  createLimiter,
   VehicleController.registerVehicle
 );
 
 /**
  * @route GET /api/{version}/vehicles
  * @description Mendapatkan semua kendaraan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/vehicles`,
   adminAndCashier,
+  generalLimiter,
   mediumTimeout,
   VehicleController.getVehicles
 );
@@ -1463,77 +1600,84 @@ privateRouter.get(
 /**
  * @route GET /api/{version}/vehicles/check/plate
  * @description Memeriksa apakah nomor plat sudah terdaftar
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/vehicles/check/plate`,
   adminAndCashier,
+  generalLimiter,
   VehicleController.checkPlateNumberExists
 );
 
 /**
  * @route GET /api/{version}/vehicles/search/plate
  * @description Mencari kendaraan berdasarkan nomor plat
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/vehicles/search/plate`,
   adminAndCashier,
+  generalLimiter,
   VehicleController.searchByPlateNumber
 );
 
 /**
  * @route GET /api/{version}/vehicles/plate/:plateNumber
  * @description Mendapatkan kendaraan berdasarkan nomor plat
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/vehicles/plate/:plateNumber`,
   adminAndCashier,
+  generalLimiter,
   VehicleController.getVehicleByPlateNumber
 );
 
 /**
  * @route GET /api/{version}/vehicles/customer/:customerId
  * @description Mendapatkan kendaraan berdasarkan pelanggan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/vehicles/customer/:customerId`,
   adminAndCashier,
+  generalLimiter,
   VehicleController.getVehiclesByCustomer
 );
 
 /**
  * @route GET /api/{version}/vehicles/:id
  * @description Mendapatkan kendaraan berdasarkan ID
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.get(
   `${prefix}/vehicles/:id`,
   adminAndCashier,
+  generalLimiter,
   VehicleController.getVehicleById
 );
 
 /**
  * @route PUT /api/{version}/vehicles/:id
  * @description Memperbarui data kendaraan
- * @access Admin, Kasir & Superadmin
+ * @access Admin, Kasir
  */
 privateRouter.put(
   `${prefix}/vehicles/:id`,
   adminAndCashier,
+  createLimiter,
   VehicleController.updateVehicle
 );
 
 /**
  * @route DELETE /api/{version}/vehicles/:id
  * @description Menghapus kendaraan
- * @access Admin & Superadmin
+ * @access Admin
  */
 privateRouter.delete(
   `${prefix}/vehicles/:id`,
   adminOnly,
+  authLimiter,
   VehicleController.deleteVehicle
 );
 

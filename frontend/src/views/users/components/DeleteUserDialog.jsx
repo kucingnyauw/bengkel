@@ -6,9 +6,6 @@
  * @param {boolean} props.open - Status dialog terbuka
  * @param {Object} props.user - Data user yang akan dihapus
  * @param {string} [props.user.fullName] - Nama lengkap user
- * @param {string} [props.user.email] - Email user
- * @param {string} [props.user.role] - Role user (CASHIER/MECHANIC)
- * @param {boolean} [props.user.isActive] - Status aktif user
  * @param {Function} props.onClose - Handler tutup dialog
  *
  * @returns {JSX.Element} Dialog konfirmasi hapus user
@@ -18,25 +15,23 @@ import { X } from "lucide-react";
 
 import {
   Button,
-  Card,
-  CardContent,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
   Divider,
   IconButton,
-  Stack,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 import { useDeleteUserMutation } from "@views/users/hooks";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const DeleteUserDialog = ({ open, user, onClose }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
 
   const deleteMutation = useDeleteUserMutation({
@@ -73,77 +68,71 @@ const DeleteUserDialog = ({ open, user, onClose }) => {
   };
 
   return (
-    <Dialog fullWidth maxWidth="xs" onClose={isPending ? undefined : onClose} open={open}>
+    <Dialog
+      fullWidth
+      maxWidth="xs"
+      onClose={isPending ? undefined : onClose}
+      open={open}
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 400,
         }}
       >
         Hapus Karyawan
         <IconButton onClick={onClose} disabled={isPending} size="small">
-          <X size={20} />
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
       <Divider />
 
       <DialogContent>
-        <DialogContentText sx={{ mb: 2 }}>
-          Apakah Anda yakin ingin menghapus karyawan ini?
-        </DialogContentText>
-
-        {user && (
-          <Card>
-            <CardContent sx={{ py: 2, "&:last-child": { pb: 2 } }}>
-              <Stack spacing={1}>
-                <Typography variant="body2" fontWeight={600}>
-                  {user.fullName}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {user.email}
-                </Typography>
-                <Stack direction="row" spacing={1}>
-                  <Chip
-                    label={user.role === "CASHIER" ? "Kasir" : "Mekanik"}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <Chip
-                    label={user.isActive ? "Aktif" : "Nonaktif"}
-                    color={user.isActive ? "success" : "default"}
-                    size="small"
-                    variant="outlined"
-                  />
-                </Stack>
-              </Stack>
-            </CardContent>
-          </Card>
-        )}
-
+        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+          Apakah Anda yakin ingin menghapus karyawan{" "}
+          <strong>{user?.fullName || "ini"}</strong>?
+        </Typography>
         <Typography
           variant="caption"
           color="error.main"
-          sx={{ display: "block", mt: 2 }}
+          sx={{ display: "block", mt: 1.5, fontWeight: 400 }}
         >
-          * Tindakan ini tidak dapat dibatalkan. Semua data terkait akan dihapus.
+          Tindakan ini tidak dapat dibatalkan. Semua data terkait akan dihapus.
         </Typography>
       </DialogContent>
 
       <Divider />
 
       <DialogActions>
-        <Button color="inherit" variant="outlined" disabled={isPending} onClick={onClose}>
+        <Button
+          color="inherit"
+          variant="outlined"
+          disabled={isPending}
+          onClick={onClose}
+          sx={{ fontWeight: 400 }}
+        >
           Batal
         </Button>
         <Button
           variant="contained"
+          color="error"
           disabled={isPending}
           onClick={handleConfirm}
           startIcon={
             isPending ? <CircularProgress size={14} color="inherit" /> : null
           }
+          sx={{ fontWeight: 400 }}
         >
           {isPending ? "Menghapus..." : "Ya, Hapus"}
         </Button>

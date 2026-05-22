@@ -69,7 +69,7 @@ const PaymentFilterDialog = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          fontWeight: 400,
+          fontWeight: 500,
         }}
       >
         Filter Pembayaran

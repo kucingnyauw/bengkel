@@ -2,7 +2,7 @@
 import { createTheme, alpha } from "@mui/material/styles";
 import { Color } from "@styles/Colors.jsx";
 import { Size } from "@styles/Size.jsx";
-import garagesh from "@assets/fonts/garagesh.ttf"
+
 
 /**
  * @param {import("@mui/material/styles").Theme} theme
@@ -15,13 +15,7 @@ const componentsOverride = (theme) => ({
         "0%": { left: "-100%" },
         "100%": { left: "100%" },
       },
-      "@font-face": {
-        fontFamily: "GarageSH",
-        fontStyle: "normal",
-        fontDisplay: "swap",
-        fontWeight: 400,
-        src: `url(${garagesh}) format("truetype")`,
-      },
+      
       body: {
         backgroundColor: theme.palette.background.default,
         color: theme.palette.text.primary,

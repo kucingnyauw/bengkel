@@ -147,7 +147,7 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
           }}
         >
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 400 }}>
+            <Typography variant="h5" sx={{ fontWeight: 500 }}>
               Dashboard Kasir
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>

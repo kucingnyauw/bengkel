@@ -71,15 +71,47 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
     const status = data?.paymentStatus;
 
     if (status === "Lunas") {
-      return <Chip label="Lunas" size="small" color="success" variant="soft" sx={{ fontWeight: 400 }} />;
+      return (
+        <Chip
+          label="Lunas"
+          size="small"
+          color="success"
+          variant="soft"
+          sx={{ fontWeight: 400 }}
+        />
+      );
     }
     if (status === "Menunggu Pembayaran" || status === "Belum Bayar") {
-      return <Chip label={status} size="small" color="warning" variant="soft" sx={{ fontWeight: 400 }} />;
+      return (
+        <Chip
+          label={status}
+          size="small"
+          color="warning"
+          variant="soft"
+          sx={{ fontWeight: 400 }}
+        />
+      );
     }
     if (status === "Direfund") {
-      return <Chip label="Direfund" size="small" color="default" variant="soft" sx={{ fontWeight: 400 }} />;
+      return (
+        <Chip
+          label="Direfund"
+          size="small"
+          color="default"
+          variant="soft"
+          sx={{ fontWeight: 400 }}
+        />
+      );
     }
-    return <Chip label={status || "—"} size="small" color="error" variant="soft" sx={{ fontWeight: 400 }} />;
+    return (
+      <Chip
+        label={status || "—"}
+        size="small"
+        color="error"
+        variant="soft"
+        sx={{ fontWeight: 400 }}
+      />
+    );
   };
 
   const getHistoryDotColor = (status) => {
@@ -107,7 +139,7 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight : 500
         }}
       >
         Detail Pesanan
@@ -131,44 +163,89 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                 </Typography>
                 <Stack sx={{ gap: 1.5 }}>
                   {data?.orderNumber && (
-                    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                    <Stack
+                      direction="row"
+                      sx={{
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ fontWeight: 400 }}
+                      >
                         No. Order
                       </Typography>
-                      <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
+                      <Stack
+                        direction="row"
+                        sx={{ gap: 0.5, alignItems: "center" }}
+                      >
                         <Chip
                           label={data.orderNumber}
                           size="small"
                           variant="outlined"
                           sx={{ fontWeight: 400 }}
                         />
-                        <CopyButton text={data.orderNumber} successMessage="No. Order disalin" />
+                        <CopyButton
+                          text={data.orderNumber}
+                          successMessage="No. Order disalin"
+                        />
                       </Stack>
                     </Stack>
                   )}
 
-                  <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  <Stack
+                    direction="row"
+                    sx={{
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontWeight: 400 }}
+                    >
                       Status
                     </Typography>
                     <Chip
                       color={statusColorMap[data.status] || "default"}
-                      label={normalizeEnumText(OrderStatus[data.status] || data.status)}
+                      label={normalizeEnumText(
+                        OrderStatus[data.status] || data.status
+                      )}
                       size="small"
                       variant="soft"
                       sx={{ fontWeight: 400 }}
                     />
                   </Stack>
 
-                  <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  <Stack
+                    direction="row"
+                    sx={{
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontWeight: 400 }}
+                    >
                       Pembayaran
                     </Typography>
                     {getPaymentChip()}
                   </Stack>
 
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  <Stack
+                    direction="row"
+                    sx={{ justifyContent: "space-between" }}
+                  >
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontWeight: 400 }}
+                    >
                       Tanggal
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 400 }}>
@@ -176,8 +253,15 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                     </Typography>
                   </Stack>
 
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  <Stack
+                    direction="row"
+                    sx={{ justifyContent: "space-between" }}
+                  >
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontWeight: 400 }}
+                    >
                       Kasir
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 400 }}>
@@ -191,16 +275,34 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                       <Typography variant="subtitle2" sx={{ fontWeight: 400 }}>
                         Detail Pembayaran
                       </Typography>
-                      <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                      <Stack
+                        direction="row"
+                        sx={{ justifyContent: "space-between" }}
+                      >
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontWeight: 400 }}
+                        >
                           Metode
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                          {data.payment.method === "CASH" ? "Tunai" : data.payment.method === "QRIS" ? "QRIS" : data.payment.method}
+                          {data.payment.method === "CASH"
+                            ? "Tunai"
+                            : data.payment.method === "QRIS"
+                            ? "QRIS"
+                            : data.payment.method}
                         </Typography>
                       </Stack>
-                      <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                      <Stack
+                        direction="row"
+                        sx={{ justifyContent: "space-between" }}
+                      >
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontWeight: 400 }}
+                        >
                           Jumlah Dibayar
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: 400 }}>
@@ -208,8 +310,15 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                         </Typography>
                       </Stack>
                       {data.payment.paidAt && (
-                        <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                        <Stack
+                          direction="row"
+                          sx={{ justifyContent: "space-between" }}
+                        >
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ fontWeight: 400 }}
+                          >
                             Waktu Bayar
                           </Typography>
                           <Typography variant="body2" sx={{ fontWeight: 400 }}>
@@ -233,8 +342,15 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                   <Stack sx={{ gap: 1.5 }}>
                     {hasCustomer && (
                       <>
-                        <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                        <Stack
+                          direction="row"
+                          sx={{ justifyContent: "space-between" }}
+                        >
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ fontWeight: 400 }}
+                          >
                             Nama
                           </Typography>
                           <Typography variant="body2" sx={{ fontWeight: 400 }}>
@@ -242,12 +358,28 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                           </Typography>
                         </Stack>
                         {data.customer.phone && (
-                          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                          <Stack
+                            direction="row"
+                            sx={{
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ fontWeight: 400 }}
+                            >
                               Telepon
                             </Typography>
-                            <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
-                              <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                            <Stack
+                              direction="row"
+                              sx={{ gap: 0.5, alignItems: "center" }}
+                            >
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 400 }}
+                              >
                                 {data.customer.phone}
                               </Typography>
                               <CopyButton text={data.customer.phone} />
@@ -260,22 +392,48 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                     {hasVehicle && (
                       <>
                         <Divider />
-                        <Typography variant="subtitle2" sx={{ fontWeight: 400 }}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: 400 }}
+                        >
                           Data Kendaraan
                         </Typography>
-                        <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                        <Stack
+                          direction="row"
+                          sx={{
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ fontWeight: 400 }}
+                          >
                             Plat Nomor
                           </Typography>
-                          <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
-                            <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                          <Stack
+                            direction="row"
+                            sx={{ gap: 0.5, alignItems: "center" }}
+                          >
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 400 }}
+                            >
                               {data.vehicle.plateNumber}
                             </Typography>
                             <CopyButton text={data.vehicle.plateNumber} />
                           </Stack>
                         </Stack>
-                        <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                        <Stack
+                          direction="row"
+                          sx={{ justifyContent: "space-between" }}
+                        >
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ fontWeight: 400 }}
+                          >
                             Merek / Model
                           </Typography>
                           <Typography variant="body2" sx={{ fontWeight: 400 }}>
@@ -286,7 +444,11 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                     )}
                   </Stack>
                 ) : (
-                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 2, fontWeight: 400 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ textAlign: "center", py: 2, fontWeight: 400 }}
+                  >
                     Tidak ada data pelanggan
                   </Typography>
                 )}
@@ -329,7 +491,9 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                     style={{
                       flexShrink: 0,
                       transition: "transform 0.2s ease",
-                      transform: itemsExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                      transform: itemsExpanded
+                        ? "rotate(180deg)"
+                        : "rotate(0deg)",
                       opacity: 0.5,
                     }}
                   />
@@ -341,7 +505,10 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                     <Stack spacing={0}>
                       {data.items.map((item, index) => (
                         <Box key={item.id}>
-                          <Stack direction="row" sx={{ gap: 2, alignItems: "flex-start" }}>
+                          <Stack
+                            direction="row"
+                            sx={{ gap: 2, alignItems: "flex-start" }}
+                          >
                             <Avatar
                               alt={item.productName || item.product?.name}
                               src={item.product?.image?.url || ""}
@@ -362,37 +529,71 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                               }}
                             >
                               {!item.product?.image?.url &&
-                                (item.productName || item.product?.name)?.charAt(0)?.toUpperCase()}
+                                (item.productName || item.product?.name)
+                                  ?.charAt(0)
+                                  ?.toUpperCase()}
                             </Avatar>
 
                             <Stack sx={{ flex: 1, minWidth: 0 }}>
-                              <Stack direction="row" sx={{ gap: 1, alignItems: "center" }}>
-                                <Typography variant="body2" sx={{ fontWeight: 400 }} noWrap>
+                              <Stack
+                                direction="row"
+                                sx={{ gap: 1, alignItems: "center" }}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  sx={{ fontWeight: 400 }}
+                                  noWrap
+                                >
                                   {item.productName || item.product?.name}
                                 </Typography>
                                 <Chip
-                                  label={item.product?.type === "SERVICE" ? "Servis" : "Sparepart"}
+                                  label={
+                                    item.product?.type === "SERVICE"
+                                      ? "Servis"
+                                      : "Sparepart"
+                                  }
                                   size="small"
                                   variant="outlined"
-                                  color={item.product?.type === "SERVICE" ? "secondary" : "warning"}
+                                  color={
+                                    item.product?.type === "SERVICE"
+                                      ? "secondary"
+                                      : "warning"
+                                  }
                                   sx={{ fontWeight: 400 }}
                                 />
                               </Stack>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ fontWeight: 400 }}
+                              >
                                 {item.quantity} × {formatToIdr(item.unitPrice)}
                               </Typography>
                               {item.assignments?.length > 0 && (
-                                <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400 }}>
-                                  {item.assignments.map((a) => a.mechanic?.fullName).filter(Boolean).join(", ")}
+                                <Typography
+                                  variant="caption"
+                                  color="text.disabled"
+                                  sx={{ fontWeight: 400 }}
+                                >
+                                  {item.assignments
+                                    .map((a) => a.mechanic?.fullName)
+                                    .filter(Boolean)
+                                    .join(", ")}
                                 </Typography>
                               )}
                             </Stack>
 
-                            <Typography variant="body2" sx={{ fontWeight: 400 }} noWrap>
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 400 }}
+                              noWrap
+                            >
                               {formatToIdr(item.subtotal)}
                             </Typography>
                           </Stack>
-                          {index < data.items.length - 1 && <Divider sx={{ my: 1.5 }} />}
+                          {index < data.items.length - 1 && (
+                            <Divider sx={{ my: 1.5 }} />
+                          )}
                         </Box>
                       ))}
                     </Stack>
@@ -437,7 +638,9 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                     style={{
                       flexShrink: 0,
                       transition: "transform 0.2s ease",
-                      transform: historyExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                      transform: historyExpanded
+                        ? "rotate(180deg)"
+                        : "rotate(0deg)",
                       opacity: 0.5,
                     }}
                   />
@@ -459,7 +662,10 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                             {index < data.histories.length - 1 && (
                               <TimelineConnector
                                 sx={{
-                                  bgcolor: alpha(theme.palette.secondary.main, 0.2),
+                                  bgcolor: alpha(
+                                    theme.palette.secondary.main,
+                                    0.2
+                                  ),
                                   width: 2,
                                 }}
                               />
@@ -470,28 +676,56 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                               sx={{
                                 p: 2,
                                 borderRadius: `${theme.shape.borderRadius}px`,
-                                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                                transition: theme.transitions.create("background-color"),
+                                border: `1px solid ${alpha(
+                                  theme.palette.divider,
+                                  0.6
+                                )}`,
+                                transition:
+                                  theme.transitions.create("background-color"),
                                 "&:hover": {
-                                  bgcolor: alpha(theme.palette.secondary.main, 0.03),
+                                  bgcolor: alpha(
+                                    theme.palette.secondary.main,
+                                    0.03
+                                  ),
                                 },
                               }}
                             >
                               <Stack sx={{ gap: 1 }}>
-                                <Stack direction="row" sx={{ gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+                                <Stack
+                                  direction="row"
+                                  sx={{
+                                    gap: 1,
+                                    alignItems: "center",
+                                    flexWrap: "wrap",
+                                  }}
+                                >
                                   <Chip
-                                    color={statusColorMap[history.status] || "default"}
-                                    label={normalizeEnumText(OrderStatus[history.status] || history.status)}
+                                    color={
+                                      statusColorMap[history.status] ||
+                                      "default"
+                                    }
+                                    label={normalizeEnumText(
+                                      OrderStatus[history.status] ||
+                                        history.status
+                                    )}
                                     size="small"
                                     variant="soft"
                                     sx={{ fontWeight: 400 }}
                                   />
-                                  <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400 }}>
+                                  <Typography
+                                    variant="caption"
+                                    color="text.disabled"
+                                    sx={{ fontWeight: 400 }}
+                                  >
                                     {formatDateTime(history.createdAt)}
                                   </Typography>
                                 </Stack>
                                 {history.changedBy?.fullName && (
-                                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    sx={{ fontWeight: 400 }}
+                                  >
                                     Diubah oleh: {history.changedBy.fullName}
                                   </Typography>
                                 )}
@@ -503,9 +737,15 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
                                       fontStyle: "italic",
                                       fontWeight: 400,
                                       p: 1,
-                                      bgcolor: alpha(theme.palette.secondary.main, 0.04),
+                                      bgcolor: alpha(
+                                        theme.palette.secondary.main,
+                                        0.04
+                                      ),
                                       borderRadius: `${theme.shape.borderRadius}px`,
-                                      borderLeft: `3px solid ${alpha(theme.palette.secondary.main, 0.3)}`,
+                                      borderLeft: `3px solid ${alpha(
+                                        theme.palette.secondary.main,
+                                        0.3
+                                      )}`,
                                     }}
                                   >
                                     "{history.note}"
@@ -526,16 +766,30 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
             <Card>
               <CardContent>
                 <Stack sx={{ gap: 1.5 }}>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  <Stack
+                    direction="row"
+                    sx={{ justifyContent: "space-between" }}
+                  >
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontWeight: 400 }}
+                    >
                       Subtotal
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 400 }}>
                       {formatToIdr(data.subtotal)}
                     </Typography>
                   </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  <Stack
+                    direction="row"
+                    sx={{ justifyContent: "space-between" }}
+                  >
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontWeight: 400 }}
+                    >
                       Pajak
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 400 }}>
@@ -546,11 +800,18 @@ const OrderDetailDialog = ({ orderId, onClose, open }) => {
 
                 <Divider sx={{ my: 2 }} />
 
-                <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
+                <Stack
+                  direction="row"
+                  sx={{ justifyContent: "space-between", alignItems: "center" }}
+                >
                   <Typography variant="body1" sx={{ fontWeight: 400 }}>
                     Total Keseluruhan
                   </Typography>
-                  <Typography variant="h6" color="secondary" sx={{ fontWeight: 400 }}>
+                  <Typography
+                    variant="h6"
+                    color="secondary"
+                    sx={{ fontWeight: 400 }}
+                  >
                     {formatToIdr(data.total)}
                   </Typography>
                 </Stack>

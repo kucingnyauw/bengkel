@@ -69,6 +69,7 @@ const ExpenseDeleteDialog = ({ expense, onClose, open }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight : 500
         }}
       >
         Hapus Pengeluaran

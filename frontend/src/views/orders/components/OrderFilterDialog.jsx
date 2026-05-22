@@ -79,7 +79,7 @@ const OrderFilterDialog = ({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight : 500
         }}
       >
         Filter Pesanan

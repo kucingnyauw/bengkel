@@ -129,7 +129,7 @@ const AdminDashboard = ({ data, isLoading, refetch }) => {
           }}
         >
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 400 }}>
+            <Typography variant="h5" sx={{ fontWeight: 500 }}>
               Dashboard Utama
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -222,7 +222,7 @@ const AdminDashboard = ({ data, isLoading, refetch }) => {
         }}
       >
         <Box sx={{ px: 3, py: 2.5 }}>
-          <Typography variant="h6" sx={{ fontWeight: 400 }}>
+          <Typography variant="h6" sx={{ fontWeight: 500 }}>
             Peringatan Stok Menipis
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>

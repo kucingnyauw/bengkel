@@ -1,3 +1,10 @@
+/**
+ * Header - Application header with sidebar toggle, theme switcher, notifications, cart, and profile.
+ * Hanya dirender ketika user sudah terautentikasi (status: "auth")
+ *
+ * @component
+ * @returns {JSX.Element} Rendered header component
+ */
 import { useState, useCallback, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -8,10 +15,10 @@ import {
   Box,
   Divider,
   IconButton,
+  Toolbar,
   Typography,
   useTheme,
   TextField,
-  Toolbar
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { Bell, Menu, Moon, ShoppingCart, Sun, Search } from "lucide-react";
@@ -38,9 +45,6 @@ import {
 
 import INFO from "@data/Info.js";
 
-/**
- * Daftar halaman yang bisa dicari melalui search bar
- */
 const searchPages = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Point of Sale", path: "/pos" },
@@ -70,13 +74,6 @@ const searchPages = [
   { label: "Pengaturan", path: "/settings" },
 ];
 
-/**
- * Header - Application header dengan sidebar toggle, theme switcher, 
- * notifications, cart, dan profile
- * Hanya dirender ketika user sudah terautentikasi (status: "auth")
- * @component
- * @returns {JSX.Element} Rendered header component
- */
 const Header = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
@@ -96,11 +93,10 @@ const Header = () => {
   const [searchVal, setSearchVal] = useState("");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
-  const sidebarWidth = isOpen ? SIDEBAR.EXPANDED_WIDTH : SIDEBAR.COLLAPSED_WIDTH;
+  const sidebarWidth = isOpen
+    ? SIDEBAR.EXPANDED_WIDTH
+    : SIDEBAR.COLLAPSED_WIDTH;
 
-  /**
-   * Filter halaman berdasarkan input search
-   */
   const filteredPages = useMemo(() => {
     if (!searchVal.trim()) return [];
     const q = searchVal.toLowerCase();
@@ -116,7 +112,7 @@ const Header = () => {
     fetchNextPage,
     isFetchingNextPage,
     hasNextPage,
-    refetch
+    refetch,
   } = useNotifications({ enabled: notifOpen });
 
   const markAsRead = useMarkAsRead();
@@ -124,68 +120,34 @@ const Header = () => {
   const deleteAll = useDeleteAllNotifications();
   const deleteOne = useDeleteNotification();
 
-  /**
-   * Toggle sidebar drawer
-   */
   const handleToggleSidebar = () => dispatch(toggleSidebar());
-  
-  /**
-   * Toggle cart drawer, hanya untuk role CASHIER
-   */
+
   const handleToggleCart = useCallback(() => {
     if (isCashier) {
       setCartOpen((prev) => !prev);
     }
   }, [isCashier]);
-  
-  /**
-   * Toggle theme mode (light/dark)
-   */
+
   const handleToggleTheme = () => dispatch(toggleTheme());
-  
-  /**
-   * Open profile popover
-   * @param {React.MouseEvent} e - Click event
-   */
+
   const handleProfileOpen = (e) => setProfileAnchorEl(e.currentTarget);
-  
-  /**
-   * Close profile popover
-   */
+
   const handleProfileClose = () => setProfileAnchorEl(null);
 
-  /**
-   * Open notifications popover dan trigger fetch
-   * @param {React.MouseEvent} e - Click event
-   */
   const handleNotifOpen = (e) => {
     setNotifAnchorEl(e.currentTarget);
     setNotifOpen(true);
   };
 
-  /**
-   * Close notifications popover
-   */
   const handleNotifClose = () => {
     setNotifAnchorEl(null);
     setNotifOpen(false);
   };
 
-  /**
-   * Mark single notification as read
-   * @param {string} id - Notification ID
-   */
   const handleMarkRead = (id) => markAsRead.mutate(id);
-  
-  /**
-   * Delete single notification
-   * @param {string} id - Notification ID
-   */
+
   const handleDelete = (id) => deleteOne.mutate(id);
 
-  /**
-   * Style dasar untuk icon button di header
-   */
   const iconBtnStyle = {
     border: "1px solid",
     borderColor: alpha(theme.palette.divider, 0.8),
@@ -214,14 +176,15 @@ const Header = () => {
       >
         <Toolbar
           sx={{
-            minHeight: `${isMobile ? HEADER.MOBILE_HEIGHT : HEADER.DESKTOP_HEIGHT}px !important`,
-            pl: { xs: 2, md: 2 },
+            minHeight: `${
+              isMobile ? HEADER.MOBILE_HEIGHT : HEADER.DESKTOP_HEIGHT
+            }px !important`,
+            pl: { xs: 2, md: 0 },
             pr: { xs: 2, sm: 3, md: 2 },
             display: "flex",
             gap: 2,
           }}
         >
-          {/* LEFT: Logo + Sidebar Toggle */}
           <Box
             sx={{
               display: showMobileSearch ? "none" : "flex",
@@ -238,8 +201,8 @@ const Header = () => {
               variant="h5"
               sx={{
                 display: { xs: "none", md: isOpen ? "block" : "none" },
-                fontWeight: 400,
-                fontFamily: "garageSH",
+                fontWeight: 500,
+                fontFamily: '"Oswald", sans-serif',
                 whiteSpace: "nowrap",
                 fontSize: "1.35rem",
                 letterSpacing: "0.03em",
@@ -263,7 +226,6 @@ const Header = () => {
             </IconButton>
           </Box>
 
-          {/* CENTER: Search Bar */}
           <Box
             sx={{
               flex: 1,
@@ -303,7 +265,6 @@ const Header = () => {
               sx={{ maxWidth: { xs: "100%", md: 320 } }}
             />
 
-            {/* Search Results Dropdown */}
             {filteredPages.length > 0 && (
               <Box
                 sx={{
@@ -316,7 +277,10 @@ const Header = () => {
                   bgcolor: "background.paper",
                   borderRadius: `${theme.shape.borderRadius}px`,
                   border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-                  boxShadow: `0 8px 24px ${alpha(theme.palette.common.black, 0.1)}`,
+                  boxShadow: `0 8px 24px ${alpha(
+                    theme.palette.common.black,
+                    0.1
+                  )}`,
                   maxHeight: 320,
                   overflowY: "auto",
                   zIndex: 1300,
@@ -337,16 +301,25 @@ const Header = () => {
                       display: "flex",
                       flexDirection: "column",
                       transition: "background-color 0.15s ease",
-                      "&:hover": { bgcolor: alpha(theme.palette.secondary.main, 0.06) },
+                      "&:hover": {
+                        bgcolor: alpha(theme.palette.secondary.main, 0.06),
+                      },
                       "&:not(:last-child)": {
-                        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.4)}`,
+                        borderBottom: `1px solid ${alpha(
+                          theme.palette.divider,
+                          0.4
+                        )}`,
                       },
                     }}
                   >
                     <Typography variant="body2" sx={{ fontWeight: 400 }}>
                       {page.label}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontWeight: 400 }}
+                    >
                       {page.path}
                     </Typography>
                   </Box>
@@ -355,7 +328,6 @@ const Header = () => {
             )}
           </Box>
 
-          {/* RIGHT: Action Icons */}
           <Box
             sx={{
               display: "flex",
@@ -367,16 +339,26 @@ const Header = () => {
           >
             <IconButton
               onClick={() => setShowMobileSearch(!showMobileSearch)}
-              sx={{ ...iconBtnStyle, display: { xs: "inline-flex", md: "none" } }}
+              sx={{
+                ...iconBtnStyle,
+                display: { xs: "inline-flex", md: "none" },
+              }}
             >
               <Search size={18} strokeWidth={1.5} />
             </IconButton>
 
             <IconButton
               onClick={handleToggleTheme}
-              sx={{ ...iconBtnStyle, display: { xs: "none", sm: "inline-flex" } }}
+              sx={{
+                ...iconBtnStyle,
+                display: { xs: "none", sm: "inline-flex" },
+              }}
             >
-              {mode === "dark" ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />}
+              {mode === "dark" ? (
+                <Sun size={18} strokeWidth={1.5} />
+              ) : (
+                <Moon size={18} strokeWidth={1.5} />
+              )}
             </IconButton>
 
             <IconButton onClick={handleNotifOpen} sx={iconBtnStyle}>
@@ -384,23 +366,37 @@ const Header = () => {
                 badgeContent={unreadCount}
                 color="error"
                 invisible={unreadCount === 0}
-                sx={{ "& .MuiBadge-badge": { fontSize: "0.625rem", height: 16, minWidth: 16 } }}
+                sx={{
+                  "& .MuiBadge-badge": {
+                    fontSize: "0.625rem",
+                    height: 16,
+                    minWidth: 16,
+                  },
+                }}
               >
                 <Bell size={18} strokeWidth={1.5} />
               </Badge>
             </IconButton>
 
-            {/* Cart Button - Only visible for Kasir */}
             {isCashier && (
               <IconButton
                 onClick={handleToggleCart}
-                sx={{ ...iconBtnStyle, display: { xs: "none", sm: "inline-flex" } }}
+                sx={{
+                  ...iconBtnStyle,
+                  display: { xs: "none", sm: "inline-flex" },
+                }}
               >
                 <Badge
                   badgeContent={items.length}
                   color="error"
                   invisible={items.length === 0}
-                  sx={{ "& .MuiBadge-badge": { fontSize: "0.625rem", height: 16, minWidth: 16 } }}
+                  sx={{
+                    "& .MuiBadge-badge": {
+                      fontSize: "0.625rem",
+                      height: 16,
+                      minWidth: 16,
+                    },
+                  }}
                 >
                   <ShoppingCart size={18} strokeWidth={1.5} />
                 </Badge>
@@ -432,10 +428,8 @@ const Header = () => {
         </Toolbar>
       </AppBar>
 
-      {/* Cart Drawer - Only for Cashier */}
       {isCashier && <HeaderCart open={cartOpen} onClose={handleToggleCart} />}
 
-      {/* Profile Popover */}
       <ProfilePopover
         open={Boolean(profileAnchorEl)}
         anchorEl={profileAnchorEl}
@@ -445,7 +439,6 @@ const Header = () => {
         onOpenCart={handleToggleCart}
       />
 
-      {/* Notification Popover */}
       {notifOpen && (
         <NotificationPopover
           open={Boolean(notifAnchorEl)}

@@ -73,7 +73,7 @@ const PaymentDetailDialog = ({ open, paymentId, onClose }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight: 500,
         }}
       >
         Detail Pembayaran

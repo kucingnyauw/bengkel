@@ -51,6 +51,7 @@ const CustomerDetailDialog = ({ customerId, onClose, open }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight : 500
         }}
       >
         Detail Pelanggan

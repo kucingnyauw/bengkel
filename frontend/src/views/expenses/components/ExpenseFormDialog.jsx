@@ -219,7 +219,7 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight : 500
         }}
       >
         {mode === "create" ? "Catat Pengeluaran" : "Edit Pengeluaran"}

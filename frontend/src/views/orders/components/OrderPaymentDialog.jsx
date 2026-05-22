@@ -512,7 +512,7 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
                 <Lottie animationData={successAnimation} loop={false} autoplay />
               </Box>
               <Stack sx={{ alignItems: "center", gap: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Pembayaran Berhasil
                 </Typography>
                 <Typography color="text.secondary" textAlign="center" variant="body2" sx={{ fontWeight: 400 }}>
@@ -526,7 +526,7 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
                 <Lottie animationData={errorAnimation} loop={false} autoplay />
               </Box>
               <Stack sx={{ alignItems: "center", gap: 1 }}>
-                <Typography variant="h6" color="error" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" color="error" sx={{ fontWeight: 500 }}>
                   Pembayaran Gagal
                 </Typography>
                 <Typography color="text.secondary" textAlign="center" variant="body2" sx={{ fontWeight: 400 }}>
@@ -537,7 +537,7 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
           ) : (
             <>
               <Stack sx={{ alignItems: "center", gap: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Scan QR Code
                 </Typography>
                 <Typography color="text.secondary" variant="body2" sx={{ fontWeight: 400 }}>

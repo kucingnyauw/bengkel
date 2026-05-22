@@ -8,7 +8,7 @@ export const Size = {
 
   typography: {
     fontFamily:
-      '"Inter", "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    '"Oswald", "Inter", "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     h1: {
       fontSize: "2.25rem",
       fontWeight: 700,

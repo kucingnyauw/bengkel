@@ -85,6 +85,7 @@ const OrderDeleteDialog = ({ onClose, open, order }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight : 500
         }}
       >
         Hapus Pesanan

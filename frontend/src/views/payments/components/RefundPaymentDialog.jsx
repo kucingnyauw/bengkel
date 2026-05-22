@@ -103,7 +103,7 @@ const RefundPaymentDialog = ({ onClose, onReasonChange, open, payment, reason })
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight: 500,
         }}
       >
         Refund Pembayaran

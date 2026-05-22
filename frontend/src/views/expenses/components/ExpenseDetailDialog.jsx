@@ -66,8 +66,8 @@ const ExpenseDetailDialog = ({ expense, onClose, open }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
-        }}
+          fontWeight : 500
+                }}
       >
         Detail Pengeluaran
         <IconButton onClick={onClose} size="small">

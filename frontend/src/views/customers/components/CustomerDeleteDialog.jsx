@@ -88,7 +88,7 @@ const CustomerDeleteDialog = ({ customer, onClose, open }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight: 500,
         }}
       >
         Hapus Pelanggan

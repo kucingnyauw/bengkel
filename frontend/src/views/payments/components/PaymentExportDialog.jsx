@@ -25,10 +25,9 @@ import {
   MenuItem,
   Select,
   Stack,
-  Typography,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
+
 import { MobileDatePicker } from "@mui/x-date-pickers/MobileDatePicker";
 
 import { PaymentMethod } from "@shared/constant";
@@ -118,25 +117,21 @@ const PaymentExportDialog = ({ open, onClose }) => {
       onClose={isExporting ? undefined : onClose}
       maxWidth="xs"
       fullWidth
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
     >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Export Pembayaran
-        <IconButton onClick={onClose} disabled={isExporting} size="small">
+        <IconButton
+          onClick={onClose}
+          disabled={isExporting}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -144,8 +139,8 @@ const PaymentExportDialog = ({ open, onClose }) => {
       <Divider />
 
       <DialogContent>
-        <Stack sx={{ gap: 2.5 }}>
-     
+        <Stack sx={{ gap: theme.spacing(2.5) }}>
+          {/* Rentang Tanggal */}
           <MobileDatePicker
             label="Dari Tanggal"
             value={startDate}
@@ -156,7 +151,6 @@ const PaymentExportDialog = ({ open, onClose }) => {
             slotProps={{
               textField: {
                 fullWidth: true,
-                sx: { fontWeight: 400 },
               },
             }}
           />
@@ -171,47 +165,38 @@ const PaymentExportDialog = ({ open, onClose }) => {
             slotProps={{
               textField: {
                 fullWidth: true,
-                sx: { fontWeight: 400 },
               },
             }}
           />
 
+          {/* Filter Metode */}
           <FormControl fullWidth>
-            <InputLabel sx={{ fontWeight: 400 }}>Metode</InputLabel>
+            <InputLabel>Metode</InputLabel>
             <Select
               value={method}
               label="Metode"
               onChange={(e) => setMethod(e.target.value)}
-              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="" sx={{ fontWeight: 400 }}>
-                Semua
-              </MenuItem>
+              <MenuItem value="">Semua</MenuItem>
               {Object.entries(PaymentMethod).map(([key, value]) => (
-                <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
+                <MenuItem key={key} value={value}>
                   {value}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
+          {/* Filter Status */}
           <FormControl fullWidth>
-            <InputLabel sx={{ fontWeight: 400 }}>Status</InputLabel>
+            <InputLabel>Status</InputLabel>
             <Select
               value={status}
               label="Status"
               onChange={(e) => setStatus(e.target.value)}
-              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="" sx={{ fontWeight: 400 }}>
-                Semua
-              </MenuItem>
-              <MenuItem value="PAID" sx={{ fontWeight: 400 }}>
-                Lunas
-              </MenuItem>
-              <MenuItem value="REFUNDED" sx={{ fontWeight: 400 }}>
-                Refund
-              </MenuItem>
+              <MenuItem value="">Semua</MenuItem>
+              <MenuItem value="PAID">Lunas</MenuItem>
+              <MenuItem value="REFUNDED">Refund</MenuItem>
             </Select>
           </FormControl>
         </Stack>
@@ -229,17 +214,15 @@ const PaymentExportDialog = ({ open, onClose }) => {
           variant="outlined"
           onClick={handleReset}
           disabled={isExporting}
-          sx={{ fontWeight: 400 }}
         >
           Reset
         </Button>
-        <Stack direction="row" sx={{ gap: 1.5 }}>
+        <Stack direction="row" sx={{ gap: theme.spacing(1.5) }}>
           <Button
             color="inherit"
             variant="outlined"
             disabled={isExporting}
             onClick={onClose}
-            sx={{ fontWeight: 400 }}
           >
             Batal
           </Button>
@@ -248,14 +231,10 @@ const PaymentExportDialog = ({ open, onClose }) => {
             onClick={handleExport}
             disabled={isExporting}
             startIcon={
-              isExporting ? <CircularProgress size={14} color="inherit" /> : null
+              isExporting ? (
+                <CircularProgress size={14} color="inherit" />
+              ) : null
             }
-            sx={{
-              fontWeight: 400,
-              "&:hover": {
-                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-              },
-            }}
           >
             {isExporting ? "Mengexport..." : "Export CSV"}
           </Button>

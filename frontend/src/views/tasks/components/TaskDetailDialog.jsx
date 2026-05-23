@@ -39,10 +39,32 @@ import { useTasksByOrderQuery } from "@views/tasks/hooks";
 
 const DetailSkeleton = () => (
   <Stack sx={{ gap: 3 }}>
-    <Skeleton variant="rounded" height={120} sx={{ borderRadius: 2 }} />
-    <Skeleton variant="rounded" height={200} sx={{ borderRadius: 2 }} />
+    <Skeleton variant="rounded" height={120} />
+    <Skeleton variant="rounded" height={200} />
   </Stack>
 );
+
+const DetailRow = ({ label, value, valueColor }) => {
+  const isValueNode = typeof value !== "string" && typeof value !== "number";
+
+  return (
+    <Stack
+      direction="row"
+      sx={{ justifyContent: "space-between", alignItems: "center" }}
+    >
+      <Typography variant="body2" color="text.secondary">
+        {label}
+      </Typography>
+      {isValueNode ? (
+        value
+      ) : (
+        <Typography variant="body2" color={valueColor}>
+          {value}
+        </Typography>
+      )}
+    </Stack>
+  );
+};
 
 const TaskDetailDialog = ({ open, orderId, onClose }) => {
   const theme = useTheme();
@@ -50,34 +72,29 @@ const TaskDetailDialog = ({ open, orderId, onClose }) => {
   const [expandedServices, setExpandedServices] = useState({});
 
   const toggleService = (orderItemId) => {
-    setExpandedServices((prev) => ({ ...prev, [orderItemId]: !prev[orderItemId] }));
+    setExpandedServices((prev) => ({
+      ...prev,
+      [orderItemId]: !prev[orderItemId],
+    }));
+  };
+
+  const getAssignmentStatusColor = (status) => {
+    if (status === "COMPLETED") return "success";
+    if (status === "IN_PROGRESS") return "secondary";
+    return "warning";
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
-    >
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Detail Tugas
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={onClose} size="small" sx={{ mr: -0.5 }}>
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -88,172 +105,158 @@ const TaskDetailDialog = ({ open, orderId, onClose }) => {
         {isLoading ? (
           <DetailSkeleton />
         ) : data ? (
-          <Stack sx={{ gap: 3 }}>
+          <Stack sx={{ gap: theme.spacing(3) }}>
             {/* Informasi Pesanan */}
-            <Card
-              sx={{
-                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                boxShadow: "none",
-              }}
-            >
-              <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ mb: theme.spacing(2) }}>
                   Informasi Pesanan
                 </Typography>
-                <Stack sx={{ gap: 1.5 }}>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      No. Order
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {data.orderNumber}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Status
-                    </Typography>
-                    <Chip
-                      label={normalizeEnumText(OrderStatus[data.status] || data.status)}
-                      color={statusColorMap[data.status] || "default"}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontWeight: 400 }}
-                    />
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Total
-                    </Typography>
-                    <Typography variant="body2" color="secondary" sx={{ fontWeight: 400 }}>
-                      {formatToIdr(data.total || 0)}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Pelanggan
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {data.customer?.name || "—"}
-                    </Typography>
-                  </Stack>
+                <Stack sx={{ gap: theme.spacing(1.5) }}>
+                  <DetailRow label="No. Order" value={data.orderNumber} />
+                  <DetailRow
+                    label="Status"
+                    value={
+                      <Chip
+                        label={normalizeEnumText(
+                          OrderStatus[data.status] || data.status
+                        )}
+                        color={statusColorMap[data.status] || "default"}
+                        size="small"
+                        variant="outlined"
+                      />
+                    }
+                  />
+                  <DetailRow
+                    label="Total"
+                    value={formatToIdr(data.total || 0)}
+                    valueColor="secondary"
+                  />
+                  <DetailRow
+                    label="Pelanggan"
+                    value={data.customer?.name || "—"}
+                  />
                   {data.vehicle && (
-                    <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                        Kendaraan
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                        {data.vehicle.plateNumber} · {data.vehicle.brand} {data.vehicle.model || ""}
-                      </Typography>
-                    </Stack>
+                    <DetailRow
+                      label="Kendaraan"
+                      value={`${data.vehicle.plateNumber} · ${data.vehicle.brand} ${data.vehicle.model || ""}`}
+                    />
                   )}
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Dibuat
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {data.createdAt ? formatDateTime(data.createdAt) : "—"}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Dimulai
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {data.startedAt ? formatDateTime(data.startedAt) : "Belum dimulai"}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Selesai
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {data.completedAt ? formatDateTime(data.completedAt) : "Belum selesai"}
-                    </Typography>
-                  </Stack>
+                  <DetailRow
+                    label="Dibuat"
+                    value={
+                      data.createdAt
+                        ? formatDateTime(data.createdAt)
+                        : "—"
+                    }
+                  />
+                  <DetailRow
+                    label="Dimulai"
+                    value={
+                      data.startedAt
+                        ? formatDateTime(data.startedAt)
+                        : "Belum dimulai"
+                    }
+                  />
+                  <DetailRow
+                    label="Selesai"
+                    value={
+                      data.completedAt
+                        ? formatDateTime(data.completedAt)
+                        : "Belum selesai"
+                    }
+                  />
                 </Stack>
               </CardContent>
             </Card>
 
             {/* Layanan */}
-            <Card
-              sx={{
-                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                boxShadow: "none",
-                overflow: "hidden",
-              }}
-            >
+            <Card>
               <Box
                 sx={{
                   display: "flex",
                   alignItems: "center",
-                  px: 2,
-                  py: 2,
+                  px: theme.spacing(2),
+                  py: theme.spacing(2),
                 }}
               >
-                <Typography variant="subtitle2" sx={{ fontWeight: 400 }}>
+                <Typography variant="subtitle2">
                   Layanan ({data.services?.length || 0})
                 </Typography>
               </Box>
 
               <Divider />
 
-              <CardContent sx={{ pt: 2 }}>
-                <Stack sx={{ gap: 1.5 }}>
+              <CardContent sx={{ pt: theme.spacing(2) }}>
+                <Stack sx={{ gap: theme.spacing(1.5) }}>
                   {data.services?.map((service) => {
                     const isExpanded = expandedServices[service.orderItemId];
                     const assignments = service.assignments || [];
 
                     return (
-                      <Card
-                        key={service.orderItemId}
-                        sx={{
-                          border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                          boxShadow: "none",
-                        }}
-                      >
+                      <Card key={service.orderItemId}>
                         <Box
                           onClick={() => toggleService(service.orderItemId)}
-                          sx={{
+                          sx={(theme) => ({
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "flex-start",
                             cursor: "pointer",
-                            px: 2,
-                            py: 1.5,
-                            transition: "background-color 0.15s ease",
+                            px: theme.spacing(2),
+                            py: theme.spacing(1.5),
+                            transition: theme.transitions.create(
+                              "background-color",
+                              {
+                                duration:
+                                  theme.transitions.duration.shorter,
+                              }
+                            ),
                             "&:hover": {
-                              bgcolor: alpha(theme.palette.secondary.main, 0.04),
+                              bgcolor: alpha(
+                                theme.palette.secondary.main,
+                                0.04
+                              ),
                             },
-                          }}
+                          })}
                         >
-                          <Stack direction="row" sx={{ gap: 1.5, flex: 1 }}>
+                          <Stack
+                            direction="row"
+                            sx={{ gap: theme.spacing(1.5), flex: 1 }}
+                          >
                             <Avatar
                               src={service.product?.image || ""}
                               variant="rounded"
-                              sx={{
+                              sx={(theme) => ({
                                 width: 40,
                                 height: 40,
                                 borderRadius: `${theme.shape.borderRadius}px`,
                                 bgcolor: !service.product?.image
-                                  ? alpha(theme.palette.secondary.main, 0.08)
+                                  ? alpha(
+                                      theme.palette.secondary.main,
+                                      0.08
+                                    )
                                   : "transparent",
                                 color: !service.product?.image
                                   ? theme.palette.secondary.main
                                   : "transparent",
                                 fontSize: "0.875rem",
-                                fontWeight: 400,
-                              }}
+                              })}
                             >
                               {!service.product?.image &&
-                                service.serviceName?.charAt(0)?.toUpperCase()}
+                                service.serviceName
+                                  ?.charAt(0)
+                                  ?.toUpperCase()}
                             </Avatar>
                             <Stack sx={{ flex: 1 }}>
-                              <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                              <Typography variant="body2">
                                 {service.serviceName}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
-                                Qty: {service.quantity} · {formatToIdr(service.subtotal)}
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Qty: {service.quantity} ·{" "}
+                                {formatToIdr(service.subtotal)}
                               </Typography>
                             </Stack>
                           </Stack>
@@ -266,34 +269,41 @@ const TaskDetailDialog = ({ open, orderId, onClose }) => {
 
                         <Collapse in={isExpanded}>
                           <Divider />
-                          <CardContent sx={{ py: 1.5 }}>
-                            <Stack sx={{ gap: 1 }}>
+                          <CardContent
+                            sx={{ py: theme.spacing(1.5) }}
+                          >
+                            <Stack sx={{ gap: theme.spacing(1) }}>
                               {assignments.map((a) => (
                                 <Stack
                                   key={a.id}
                                   direction="row"
-                                  sx={{ justifyContent: "space-between", alignItems: "center" }}
+                                  sx={{
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                  }}
                                 >
-                                  <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                                  <Typography variant="body2">
                                     {a.mechanic?.fullName || "—"}
                                   </Typography>
                                   <Chip
-                                    label={normalizeEnumText(a.statusLabel || a.status || "Menunggu")}
-                                    color={
-                                      a.status === "COMPLETED"
-                                        ? "success"
-                                        : a.status === "IN_PROGRESS"
-                                        ? "secondary"
-                                        : "warning"
-                                    }
+                                    label={normalizeEnumText(
+                                      a.statusLabel ||
+                                        a.status ||
+                                        "Menunggu"
+                                    )}
+                                    color={getAssignmentStatusColor(
+                                      a.status
+                                    )}
                                     size="small"
                                     variant="outlined"
-                                    sx={{ fontWeight: 400 }}
                                   />
                                 </Stack>
                               ))}
                               {assignments.length === 0 && (
-                                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
                                   Belum ada mekanik ditugaskan
                                 </Typography>
                               )}
@@ -313,7 +323,7 @@ const TaskDetailDialog = ({ open, orderId, onClose }) => {
       <Divider />
 
       <DialogActions>
-        <Button variant="outlined" onClick={onClose} sx={{ fontWeight: 400 }}>
+        <Button variant="outlined" onClick={onClose}>
           Tutup
         </Button>
       </DialogActions>

@@ -36,9 +36,23 @@ import { useUserDetailQuery } from "@views/users/hooks";
 
 const DetailSkeleton = () => (
   <Stack sx={{ gap: 3 }}>
-    <Skeleton variant="rounded" height={160} sx={{ borderRadius: 2 }} />
-    <Skeleton variant="rounded" height={100} sx={{ borderRadius: 2 }} />
-    <Skeleton variant="rounded" height={80} sx={{ borderRadius: 2 }} />
+    <Skeleton variant="rounded" height={160} />
+    <Skeleton variant="rounded" height={100} />
+    <Skeleton variant="rounded" height={80} />
+  </Stack>
+);
+
+const DetailRow = ({ label, value, valueVariant }) => (
+  <Stack
+    direction="row"
+    sx={{ justifyContent: "space-between", alignItems: "center" }}
+  >
+    <Typography variant="body2" color="text.secondary">
+      {label}
+    </Typography>
+    <Typography variant={valueVariant || "body2"}>
+      {value}
+    </Typography>
   </Stack>
 );
 
@@ -47,30 +61,16 @@ const UserDetailDialog = ({ open, userId, onClose }) => {
   const { data: user, isLoading } = useUserDetailQuery(userId, open);
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
-    >
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
         }}
       >
         Detail Karyawan
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={onClose} size="small" sx={{ mr: -0.5 }}>
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -81,18 +81,18 @@ const UserDetailDialog = ({ open, userId, onClose }) => {
         {isLoading ? (
           <DetailSkeleton />
         ) : user ? (
-          <Stack sx={{ gap: 3 }}>
+          <Stack sx={{ gap: theme.spacing(3) }}>
             {/* Header Info */}
             <Card
-              sx={{
+              sx={(theme) => ({
                 border: `1px solid ${alpha(theme.palette.secondary.main, 0.15)}`,
                 bgcolor: alpha(theme.palette.secondary.main, 0.02),
                 boxShadow: "none",
-              }}
+              })}
             >
-              <CardContent sx={{ textAlign: "center", py: 3 }}>
+              <CardContent sx={{ textAlign: "center", py: theme.spacing(3) }}>
                 <Box
-                  sx={{
+                  sx={(theme) => ({
                     width: 64,
                     height: 64,
                     borderRadius: `${theme.shape.borderRadius}px`,
@@ -101,121 +101,102 @@ const UserDetailDialog = ({ open, userId, onClose }) => {
                     alignItems: "center",
                     justifyContent: "center",
                     fontSize: "1.5rem",
-                    fontWeight: 400,
                     color: theme.palette.secondary.main,
                     mx: "auto",
-                    mb: 1.5,
-                  }}
+                    mb: theme.spacing(1.5),
+                  })}
                 >
                   {user.fullName?.charAt(0)?.toUpperCase()}
                 </Box>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
-                  {user.fullName}
-                </Typography>
-                <Stack direction="row" sx={{ gap: 1, justifyContent: "center", mt: 1 }}>
+                <Typography variant="h6">{user.fullName}</Typography>
+                <Stack
+                  direction="row"
+                  sx={{
+                    gap: theme.spacing(1),
+                    justifyContent: "center",
+                    mt: theme.spacing(1),
+                  }}
+                >
                   <Chip
                     label={normalizeEnumText(user.role)}
                     size="small"
                     variant="outlined"
                     color={roleColorMap[user.role] || "default"}
-                    sx={{ fontWeight: 400 }}
                   />
                   <Chip
                     label={user.isActive ? "Aktif" : "Nonaktif"}
                     color={user.isActive ? "success" : "default"}
                     size="small"
                     variant="outlined"
-                    sx={{ fontWeight: 400 }}
                   />
                 </Stack>
               </CardContent>
             </Card>
 
             {/* Informasi Kontak */}
-            <Card
-              sx={{
-                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                boxShadow: "none",
-              }}
-            >
-              <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ mb: theme.spacing(2) }}>
                   Informasi Kontak
                 </Typography>
-                <Stack sx={{ gap: 1.5 }}>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Email
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {user.email}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Telepon
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {user.phone || "—"}
-                    </Typography>
-                  </Stack>
+                <Stack sx={{ gap: theme.spacing(1.5) }}>
+                  <DetailRow label="Email" value={user.email} />
+                  <DetailRow label="Telepon" value={user.phone || "—"} />
                 </Stack>
               </CardContent>
             </Card>
 
             {/* Informasi Sistem */}
-            <Card
-              sx={{
-                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                boxShadow: "none",
-              }}
-            >
-              <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ mb: theme.spacing(2) }}>
                   Informasi Sistem
                 </Typography>
-                <Stack sx={{ gap: 1.5 }}>
-                  <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      ID User
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      {user.id}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Tanggal Dibuat
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {formatDateTime(user.createdAt)}
-                    </Typography>
-                  </Stack>
+                <Stack sx={{ gap: theme.spacing(1.5) }}>
+                  <DetailRow
+                    label="ID User"
+                    value={user.id}
+                    valueVariant="caption"
+                  />
+                  <DetailRow
+                    label="Tanggal Dibuat"
+                    value={formatDateTime(user.createdAt)}
+                  />
                   {user.updatedAt && (
-                    <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                        Terakhir Diupdate
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                        {formatDateTime(user.updatedAt)}
-                      </Typography>
-                    </Stack>
+                    <DetailRow
+                      label="Terakhir Diupdate"
+                      value={formatDateTime(user.updatedAt)}
+                    />
                   )}
                 </Stack>
               </CardContent>
             </Card>
           </Stack>
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 4, fontWeight: 400 }}>
-            Data tidak ditemukan
-          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              py: theme.spacing(4),
+              gap: theme.spacing(1),
+            }}
+          >
+            <Typography variant="body1" color="text.secondary">
+              Data tidak ditemukan
+            </Typography>
+            <Typography variant="caption" color="text.disabled">
+              User mungkin telah dihapus atau ID tidak valid
+            </Typography>
+          </Box>
         )}
       </DialogContent>
 
       <Divider />
 
       <DialogActions>
-        <Button variant="outlined" onClick={onClose} sx={{ fontWeight: 400 }}>
+        <Button variant="outlined" onClick={onClose}>
           Tutup
         </Button>
       </DialogActions>

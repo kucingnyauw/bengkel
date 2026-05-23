@@ -50,6 +50,81 @@ import errorAnimation from "@assets/lottie/error.json";
 
 const Lottie = LottieModule.default || LottieModule;
 
+const MethodCard = ({ selected, method, icon: Icon, title, subtitle, onClick }) => {
+  const theme = useTheme();
+  const isSelected = selected === method;
+
+  return (
+    <Card
+      onClick={() => onClick(method)}
+      sx={{
+        cursor: "pointer",
+        border: "1px solid",
+        borderColor: isSelected
+          ? theme.palette.secondary.main
+          : alpha(theme.palette.divider, 0.6),
+        bgcolor: isSelected
+          ? alpha(theme.palette.secondary.main, 0.06)
+          : "transparent",
+        boxShadow: isSelected
+          ? `0 0 0 1px ${alpha(theme.palette.secondary.main, 0.3)}`
+          : "none",
+        transition: theme.transitions.create([
+          "border-color",
+          "background-color",
+          "box-shadow",
+        ]),
+        "&:hover": {
+          borderColor: isSelected
+            ? theme.palette.secondary.main
+            : alpha(theme.palette.secondary.main, 0.4),
+          bgcolor: isSelected
+            ? alpha(theme.palette.secondary.main, 0.08)
+            : alpha(theme.palette.secondary.main, 0.03),
+        },
+      }}
+    >
+      <CardContent
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+          py: theme.spacing(3),
+          gap: 1.5,
+          "&:last-child": { pb: theme.spacing(3) },
+        }}
+      >
+        <Box
+          sx={{
+            width: 52,
+            height: 52,
+            borderRadius: `${theme.shape.borderRadius}px`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            bgcolor: isSelected
+              ? alpha(theme.palette.secondary.main, 0.12)
+              : alpha(theme.palette.secondary.main, 0.05),
+            color: isSelected
+              ? theme.palette.secondary.main
+              : theme.palette.text.secondary,
+            transition: theme.transitions.create(["background-color", "color"]),
+          }}
+        >
+          <Icon size={24} strokeWidth={1.5} />
+        </Box>
+        <Box>
+          <Typography variant="body2">{title}</Typography>
+          <Typography variant="caption" color="text.secondary">
+            {subtitle}
+          </Typography>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+};
+
 const OrderPaymentDialog = ({ data, onClose, open }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
@@ -118,17 +193,11 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
     };
   }, [socketRef, data?.id, step]);
 
-  /**
-   * Handle perubahan metode pembayaran
-   */
   const handleMethodChange = (method) => {
     setValue("method", method);
     setValue("amountPaid", 0);
   };
 
-  /**
-   * Handle tutup dialog dan reset state
-   */
   const handleClose = () => {
     setStep("payment");
     setQrisData(null);
@@ -137,9 +206,6 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
     onClose?.();
   };
 
-  /**
-   * Handle submit pembayaran
-   */
   const onSubmit = (formData) => {
     if (!data) return;
 
@@ -176,9 +242,6 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
     });
   };
 
-  /**
-   * Handle download QR code
-   */
   const handleDownloadQr = useCallback(() => {
     if (!qrisData?.qrCodeUrl) return;
     downloadFromUrl(
@@ -187,10 +250,17 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
     );
   }, [qrisData, data]);
 
+  const getButtonLabel = () => {
+    if (paymentSuccess) return "Selesai";
+    if (paymentFailed) return "Kembali";
+    return "Tutup";
+  };
+
   const renderPaymentStep = () => (
     <>
       <DialogContent>
-        <Stack sx={{ gap: 3 }}>
+        <Stack sx={{ gap: theme.spacing(3) }}>
+          {/* Ringkasan Tagihan */}
           <Card
             sx={{
               border: `1px solid ${alpha(theme.palette.secondary.main, 0.15)}`,
@@ -198,30 +268,41 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
               boxShadow: "none",
             }}
           >
-            <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
-              <Stack sx={{ gap: 0.5, mb: 2 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+            <CardContent
+              sx={{
+                py: theme.spacing(2.5),
+                "&:last-child": { pb: theme.spacing(2.5) },
+              }}
+            >
+              <Stack sx={{ gap: 0.5, mb: theme.spacing(2) }}>
+                <Typography variant="caption" color="text.secondary">
                   Total Tagihan
                 </Typography>
-                <Typography variant="h5" color="secondary" sx={{ fontWeight: 500 }}>
+                <Typography variant="h5" color="secondary">
                   {formatToIdr(data?.total || 0)}
                 </Typography>
               </Stack>
-              <Divider sx={{ my: 1.5 }} />
-              <Stack sx={{ gap: 1 }}>
-                <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+              <Divider sx={{ my: theme.spacing(1.5) }} />
+              <Stack sx={{ gap: theme.spacing(1) }}>
+                <Stack
+                  direction="row"
+                  sx={{ justifyContent: "space-between" }}
+                >
+                  <Typography variant="body2" color="text.secondary">
                     No. Order
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                  <Typography variant="body2">
                     {data?.orderNumber || "—"}
                   </Typography>
                 </Stack>
-                <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                <Stack
+                  direction="row"
+                  sx={{ justifyContent: "space-between" }}
+                >
+                  <Typography variant="body2" color="text.secondary">
                     Pelanggan
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                  <Typography variant="body2">
                     {data?.customer?.name || "—"}
                   </Typography>
                 </Stack>
@@ -229,8 +310,9 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
             </CardContent>
           </Card>
 
+          {/* Pilihan Metode Pembayaran */}
           <Box>
-            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 500 }}>
+            <Typography variant="subtitle2" sx={{ mb: theme.spacing(2) }}>
               Metode Pembayaran
             </Typography>
             <Controller
@@ -241,161 +323,33 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
                   sx={{
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
-                    gap: 2,
+                    gap: theme.spacing(2),
                   }}
                 >
-                  <Card
-                    onClick={() => handleMethodChange(PaymentMethod.QRIS)}
-                    sx={{
-                      cursor: "pointer",
-                      border: "1px solid",
-                      borderColor:
-                        field.value === PaymentMethod.QRIS
-                          ? theme.palette.secondary.main
-                          : alpha(theme.palette.divider, 0.6),
-                      bgcolor:
-                        field.value === PaymentMethod.QRIS
-                          ? alpha(theme.palette.secondary.main, 0.06)
-                          : "transparent",
-                      boxShadow:
-                        field.value === PaymentMethod.QRIS
-                          ? `0 0 0 1px ${alpha(theme.palette.secondary.main, 0.3)}`
-                          : "none",
-                      transition: theme.transitions.create(["border-color", "background-color", "box-shadow"]),
-                      "&:hover": {
-                        borderColor:
-                          field.value === PaymentMethod.QRIS
-                            ? theme.palette.secondary.main
-                            : alpha(theme.palette.secondary.main, 0.4),
-                        bgcolor:
-                          field.value === PaymentMethod.QRIS
-                            ? alpha(theme.palette.secondary.main, 0.08)
-                            : alpha(theme.palette.secondary.main, 0.03),
-                      },
-                    }}
-                  >
-                    <CardContent
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        textAlign: "center",
-                        py: 3,
-                        gap: 1.5,
-                        "&:last-child": { pb: 3 },
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          width: 52,
-                          height: 52,
-                          borderRadius: `${theme.shape.borderRadius}px`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          bgcolor:
-                            field.value === PaymentMethod.QRIS
-                              ? alpha(theme.palette.secondary.main, 0.12)
-                              : alpha(theme.palette.secondary.main, 0.05),
-                          color:
-                            field.value === PaymentMethod.QRIS
-                              ? theme.palette.secondary.main
-                              : theme.palette.text.secondary,
-                          transition: theme.transitions.create(["background-color", "color"]),
-                        }}
-                      >
-                        <QrCode size={24} strokeWidth={1.5} />
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          QRIS
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
-                          Scan kode QR
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
-
-                  <Card
-                    onClick={() => handleMethodChange(PaymentMethod.CASH)}
-                    sx={{
-                      cursor: "pointer",
-                      border: "1px solid",
-                      borderColor:
-                        field.value === PaymentMethod.CASH
-                          ? theme.palette.secondary.main
-                          : alpha(theme.palette.divider, 0.6),
-                      bgcolor:
-                        field.value === PaymentMethod.CASH
-                          ? alpha(theme.palette.secondary.main, 0.06)
-                          : "transparent",
-                      boxShadow:
-                        field.value === PaymentMethod.CASH
-                          ? `0 0 0 1px ${alpha(theme.palette.secondary.main, 0.3)}`
-                          : "none",
-                      transition: theme.transitions.create(["border-color", "background-color", "box-shadow"]),
-                      "&:hover": {
-                        borderColor:
-                          field.value === PaymentMethod.CASH
-                            ? theme.palette.secondary.main
-                            : alpha(theme.palette.secondary.main, 0.4),
-                        bgcolor:
-                          field.value === PaymentMethod.CASH
-                            ? alpha(theme.palette.secondary.main, 0.08)
-                            : alpha(theme.palette.secondary.main, 0.03),
-                      },
-                    }}
-                  >
-                    <CardContent
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        textAlign: "center",
-                        py: 3,
-                        gap: 1.5,
-                        "&:last-child": { pb: 3 },
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          width: 52,
-                          height: 52,
-                          borderRadius: `${theme.shape.borderRadius}px`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          bgcolor:
-                            field.value === PaymentMethod.CASH
-                              ? alpha(theme.palette.secondary.main, 0.12)
-                              : alpha(theme.palette.secondary.main, 0.05),
-                          color:
-                            field.value === PaymentMethod.CASH
-                              ? theme.palette.secondary.main
-                              : theme.palette.text.secondary,
-                          transition: theme.transitions.create(["background-color", "color"]),
-                        }}
-                      >
-                        <Banknote size={24} strokeWidth={1.5} />
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          Tunai
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
-                          Uang tunai
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
+                  <MethodCard
+                    selected={field.value}
+                    method={PaymentMethod.QRIS}
+                    icon={QrCode}
+                    title="QRIS"
+                    subtitle="Scan kode QR"
+                    onClick={handleMethodChange}
+                  />
+                  <MethodCard
+                    selected={field.value}
+                    method={PaymentMethod.CASH}
+                    icon={Banknote}
+                    title="Tunai"
+                    subtitle="Uang tunai"
+                    onClick={handleMethodChange}
+                  />
                 </Box>
               )}
             />
           </Box>
 
+          {/* Input Tunai */}
           {selectedMethod === PaymentMethod.CASH && (
-            <Stack sx={{ gap: 2 }}>
+            <Stack sx={{ gap: theme.spacing(2) }}>
               <Controller
                 control={control}
                 name="amountPaid"
@@ -403,8 +357,10 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
                   required: "Jumlah dibayar wajib diisi",
                   min: { value: 1, message: "Minimal Rp 1" },
                   validate: (value) => {
-                    if (!value || isNaN(value)) return "Masukkan angka yang valid";
-                    if (Number(value) < (data?.total || 0)) return "Jumlah kurang dari total tagihan";
+                    if (!value || isNaN(value))
+                      return "Masukkan angka yang valid";
+                    if (Number(value) < (data?.total || 0))
+                      return "Jumlah kurang dari total tagihan";
                     return true;
                   },
                 }}
@@ -421,17 +377,6 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
                     onChange={(e) => {
                       const raw = e.target.value.replace(/[^0-9]/g, "");
                       field.onChange(raw ? Number(raw) : "");
-                    }}
-                    slotProps={{
-                      input: {
-                        sx: { fontWeight: 400 },
-                      },
-                      inputLabel: {
-                        sx: { fontWeight: 500 },
-                      },
-                      formHelperText: {
-                        sx: { fontWeight: 400 },
-                      },
                     }}
                   />
                 )}
@@ -452,15 +397,27 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
                     boxShadow: "none",
                   }}
                 >
-                  <CardContent sx={{ py: 2, "&:last-child": { pb: 2 } }}>
-                    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  <CardContent
+                    sx={{
+                      py: theme.spacing(2),
+                      "&:last-child": { pb: theme.spacing(2) },
+                    }}
+                  >
+                    <Stack
+                      direction="row"
+                      sx={{
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography variant="body2">
                         Kembalian
                       </Typography>
                       <Typography
                         variant="body2"
-                        color={changeAmount >= 0 ? "success.main" : "error.main"}
-                        sx={{ fontWeight: 500 }}
+                        color={
+                          changeAmount >= 0 ? "success.main" : "error.main"
+                        }
                       >
                         {formatToIdr(changeAmount)}
                       </Typography>
@@ -475,26 +432,19 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
 
       <Divider />
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button
-          color="inherit"
-          variant="outlined"
-          onClick={handleClose}
-          sx={{ fontWeight: 400 }}
-        >
+      <DialogActions>
+        <Button color="inherit" variant="outlined" onClick={handleClose}>
           Batal
         </Button>
         <Button
           variant="contained"
           onClick={handleSubmit(onSubmit)}
           disabled={isSubmitting}
-          startIcon={isSubmitting ? <CircularProgress size={14} color="inherit" /> : null}
-          sx={{
-            fontWeight: 400,
-            "&:hover": {
-              boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-            },
-          }}
+          startIcon={
+            isSubmitting ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
+          }
         >
           {isSubmitting ? "Memproses..." : "Bayar"}
         </Button>
@@ -505,17 +455,23 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
   const renderQrisStep = () => (
     <>
       <DialogContent>
-        <Stack sx={{ alignItems: "center", gap: 4 }}>
+        <Stack sx={{ alignItems: "center", gap: theme.spacing(4) }}>
           {paymentSuccess ? (
             <>
               <Box sx={{ width: 160, height: 160 }}>
-                <Lottie animationData={successAnimation} loop={false} autoplay />
+                <Lottie
+                  animationData={successAnimation}
+                  loop={false}
+                  autoplay
+                />
               </Box>
-              <Stack sx={{ alignItems: "center", gap: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 500 }}>
-                  Pembayaran Berhasil
-                </Typography>
-                <Typography color="text.secondary" textAlign="center" variant="body2" sx={{ fontWeight: 400 }}>
+              <Stack sx={{ alignItems: "center", gap: theme.spacing(1) }}>
+                <Typography variant="h6">Pembayaran Berhasil</Typography>
+                <Typography
+                  color="text.secondary"
+                  textAlign="center"
+                  variant="body2"
+                >
                   Pembayaran untuk pesanan ini telah diterima
                 </Typography>
               </Stack>
@@ -523,24 +479,30 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
           ) : paymentFailed ? (
             <>
               <Box sx={{ width: 160, height: 160 }}>
-                <Lottie animationData={errorAnimation} loop={false} autoplay />
+                <Lottie
+                  animationData={errorAnimation}
+                  loop={false}
+                  autoplay
+                />
               </Box>
-              <Stack sx={{ alignItems: "center", gap: 1 }}>
-                <Typography variant="h6" color="error" sx={{ fontWeight: 500 }}>
+              <Stack sx={{ alignItems: "center", gap: theme.spacing(1) }}>
+                <Typography variant="h6" color="error">
                   Pembayaran Gagal
                 </Typography>
-                <Typography color="text.secondary" textAlign="center" variant="body2" sx={{ fontWeight: 400 }}>
+                <Typography
+                  color="text.secondary"
+                  textAlign="center"
+                  variant="body2"
+                >
                   Silakan coba lagi atau gunakan metode pembayaran lain
                 </Typography>
               </Stack>
             </>
           ) : (
             <>
-              <Stack sx={{ alignItems: "center", gap: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 500 }}>
-                  Scan QR Code
-                </Typography>
-                <Typography color="text.secondary" variant="body2" sx={{ fontWeight: 400 }}>
+              <Stack sx={{ alignItems: "center", gap: theme.spacing(1) }}>
+                <Typography variant="h6">Scan QR Code</Typography>
+                <Typography color="text.secondary" variant="body2">
                   Gunakan aplikasi pembayaran yang mendukung QRIS
                 </Typography>
               </Stack>
@@ -556,11 +518,11 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
                     aspectRatio: "1/1",
                     border: `1px solid ${theme.palette.divider}`,
                     borderRadius: `${theme.shape.borderRadius}px`,
-                    p: 2,
+                    p: theme.spacing(2),
                   }}
                 />
               ) : (
-                <Typography color="error" variant="body2" sx={{ fontWeight: 400 }}>
+                <Typography color="error" variant="body2">
                   Gagal memuat QR code
                 </Typography>
               )}
@@ -568,7 +530,6 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
               <Chip
                 label={`Total: ${formatToIdr(qrisData?.amount || data?.total || 0)}`}
                 variant="outlined"
-                sx={{ fontWeight: 500 }}
               />
             </>
           )}
@@ -577,62 +538,38 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
 
       <Divider />
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
+      <DialogActions>
         {!paymentSuccess && !paymentFailed && qrisData?.qrCodeUrl && (
           <Button
             color="inherit"
             variant="outlined"
             onClick={handleDownloadQr}
-            sx={{ fontWeight: 400 }}
           >
             <Download size={14} strokeWidth={1.5} />
-            <Box component="span" sx={{ ml: 1 }}>
+            <Box component="span" sx={{ ml: theme.spacing(1) }}>
               Download QR
             </Box>
           </Button>
         )}
         <Box sx={{ flex: 1 }} />
-        <Button
-          variant="contained"
-          onClick={handleClose}
-          sx={{
-            fontWeight: 400,
-            "&:hover": {
-              boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-            },
-          }}
-        >
-          {paymentSuccess ? "Selesai" : paymentFailed ? "Kembali" : "Tutup"}
+        <Button variant="contained" onClick={handleClose}>
+          {getButtonLabel()}
         </Button>
       </DialogActions>
     </>
   );
 
   return (
-    <Dialog
-      fullWidth
-      maxWidth="sm"
-      onClose={handleClose}
-      open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
-    >
+    <Dialog fullWidth maxWidth="sm" onClose={handleClose} open={open}>
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         {step === "qris" ? "Pembayaran QRIS" : "Pembayaran"}
-        <IconButton onClick={handleClose} size="small">
+        <IconButton onClick={handleClose} size="small" sx={{ mr: -0.5 }}>
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>

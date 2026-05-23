@@ -39,12 +39,14 @@ import {
   Stack,
   TextField,
   Typography,
+  useTheme,
 } from "@mui/material";
 
 import { useUpdateVehicleMutation, useVehicleForm } from "@views/vehicles/hooks";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const {
     control,
@@ -103,7 +105,7 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
   const handleVehicleChange = (event, field) => {
     const vehicleId = event.target.value;
     field.onChange(vehicleId);
-    
+
     const selected = vehicles.find((v) => v.id === vehicleId);
     if (selected) {
       reset({
@@ -135,32 +137,46 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
   );
 
   return (
-    <Dialog fullWidth maxWidth="xs" onClose={isPending ? undefined : onClose} open={open}>
+    <Dialog
+      fullWidth
+      maxWidth="xs"
+      onClose={isPending ? undefined : onClose}
+      open={open}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Update Kendaraan
-        <IconButton onClick={onClose} disabled={isPending} size="small">
-          <X size={20} />
+        <IconButton
+          onClick={onClose}
+          disabled={isPending}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
       <Divider />
 
       <DialogContent>
-        <Box component="form" id="vehicle-update-form" onSubmit={handleSubmit(onSubmit)}>
-          <Stack spacing={3.5}>
+        <Box
+          component="form"
+          id="vehicle-update-form"
+          onSubmit={handleSubmit(onSubmit)}
+        >
+          <Stack sx={{ gap: theme.spacing(2.5) }}>
+            {/* Pilih Kendaraan (jika lebih dari 1) */}
             {vehicles.length > 1 && (
               <Controller
                 name="selectedVehicleId"
                 control={control}
                 render={({ field }) => (
-                  <FormControl disabled={isPending}>
+                  <FormControl fullWidth disabled={isPending}>
                     <InputLabel>Pilih Kendaraan</InputLabel>
                     <Select
                       {...field}
@@ -170,7 +186,7 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
                       {vehicles.map((v) => (
                         <MenuItem key={v.id} value={v.id}>
                           <Stack>
-                            <Typography variant="body2" fontWeight={500}>
+                            <Typography variant="body2">
                               {v.plateNumber}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
@@ -185,6 +201,7 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
               />
             )}
 
+            {/* Plat Nomor */}
             <Controller
               name="plateNumber"
               control={control}
@@ -192,6 +209,7 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
               render={({ field, fieldState }) => (
                 <TextField
                   {...field}
+                  fullWidth
                   disabled={isPending}
                   error={!!fieldState.error}
                   helperText={fieldState.error?.message}
@@ -201,12 +219,14 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
               )}
             />
 
+            {/* Merek */}
             <Controller
               name="brand"
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
+                  fullWidth
                   disabled={isPending}
                   label="Merek"
                   placeholder="Contoh: Vespa"
@@ -214,12 +234,14 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
               )}
             />
 
+            {/* Model */}
             <Controller
               name="model"
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
+                  fullWidth
                   disabled={isPending}
                   label="Model"
                   placeholder="Contoh: Sprint 150"
@@ -233,7 +255,12 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
       <Divider />
 
       <DialogActions>
-        <Button color="inherit" variant="outlined" disabled={isPending} onClick={onClose}>
+        <Button
+          color="inherit"
+          variant="outlined"
+          disabled={isPending}
+          onClick={onClose}
+        >
           Batal
         </Button>
         <Button
@@ -242,7 +269,9 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
           type="submit"
           form="vehicle-update-form"
           startIcon={
-            isPending ? <CircularProgress size={14} color="inherit" /> : null
+            isPending ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
           }
         >
           {isPending ? "Menyimpan..." : "Simpan"}

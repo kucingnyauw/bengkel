@@ -39,46 +39,107 @@ import { useDevice, useDebounce } from "@hooks";
 import { AsyncAutocomplete } from "@components";
 import { useHeaderCart } from "../hooks/useHeaderCart";
 
-const QuantityControl = ({ quantity, maxLimit, onChange, disabled }) => (
-  <Stack
-    direction="row"
+const EmptyCartSvg = ({ opacity = 0.15 }) => (
+  <Box
+    component="svg"
+    viewBox="0 0 120 120"
     sx={{
-      alignItems: "center",
-      gap: 0.5,
-      border: `1px solid`,
-      borderColor: "divider",
-      borderRadius: `${useTheme().shape.borderRadius}px`,
-      bgcolor: "background.paper",
+      width: 100,
+      height: 100,
+      opacity,
     }}
   >
-    <IconButton
-      size="small"
-      onClick={() => onChange(-1)}
-      disabled={disabled || quantity <= 1}
-    >
-      <Minus size={14} strokeWidth={1.5} />
-    </IconButton>
-    <Typography
-      variant="body2"
+    {/* Shopping Bag Body */}
+    <path
+      d="M35 40 L35 30 C35 16.2 46.2 5 60 5 C73.8 5 85 16.2 85 30 L85 40"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    {/* Shopping Bag */}
+    <rect
+      x="25"
+      y="40"
+      width="70"
+      height="65"
+      rx="8"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+    />
+    {/* Handle */}
+    <path
+      d="M40 40 L40 25 C40 17.8 37 12 30 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+    />
+    <path
+      d="M80 40 L80 25 C80 17.8 83 12 90 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+    />
+    {/* Smiley Face */}
+    <circle cx="60" cy="68" r="16" fill="none" stroke="currentColor" strokeWidth="2.5" />
+    <circle cx="54" cy="65" r="2" fill="currentColor" />
+    <circle cx="66" cy="65" r="2" fill="currentColor" />
+    <path
+      d="M54 73 Q60 78 66 73"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </Box>
+);
+
+const QuantityControl = ({ quantity, maxLimit, onChange, disabled }) => {
+  const theme = useTheme();
+
+  return (
+    <Stack
+      direction="row"
       sx={{
-        minWidth: 28,
-        textAlign: "center",
-        userSelect: "none",
-        fontWeight: 400,
-        fontVariantNumeric: "tabular-nums",
+        alignItems: "center",
+        gap: 0.5,
+        border: `1px solid ${theme.palette.divider}`,
+        borderRadius: `${theme.shape.borderRadius}px`,
+        bgcolor: "background.paper",
       }}
     >
-      {quantity}
-    </Typography>
-    <IconButton
-      size="small"
-      onClick={() => onChange(1)}
-      disabled={disabled || quantity >= maxLimit}
-    >
-      <Plus size={14} strokeWidth={1.5} />
-    </IconButton>
-  </Stack>
-);
+      <IconButton
+        size="small"
+        onClick={() => onChange(-1)}
+        disabled={disabled || quantity <= 1}
+      >
+        <Minus size={14} strokeWidth={1.5} />
+      </IconButton>
+      <Typography
+        variant="body2"
+        sx={{
+          minWidth: 28,
+          textAlign: "center",
+          userSelect: "none",
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {quantity}
+      </Typography>
+      <IconButton
+        size="small"
+        onClick={() => onChange(1)}
+        disabled={disabled || quantity >= maxLimit}
+      >
+        <Plus size={14} strokeWidth={1.5} />
+      </IconButton>
+    </Stack>
+  );
+};
 
 const CartItemCard = ({ item, onRemove, onQuantityChange, disabled }) => {
   const theme = useTheme();
@@ -91,18 +152,15 @@ const CartItemCard = ({ item, onRemove, onQuantityChange, disabled }) => {
       sx={{
         opacity: disabled ? 0.5 : 1,
         transition: theme.transitions.create("opacity"),
-        border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-        boxShadow: "none",
-        borderRadius: `${theme.shape.borderRadius}px`,
       }}
     >
-      <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+      <CardContent>
         <Stack direction="row" sx={{ alignItems: "flex-start", gap: 2 }}>
           <Avatar
             alt={item.productName}
             src={item.image?.url || ""}
             variant="rounded"
-            sx={{
+            sx={(theme) => ({
               width: 48,
               height: 48,
               flexShrink: 0,
@@ -114,48 +172,86 @@ const CartItemCard = ({ item, onRemove, onQuantityChange, disabled }) => {
                 ? theme.palette.secondary.main
                 : "transparent",
               fontSize: "0.9375rem",
-              fontWeight: 400,
-            }}
+            })}
           >
             {!item.image?.url && item.productName?.charAt(0)?.toUpperCase()}
           </Avatar>
 
           <Stack sx={{ minWidth: 0, flex: 1, gap: 1 }}>
-            <Stack direction="row" sx={{ alignItems: "flex-start", justifyContent: "space-between" }}>
+            <Stack
+              direction="row"
+              sx={{
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+              }}
+            >
               <Stack sx={{ minWidth: 0, gap: 0.5 }}>
                 <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
                   <Chip
-                    label={item.type === ProductType.SERVICE ? "Servis" : "Sparepart"}
+                    label={
+                      item.type === ProductType.SERVICE
+                        ? "Servis"
+                        : "Sparepart"
+                    }
                     size="small"
                     variant="outlined"
-                    color={item.type === ProductType.SERVICE ? "secondary" : "warning"}
-                    sx={{ fontWeight: 400, height: 22 }}
+                    color={
+                      item.type === ProductType.SERVICE
+                        ? "secondary"
+                        : "warning"
+                    }
+                    sx={{ height: 22 }}
                   />
-                  <Typography variant="body2" sx={{ fontWeight: 400 }} noWrap>
+                  <Typography variant="body2" noWrap>
                     {item.productName}
                   </Typography>
                 </Stack>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                <Typography variant="body2" color="text.secondary">
                   {formatToIdr(item.unitPrice || 0)} × {item.quantity}
                 </Typography>
               </Stack>
 
-              <Stack sx={{ alignItems: "flex-end", gap: 0.5, flexShrink: 0, ml: 1 }}>
-                <IconButton
-                  size="small"
-                  onClick={() => onRemove(item.productId)}
-                  disabled={disabled}
-                  sx={{
-                    color: "text.secondary",
+              <Stack
+                sx={{
+                  alignItems: "flex-end",
+                  gap: 1,
+                  flexShrink: 0,
+                  ml: 1,
+                }}
+              >
+                {/* Delete Button dengan background & border */}
+                <Box
+                  component="span"
+                  sx={(theme) => ({
+                    display: "inline-flex",
+                    borderRadius: `${theme.shape.borderRadius}px`,
+                    border: "1px solid",
+                    borderColor: alpha(theme.palette.divider, 0.8),
+                    bgcolor: alpha(theme.palette.background.paper, 0.6),
+                    transition: theme.transitions.create(
+                      ["background-color", "border-color", "color"],
+                      { duration: theme.transitions.duration.shorter }
+                    ),
                     "&:hover": {
-                      color: "error.main",
-                      bgcolor: alpha(theme.palette.error.main, 0.08),
+                      bgcolor: alpha(theme.palette.error.main, 0.06),
+                      borderColor: alpha(theme.palette.error.main, 0.4),
+                      color: theme.palette.error.main,
                     },
-                  }}
+                  })}
                 >
-                  <Trash2 size={14} strokeWidth={1.5} />
-                </IconButton>
-                <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                  <IconButton
+                    size="small"
+                    onClick={() => onRemove(item.productId)}
+                    disabled={disabled}
+                    sx={{
+                      borderRadius: "inherit",
+                      color: "inherit",
+                    }}
+                  >
+                    <Trash2 size={14} strokeWidth={1.5} />
+                  </IconButton>
+                </Box>
+                <Typography variant="body2">
                   {formatToIdr(itemTotal)}
                 </Typography>
               </Stack>
@@ -164,7 +260,10 @@ const CartItemCard = ({ item, onRemove, onQuantityChange, disabled }) => {
             {isSparepart && (
               <Stack
                 direction="row"
-                sx={{ alignItems: "center", justifyContent: "space-between" }}
+                sx={{
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
               >
                 <QuantityControl
                   quantity={item.quantity}
@@ -174,7 +273,7 @@ const CartItemCard = ({ item, onRemove, onQuantityChange, disabled }) => {
                   }
                   disabled={disabled}
                 />
-                <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400 }}>
+                <Typography variant="caption" color="text.disabled">
                   Stok: {maxLimit}
                 </Typography>
               </Stack>
@@ -187,8 +286,11 @@ const CartItemCard = ({ item, onRemove, onQuantityChange, disabled }) => {
 };
 
 const PriceRow = ({ label, value, isPending, skeletonWidth = 80, bold, color }) => (
-  <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+  <Stack
+    direction="row"
+    sx={{ justifyContent: "space-between", alignItems: "center" }}
+  >
+    <Typography variant="body2" color="text.secondary">
       {label}
     </Typography>
     {isPending ? (
@@ -196,7 +298,7 @@ const PriceRow = ({ label, value, isPending, skeletonWidth = 80, bold, color }) 
     ) : (
       <Typography
         variant={bold ? "subtitle1" : "body2"}
-        sx={{ fontWeight: 400, fontVariantNumeric: "tabular-nums" }}
+        sx={{ fontVariantNumeric: "tabular-nums" }}
         color={color}
       >
         {formatToIdr(value)}
@@ -248,7 +350,9 @@ const HeaderCart = ({ open, onClose }) => {
         paper: {
           sx: {
             borderRadius: isMobile ? 0 : `${theme.shape.borderRadius}px`,
-            border: isMobile ? "none" : `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+            border: isMobile
+              ? "none"
+              : `1px solid ${theme.palette.divider}`,
           },
         },
       }}
@@ -268,49 +372,52 @@ const HeaderCart = ({ open, onClose }) => {
           sx={{
             justifyContent: "space-between",
             alignItems: "center",
-            px: 3,
-            py: 2,
-            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+            px: theme.spacing(3),
+            py: theme.spacing(2),
+            borderBottom: `1px solid ${theme.palette.divider}`,
             flexShrink: 0,
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 400 }}>
-            Keranjang
-          </Typography>
+          <Typography variant="h6">Keranjang</Typography>
           <IconButton onClick={onClose} disabled={isProcessing}>
             <X size={18} strokeWidth={1.5} />
           </IconButton>
         </Stack>
 
-        <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>
+        {/* Content */}
+        <Box sx={{ flex: 1, overflow: "auto", p: theme.spacing(3) }}>
           {items.length === 0 ? (
             <Stack
               sx={{
                 height: "100%",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 2,
+                gap: theme.spacing(2),
               }}
             >
-              <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 400 }}>
-                Keranjang masih kosong
-              </Typography>
-              <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400 }}>
-                Tambahkan item untuk memulai transaksi
-              </Typography>
+              <EmptyCartSvg />
+              <Stack sx={{ gap: theme.spacing(1), alignItems: "center" }}>
+                <Typography
+                  variant="body1"
+                  color="text.secondary"
+                  sx={{ fontWeight: 500 }}
+                >
+                  Keranjang masih kosong
+                </Typography>
+                <Typography variant="caption" color="text.disabled">
+                  Tambahkan item untuk memulai transaksi
+                </Typography>
+              </Stack>
             </Stack>
           ) : (
-            <Stack sx={{ gap: 3 }}>
+            <Stack sx={{ gap: theme.spacing(3) }}>
               {/* Customer Section */}
-              <Card
-                sx={{
-                  border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                  boxShadow: "none",
-                  borderRadius: `${theme.shape.borderRadius}px`,
-                }}
-              >
-                <CardContent sx={{ p: 2.5, "&:last-child": { pb: 2.5 } }}>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+              <Card>
+                <CardContent>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ mb: theme.spacing(2) }}
+                  >
                     Pelanggan
                   </Typography>
 
@@ -342,10 +449,13 @@ const HeaderCart = ({ open, onClose }) => {
                           return (
                             <Box key={key} component="li" {...rest}>
                               <Stack>
-                                <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                                <Typography variant="body2">
                                   {option.name}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
                                   {option.phone || "—"}
                                 </Typography>
                               </Stack>
@@ -357,7 +467,7 @@ const HeaderCart = ({ open, onClose }) => {
                   />
 
                   {selectedCustomer && (
-                    <Box sx={{ mt: 2 }}>
+                    <Box sx={{ mt: theme.spacing(2) }}>
                       <Controller
                         name="vehicle"
                         control={control}
@@ -365,26 +475,32 @@ const HeaderCart = ({ open, onClose }) => {
                           <Autocomplete
                             size="small"
                             options={customerVehicles}
-                            getOptionLabel={(o) => o.plateNumber || o.brand || ""}
+                            getOptionLabel={(o) =>
+                              o.plateNumber || o.brand || ""
+                            }
                             value={field.value}
                             onChange={(_, v) => field.onChange(v)}
-                            disabled={!customerVehicles.length || isProcessing}
+                            disabled={
+                              !customerVehicles.length || isProcessing
+                            }
                             isOptionEqualToValue={(a, b) => a.id === b.id}
                             renderInput={(params) => (
                               <TextField
                                 {...params}
                                 placeholder="Pilih kendaraan"
-                                sx={{ fontWeight: 400 }}
                               />
                             )}
                             renderOption={(props, option) => (
                               <li {...props}>
                                 <Stack>
-                                  <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                                  <Typography variant="body2">
                                     {option.plateNumber || option.brand}
                                   </Typography>
                                   {option.brand && option.model && (
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                    >
                                       {option.brand} {option.model}
                                     </Typography>
                                   )}
@@ -401,10 +517,13 @@ const HeaderCart = ({ open, onClose }) => {
 
               {/* Items Section */}
               <Box>
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ mb: theme.spacing(2) }}
+                >
                   Item ({items.length})
                 </Typography>
-                <Stack sx={{ gap: 1.5 }}>
+                <Stack sx={{ gap: theme.spacing(1.5) }}>
                   {items.map((item, i) => (
                     <CartItemCard
                       key={item.productId || i}
@@ -420,17 +539,18 @@ const HeaderCart = ({ open, onClose }) => {
           )}
         </Box>
 
+        {/* Footer */}
         {items.length > 0 && (
           <Stack
-            sx={{
-              p: 3,
-              borderTop: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-              gap: 2.5,
+            sx={(theme) => ({
+              p: theme.spacing(3),
+              borderTop: `1px solid ${theme.palette.divider}`,
+              gap: theme.spacing(2.5),
               flexShrink: 0,
               bgcolor: alpha(theme.palette.secondary.main, 0.02),
-            }}
+            })}
           >
-            <Stack sx={{ gap: 1.5 }}>
+            <Stack sx={{ gap: theme.spacing(1.5) }}>
               <PriceRow
                 label="Subtotal"
                 value={calcData.subtotal || 0}
@@ -458,14 +578,6 @@ const HeaderCart = ({ open, onClose }) => {
               variant="contained"
               size="large"
               disabled={!items.length || isProcessing}
-              sx={{
-                py: 1.5,
-                fontWeight: 400,
-                borderRadius: `${theme.shape.borderRadius}px`,
-                "&:hover": {
-                  boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-                },
-              }}
             >
               {isSubmitting ? (
                 <>

@@ -35,15 +35,46 @@ import { useStockMovementDetailQuery } from "@views/stock/hooks";
 
 const DetailSkeleton = () => (
   <Stack sx={{ gap: 3 }}>
-    <Skeleton variant="rounded" height={120} sx={{ borderRadius: 2 }} />
-    <Skeleton variant="rounded" height={120} sx={{ borderRadius: 2 }} />
-    <Skeleton variant="rounded" height={80} sx={{ borderRadius: 2 }} />
+    <Skeleton variant="rounded" height={120} />
+    <Skeleton variant="rounded" height={120} />
+    <Skeleton variant="rounded" height={80} />
   </Stack>
 );
 
+const DetailRow = ({ label, value, endAction }) => {
+  const isValueNode = typeof value !== "string" && typeof value !== "number";
+
+  return (
+    <Stack
+      direction="row"
+      sx={{
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}
+    >
+      <Typography variant="body2" color="text.secondary">
+        {label}
+      </Typography>
+      <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
+        {isValueNode ? (
+          value
+        ) : (
+          <Typography variant="body2" sx={{ textAlign: "right", maxWidth: "60%" }}>
+            {value}
+          </Typography>
+        )}
+        {endAction}
+      </Stack>
+    </Stack>
+  );
+};
+
 const StockMovementDetailDialog = ({ open, movementId, onClose }) => {
   const theme = useTheme();
-  const { data: detailData, isLoading } = useStockMovementDetailQuery(movementId, open);
+  const { data: detailData, isLoading } = useStockMovementDetailQuery(
+    movementId,
+    open
+  );
 
   const isIn = detailData?.type === "IN";
   const isOut = detailData?.type === "OUT";
@@ -66,31 +97,29 @@ const StockMovementDetailDialog = ({ open, movementId, onClose }) => {
     return labels[sourceType] || sourceType || "—";
   };
 
+  const getMovementLabel = () => {
+    if (isIn) return "Masuk";
+    if (isOut) return "Keluar";
+    return "Penyesuaian";
+  };
+
+  const getMovementColor = () => {
+    if (isIn) return "success";
+    if (isOut) return "error";
+    return "warning";
+  };
+
   return (
-    <Dialog
-      fullWidth
-      maxWidth="sm"
-      onClose={onClose}
-      open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
-    >
+    <Dialog fullWidth maxWidth="sm" onClose={onClose} open={open}>
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Detail Mutasi Stok
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={onClose} size="small" sx={{ mr: -0.5 }}>
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -101,7 +130,7 @@ const StockMovementDetailDialog = ({ open, movementId, onClose }) => {
         {isLoading ? (
           <DetailSkeleton />
         ) : detailData ? (
-          <Stack sx={{ gap: 3 }}>
+          <Stack sx={{ gap: theme.spacing(3) }}>
             {/* Movement Info */}
             <Card
               sx={{
@@ -110,19 +139,18 @@ const StockMovementDetailDialog = ({ open, movementId, onClose }) => {
                 boxShadow: "none",
               }}
             >
-              <CardContent sx={{ textAlign: "center", py: 3 }}>
-                <Stack sx={{ alignItems: "center", gap: 1 }}>
+              <CardContent sx={{ textAlign: "center", py: theme.spacing(3) }}>
+                <Stack sx={{ alignItems: "center", gap: theme.spacing(1) }}>
                   <Chip
-                    label={isIn ? "Masuk" : isOut ? "Keluar" : "Penyesuaian"}
-                    color={isIn ? "success" : isOut ? "error" : "warning"}
+                    label={getMovementLabel()}
+                    color={getMovementColor()}
                     size="small"
                     variant="soft"
-                    sx={{ fontWeight: 400 }}
                   />
-                  <Typography variant="h4" color={movementColor} sx={{ fontWeight: 400 }}>
+                  <Typography variant="h4" color={movementColor}>
                     {isIn ? "+" : ""}{detailData.quantity}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  <Typography variant="caption" color="text.secondary">
                     {formatDateTime(detailData.createdAt)}
                   </Typography>
                 </Stack>
@@ -130,111 +158,62 @@ const StockMovementDetailDialog = ({ open, movementId, onClose }) => {
             </Card>
 
             {/* Informasi Mutasi */}
-            <Card
-              sx={{
-                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                boxShadow: "none",
-              }}
-            >
-              <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ mb: theme.spacing(2) }}>
                   Informasi Mutasi
                 </Typography>
-                <Stack sx={{ gap: 1.5 }}>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Tipe
-                    </Typography>
-                    <Chip
-                      label={isIn ? "Masuk" : isOut ? "Keluar" : "Penyesuaian"}
-                      color={isIn ? "success" : isOut ? "error" : "warning"}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontWeight: 400 }}
-                    />
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Sumber
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {getSourceLabel(detailData.sourceType)}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Jumlah
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {detailData.quantity}
-                    </Typography>
-                  </Stack>
+                <Stack sx={{ gap: theme.spacing(1.5) }}>
+                  <DetailRow
+                    label="Tipe"
+                    value={
+                      <Chip
+                        label={getMovementLabel()}
+                        color={getMovementColor()}
+                        size="small"
+                        variant="outlined"
+                      />
+                    }
+                  />
+                  <DetailRow
+                    label="Sumber"
+                    value={getSourceLabel(detailData.sourceType)}
+                  />
+                  <DetailRow label="Jumlah" value={detailData.quantity} />
                   {detailData.note && (
-                    <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                        Catatan
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 400, textAlign: "right", maxWidth: "60%" }}>
-                        {detailData.note}
-                      </Typography>
-                    </Stack>
+                    <DetailRow label="Catatan" value={detailData.note} />
                   )}
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Tanggal
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {formatDateTime(detailData.createdAt)}
-                    </Typography>
-                  </Stack>
+                  <DetailRow
+                    label="Tanggal"
+                    value={formatDateTime(detailData.createdAt)}
+                  />
                 </Stack>
               </CardContent>
             </Card>
 
             {/* Produk */}
-            <Card
-              sx={{
-                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                boxShadow: "none",
-              }}
-            >
-              <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ mb: theme.spacing(2) }}>
                   Produk
                 </Typography>
-                <Stack sx={{ gap: 1.5 }}>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Nama
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400, textAlign: "right", maxWidth: "60%" }}>
-                      {detailData.product?.name || "—"}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      SKU
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {detailData.product?.sku || "—"}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Stok Saat Ini
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {detailData.product?.stock ?? 0}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Harga
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {formatToIdr(detailData.product?.price || 0)}
-                    </Typography>
-                  </Stack>
+                <Stack sx={{ gap: theme.spacing(1.5) }}>
+                  <DetailRow
+                    label="Nama"
+                    value={detailData.product?.name || "—"}
+                  />
+                  <DetailRow
+                    label="SKU"
+                    value={detailData.product?.sku || "—"}
+                  />
+                  <DetailRow
+                    label="Stok Saat Ini"
+                    value={detailData.product?.stock ?? 0}
+                  />
+                  <DetailRow
+                    label="Harga"
+                    value={formatToIdr(detailData.product?.price || 0)}
+                  />
                 </Stack>
               </CardContent>
             </Card>
@@ -248,79 +227,53 @@ const StockMovementDetailDialog = ({ open, movementId, onClose }) => {
                   boxShadow: "none",
                 }}
               >
-                <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+                <CardContent>
+                  <Typography variant="subtitle2" sx={{ mb: theme.spacing(2) }}>
                     Pesanan Terkait
                   </Typography>
-                  <Stack sx={{ gap: 1.5 }}>
-                    <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                        No. Order
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                        {detailData.orderItem.order.orderNumber}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                        Produk
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 400, textAlign: "right", maxWidth: "60%" }}>
-                        {detailData.orderItem.productName}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                        Qty × Harga
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                        {detailData.orderItem.quantity} × {formatToIdr(detailData.orderItem.unitPrice)}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                        Subtotal
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                        {formatToIdr(detailData.orderItem.subtotal)}
-                      </Typography>
-                    </Stack>
+                  <Stack sx={{ gap: theme.spacing(1.5) }}>
+                    <DetailRow
+                      label="No. Order"
+                      value={detailData.orderItem.order.orderNumber}
+                    />
+                    <DetailRow
+                      label="Produk"
+                      value={detailData.orderItem.productName}
+                    />
+                    <DetailRow
+                      label="Qty × Harga"
+                      value={`${detailData.orderItem.quantity} × ${formatToIdr(detailData.orderItem.unitPrice)}`}
+                    />
+                    <DetailRow
+                      label="Subtotal"
+                      value={formatToIdr(detailData.orderItem.subtotal)}
+                    />
                   </Stack>
                 </CardContent>
               </Card>
             )}
 
             {/* Dicatat Oleh */}
-            <Card
-              sx={{
-                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                boxShadow: "none",
-              }}
-            >
-              <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ mb: theme.spacing(2) }}>
                   Dicatat Oleh
                 </Typography>
-                <Stack sx={{ gap: 1.5 }}>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Nama
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {detailData.recordedBy?.fullName || "—"}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Role
-                    </Typography>
-                    <Chip
-                      label={detailData.recordedBy?.role || "—"}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontWeight: 400 }}
-                    />
-                  </Stack>
+                <Stack sx={{ gap: theme.spacing(1.5) }}>
+                  <DetailRow
+                    label="Nama"
+                    value={detailData.recordedBy?.fullName || "—"}
+                  />
+                  <DetailRow
+                    label="Role"
+                    value={
+                      <Chip
+                        label={detailData.recordedBy?.role || "—"}
+                        size="small"
+                        variant="outlined"
+                      />
+                    }
+                  />
                 </Stack>
               </CardContent>
             </Card>
@@ -331,7 +284,7 @@ const StockMovementDetailDialog = ({ open, movementId, onClose }) => {
       <Divider />
 
       <DialogActions>
-        <Button variant="outlined" onClick={onClose} sx={{ fontWeight: 400 }}>
+        <Button variant="outlined" onClick={onClose}>
           Tutup
         </Button>
       </DialogActions>

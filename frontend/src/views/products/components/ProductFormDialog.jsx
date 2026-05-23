@@ -213,25 +213,21 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
       maxWidth="sm"
       onClose={handleClose}
       open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
     >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         {mode === "create" ? "Tambah Produk" : "Edit Produk"}
-        <IconButton onClick={handleClose} disabled={isSubmitting} size="small">
+        <IconButton
+          onClick={handleClose}
+          disabled={isSubmitting}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -239,7 +235,8 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
       <Divider />
 
       <DialogContent>
-        <Grid container spacing={2.5}>
+        <Grid container spacing={theme.spacing(2.5)}>
+          {/* Upload Gambar */}
           <Grid size={12}>
             <Controller
               control={control}
@@ -247,7 +244,9 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
               render={({ fieldState }) => (
                 <>
                   <Box
-                    onClick={() => !isSubmitting && fileInputRef.current?.click()}
+                    onClick={() =>
+                      !isSubmitting && fileInputRef.current?.click()
+                    }
                     sx={{
                       width: "100%",
                       height: 280,
@@ -255,7 +254,7 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
                       flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: 1,
+                      gap: theme.spacing(1),
                       border: "2px dashed",
                       borderColor: fieldState.error
                         ? "error.main"
@@ -267,7 +266,10 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
                       bgcolor: fieldState.error
                         ? alpha(theme.palette.error.main, 0.04)
                         : alpha(theme.palette.secondary.main, 0.03),
-                      transition: "all 0.2s ease",
+                      transition: theme.transitions.create(
+                        ["border-color", "background-color"],
+                        { duration: theme.transitions.duration.shorter }
+                      ),
                       "&:hover": {
                         borderColor: isSubmitting
                           ? fieldState.error
@@ -307,10 +309,9 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
                               bgcolor: "error.main",
                               color: "error.contrastText",
                               borderRadius: `${theme.shape.borderRadius}px`,
-                              px: 1.5,
-                              py: 0.5,
+                              px: theme.spacing(1.5),
+                              py: theme.spacing(0.5),
                               fontSize: "0.75rem",
-                              fontWeight: 400,
                               cursor: "pointer",
                               "&:hover": {
                                 bgcolor: "error.dark",
@@ -336,19 +337,27 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
                             mb: 0.5,
                           }}
                         >
-                          <ImageIcon size={22} strokeWidth={1.5} style={{ opacity: 0.4 }} />
+                          <ImageIcon
+                            size={22}
+                            strokeWidth={1.5}
+                            style={{ opacity: 0.4 }}
+                          />
                         </Box>
-                        <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                        <Typography variant="body2">
                           Unggah Gambar Produk
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                        <Typography variant="caption" color="text.secondary">
                           JPG, PNG, WEBP (Max. 5MB)
                         </Typography>
                       </>
                     )}
                   </Box>
                   {fieldState.error && (
-                    <Typography variant="caption" color="error.main" sx={{ mt: 0.5, display: "block", fontWeight: 400 }}>
+                    <Typography
+                      variant="caption"
+                      color="error.main"
+                      sx={{ mt: 0.5, display: "block" }}
+                    >
                       {fieldState.error.message}
                     </Typography>
                   )}
@@ -366,6 +375,7 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
             />
           </Grid>
 
+          {/* Nama Produk */}
           <Grid size={12}>
             <Controller
               control={control}
@@ -381,26 +391,22 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
                   label="Nama Produk"
                   placeholder="Masukkan nama produk"
                   disabled={isSubmitting}
-                  slotProps={{
-                    input: { sx: { fontWeight: 400 } },
-                    inputLabel: { sx: { fontWeight: 400 } },
-                    formHelperText: { sx: { fontWeight: 400 } },
-                  }}
                 />
               )}
             />
           </Grid>
 
+          {/* Tipe & Status */}
           <Grid size={8}>
             <Controller
               control={control}
               name="type"
               render={({ field }) => (
                 <FormControl fullWidth disabled={isSubmitting}>
-                  <InputLabel sx={{ fontWeight: 400 }}>Tipe</InputLabel>
-                  <Select {...field} label="Tipe" sx={{ fontWeight: 400 }}>
+                  <InputLabel>Tipe</InputLabel>
+                  <Select {...field} label="Tipe">
                     {Object.entries(ProductType).map(([key, value]) => (
-                      <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
+                      <MenuItem key={key} value={value}>
                         {key === "SPAREPART" ? "Sparepart" : "Servis"}
                       </MenuItem>
                     ))}
@@ -424,7 +430,7 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
                     />
                   }
                   label={
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                    <Typography variant="body2">
                       {field.value ? "Aktif" : "Nonaktif"}
                     </Typography>
                   }
@@ -434,6 +440,7 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
             />
           </Grid>
 
+          {/* Harga Jual & Modal */}
           <Grid size={6}>
             <Controller
               control={control}
@@ -453,11 +460,6 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
                     field.onChange(raw ? Number(raw) : "");
                   }}
                   disabled={isSubmitting}
-                  slotProps={{
-                    input: { sx: { fontWeight: 400 } },
-                    inputLabel: { sx: { fontWeight: 400 } },
-                    formHelperText: { sx: { fontWeight: 400 } },
-                  }}
                 />
               )}
             />
@@ -482,16 +484,12 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
                     field.onChange(raw ? Number(raw) : "");
                   }}
                   disabled={isSubmitting}
-                  slotProps={{
-                    input: { sx: { fontWeight: 400 } },
-                    inputLabel: { sx: { fontWeight: 400 } },
-                    formHelperText: { sx: { fontWeight: 400 } },
-                  }}
                 />
               )}
             />
           </Grid>
 
+          {/* Stok (hanya untuk Sparepart & mode create) */}
           {productType !== ProductType.SERVICE && mode === "create" && (
             <Grid size={6}>
               <Controller
@@ -512,9 +510,6 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
                     disabled={isSubmitting}
                     slotProps={{
                       htmlInput: { min: 0 },
-                      input: { sx: { fontWeight: 400 } },
-                      inputLabel: { sx: { fontWeight: 400 } },
-                      formHelperText: { sx: { fontWeight: 400 } },
                     }}
                   />
                 )}
@@ -522,6 +517,7 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
             </Grid>
           )}
 
+          {/* Deskripsi */}
           <Grid size={12}>
             <Controller
               control={control}
@@ -535,10 +531,6 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
                   multiline
                   rows={4}
                   disabled={isSubmitting}
-                  slotProps={{
-                    input: { sx: { fontWeight: 400 } },
-                    inputLabel: { sx: { fontWeight: 400 } },
-                  }}
                 />
               )}
             />
@@ -554,7 +546,6 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
           variant="outlined"
           disabled={isSubmitting}
           onClick={handleClose}
-          sx={{ fontWeight: 400 }}
         >
           Batal
         </Button>
@@ -563,14 +554,10 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
           variant="contained"
           disabled={isSubmitting || (mode === "update" && !isDirty)}
           startIcon={
-            isSubmitting ? <CircularProgress size={14} color="inherit" /> : null
+            isSubmitting ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
           }
-          sx={{
-            fontWeight: 400,
-            "&:hover": {
-              boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-            },
-          }}
         >
           {isSubmitting
             ? "Menyimpan..."

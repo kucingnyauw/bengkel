@@ -26,15 +26,12 @@ import {
   Divider,
   IconButton,
   Typography,
-  useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 
 import { useCancelOrderMutation } from "@views/orders/hooks";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const OrderCancelDialog = ({ onClose, open, order }) => {
-  const theme = useTheme();
   const dispatch = useDispatch();
 
   const cancelOrder = useCancelOrderMutation({
@@ -66,7 +63,6 @@ const OrderCancelDialog = ({ onClose, open, order }) => {
   const isPending = cancelOrder.isPending;
 
   const handleConfirm = () => {
-    console.log("order" , order);
     if (!order) return;
     cancelOrder.mutate({
       id: order.id,
@@ -80,25 +76,21 @@ const OrderCancelDialog = ({ onClose, open, order }) => {
       maxWidth="xs"
       onClose={isPending ? undefined : onClose}
       open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
     >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight : 500
         }}
       >
         Batalkan Pesanan
-        <IconButton onClick={onClose} disabled={isPending} size="small">
+        <IconButton
+          onClick={onClose}
+          disabled={isPending}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -106,7 +98,7 @@ const OrderCancelDialog = ({ onClose, open, order }) => {
       <Divider />
 
       <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+        <Typography variant="body2" color="text.secondary">
           Apakah Anda yakin ingin membatalkan pesanan{" "}
           <strong>{order?.orderNumber}</strong>?
           {order?.customer?.name && (
@@ -126,7 +118,6 @@ const OrderCancelDialog = ({ onClose, open, order }) => {
           variant="outlined"
           disabled={isPending}
           onClick={onClose}
-          sx={{ fontWeight: 400 }}
         >
           Batal
         </Button>
@@ -136,9 +127,10 @@ const OrderCancelDialog = ({ onClose, open, order }) => {
           disabled={isPending}
           onClick={handleConfirm}
           startIcon={
-            isPending ? <CircularProgress size={14} color="inherit" /> : null
+            isPending ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
           }
-          sx={{ fontWeight: 400 }}
         >
           {isPending ? "Membatalkan..." : "Ya, Batalkan"}
         </Button>

@@ -1,6 +1,4 @@
-import { Box } from "@mui/material";
-import { Skeleton } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { Box, Skeleton, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { useSelector } from "react-redux";
 import { selectSidebarIsOpen } from "@store/sidebar/sidebarSelector.js";
@@ -10,11 +8,6 @@ import MainContentStyled from "@layout/MainContentStyled.jsx";
 
 /**
  * Skeleton untuk Header saat loading
- * @param {Object} props
- * @param {Object} props.theme - MUI theme
- * @param {boolean} props.isMobile - Apakah tampilan mobile
- * @param {boolean} props.isOpen - Apakah sidebar terbuka
- * @returns {JSX.Element}
  */
 const HeaderSkeleton = ({ theme, isMobile, isOpen }) => {
   const sidebarWidth = isOpen ? SIDEBAR.EXPANDED_WIDTH : SIDEBAR.COLLAPSED_WIDTH;
@@ -25,37 +18,42 @@ const HeaderSkeleton = ({ theme, isMobile, isOpen }) => {
         width: "100%",
         height: isMobile ? HEADER.MOBILE_HEIGHT : HEADER.DESKTOP_HEIGHT,
         bgcolor: "background.paper",
-        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+        borderBottom: `1px solid ${theme.palette.divider}`,
         display: "flex",
         alignItems: "center",
-        px: 1,
-        gap: 2,
+        px: { xs: 1.5, sm: 2, md: 2 },
+        gap: { xs: 1, sm: 2 },
         flexShrink: 0,
         position: "fixed",
         top: 0,
         zIndex: theme.zIndex.appBar,
       }}
     >
-      {/* LEFT: Logo + Sidebar Toggle */}
+      {/* LEFT BOX */}
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: 1.5,
+          gap: 1,
           width: { xs: "auto", md: `${sidebarWidth}px` },
           transition: "width 0.3s ease, padding 0.3s ease",
-          justifyContent: { xs: "flex-start", md: isOpen ? "flex-start" : "center" },
+          justifyContent: {
+            xs: "flex-start",
+            md: isOpen ? "flex-start" : "center",
+          },
           pl: { xs: 0, md: isOpen ? 3 : 0 },
           pr: { xs: 0, md: isOpen ? 2 : 0 },
+          flexShrink: 0,
         }}
       >
         <Skeleton
-          variant="text"
-          width={120}
+          variant="rectangular"
+          width={90}
           height={32}
           sx={{
             display: { xs: "none", md: isOpen ? "block" : "none" },
-            flex: 1,
+            flexShrink: 0,
+            borderRadius: 1,
           }}
         />
         <Skeleton
@@ -63,72 +61,97 @@ const HeaderSkeleton = ({ theme, isMobile, isOpen }) => {
           width={34}
           height={34}
           sx={{
-            borderRadius: 1,
+            borderRadius: `${theme.shape.borderRadius}px`,
             ml: { xs: 0, md: isOpen ? "auto" : 0 },
             flexShrink: 0,
           }}
         />
       </Box>
 
-      {/* CENTER: Search Bar */}
+      {/* CENTER BOX (Search Bar) */}
       <Box
         sx={{
           flex: 1,
           display: { xs: "none", md: "flex" },
-          justifyContent: "center",
+          justifyContent: { xs: "flex-start", md: "center" },
+          minWidth: 0,
         }}
       >
         <Skeleton
           variant="rounded"
           height={40}
-          sx={{ width: "100%", maxWidth: 320, borderRadius: 2 }}
+          sx={{
+            width: "100%",
+            maxWidth: { xs: "100%", md: 320 },
+            borderRadius: 2,
+          }}
         />
       </Box>
 
-      {/* RIGHT: Action Icons */}
+      {/* SPACER */}
+      <Box
+        sx={{
+          flexGrow: 1,
+          display: { xs: "block", md: "none" },
+        }}
+      />
+
+      {/* RIGHT BOX (Action Icons) */}
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
           justifyContent: "flex-end",
-          gap: { xs: 1, sm: 1.5 },
+          gap: { xs: 0.5, sm: 1.5 },
+          flexShrink: 0,
         }}
       >
         <Skeleton
           variant="rounded"
           width={34}
           height={34}
-          sx={{ display: { xs: "inline-flex", md: "none" }, borderRadius: 1 }}
+          sx={{
+            display: { xs: "inline-flex", md: "none" },
+            borderRadius: `${theme.shape.borderRadius}px`,
+          }}
         />
         <Skeleton
           variant="rounded"
           width={34}
           height={34}
-          sx={{ display: { xs: "none", sm: "inline-flex" }, borderRadius: 1 }}
+          sx={{
+            display: { xs: "none", sm: "inline-flex" },
+            borderRadius: `${theme.shape.borderRadius}px`,
+          }}
         />
         <Skeleton
           variant="rounded"
           width={34}
           height={34}
-          sx={{ borderRadius: 1 }}
+          sx={{ borderRadius: `${theme.shape.borderRadius}px` }}
         />
+        {/* Placeholder for Cart (assuming Cashier role visibility could apply here, default shown for layout sync) */}
         <Skeleton
           variant="rounded"
           width={34}
           height={34}
-          sx={{ display: { xs: "none", sm: "inline-flex" }, borderRadius: 1 }}
+          sx={{
+            display: { xs: "none", sm: "inline-flex" },
+            borderRadius: `${theme.shape.borderRadius}px`,
+          }}
         />
         <Skeleton
           variant="rounded"
           height={24}
           width={1}
-          sx={{ mx: { xs: 0, sm: 0.5 } }}
+          sx={{ mx: { xs: 0.5, sm: 0.5 }, flexShrink: 0 }}
         />
         <Skeleton
           variant="circular"
           sx={{
-            width: { xs: 32, sm: 36 },
-            height: { xs: 32, sm: 36 },
+            width: { xs: 30, sm: 36 },
+            height: { xs: 30, sm: 36 },
+            flexShrink: 0,
           }}
         />
       </Box>
@@ -138,10 +161,6 @@ const HeaderSkeleton = ({ theme, isMobile, isOpen }) => {
 
 /**
  * Skeleton untuk Sidebar saat loading
- * @param {Object} props
- * @param {Object} props.theme - MUI theme
- * @param {boolean} props.isOpen - Apakah sidebar terbuka
- * @returns {JSX.Element}
  */
 const SidebarSkeleton = ({ theme, isOpen }) => (
   <Box
@@ -152,59 +171,91 @@ const SidebarSkeleton = ({ theme, isOpen }) => (
       top: HEADER.DESKTOP_HEIGHT,
       left: 0,
       height: `calc(100vh - ${HEADER.DESKTOP_HEIGHT}px)`,
-      borderRight: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-      bgcolor: alpha(theme.palette.background.paper, 0.8),
+      borderRight: `1px solid ${theme.palette.divider}`,
+      backgroundColor: theme.palette.background.paper,
       display: { xs: "none", md: "flex" },
       flexDirection: "column",
       px: isOpen ? 2 : 1,
-      py: 2.5,
+      py: 2,
       gap: 0.5,
       transition: "width 0.3s ease",
       overflow: "hidden",
+      boxShadow: isOpen
+        ? `4px 0 20px -8px ${alpha(theme.palette.common.black, 0.06)}`
+        : "none",
     }}
   >
-    <Box sx={{ mt: 2.5, mb: 0.5 }}>
+    {/* Group 1 */}
+    <Box>
       {isOpen && (
-        <Skeleton width={60} height={10} sx={{ mb: 1.5, ml: 2, borderRadius: 1 }} />
+        <Skeleton
+          width={60}
+          height={10}
+          sx={{ mb: 1, mt: 0.5, ml: 1.5, borderRadius: 0.5 }}
+        />
       )}
       {[1, 2, 3].map((i) => (
         <Skeleton
           key={i}
           variant="rounded"
-          height={44}
-          sx={{ borderRadius: 1, mb: 0.5 }}
+          height={isOpen ? 44 : 36}
+          sx={{
+            borderRadius: `${theme.shape.borderRadius}px`,
+            mb: 0.5,
+            ...(isOpen ? {} : { mx: "auto", width: 36 }),
+          }}
         />
       ))}
     </Box>
 
-    <Skeleton height={1} sx={{ mx: 2, my: 1.5, borderRadius: 0.5 }} />
+    {/* Divider */}
+    <Skeleton height={1} sx={{ mx: 1, my: 1 }} />
 
-    <Box sx={{ mt: isOpen ? 2.5 : 0.5, mb: 0.5 }}>
+    {/* Group 2 */}
+    <Box>
       {isOpen && (
-        <Skeleton width={80} height={10} sx={{ mb: 1.5, ml: 2, borderRadius: 1 }} />
+        <Skeleton
+          width={80}
+          height={10}
+          sx={{ mb: 1, mt: 0.5, ml: 1.5, borderRadius: 0.5 }}
+        />
       )}
       {[1, 2, 3, 4].map((i) => (
         <Skeleton
           key={i}
           variant="rounded"
-          height={44}
-          sx={{ borderRadius: 1, mb: 0.5 }}
+          height={isOpen ? 44 : 36}
+          sx={{
+            borderRadius: `${theme.shape.borderRadius}px`,
+            mb: 0.5,
+            ...(isOpen ? {} : { mx: "auto", width: 36 }),
+          }}
         />
       ))}
     </Box>
 
-    <Skeleton height={1} sx={{ mx: 2, my: 1.5, borderRadius: 0.5 }} />
+    {/* Divider */}
+    <Skeleton height={1} sx={{ mx: 1, my: 1 }} />
 
-    <Box sx={{ mt: isOpen ? 2.5 : 0.5, mb: 0.5 }}>
+    {/* Group 3 */}
+    <Box>
       {isOpen && (
-        <Skeleton width={50} height={10} sx={{ mb: 1.5, ml: 2, borderRadius: 1 }} />
+        <Skeleton
+          width={50}
+          height={10}
+          sx={{ mb: 1, mt: 0.5, ml: 1.5, borderRadius: 0.5 }}
+        />
       )}
       {[1, 2].map((i) => (
         <Skeleton
           key={i}
           variant="rounded"
-          height={44}
-          sx={{ borderRadius: 1, mb: 0.5 }}
+          height={isOpen ? 44 : 36}
+          sx={{
+            borderRadius: `${theme.shape.borderRadius}px`,
+            mb: 0.5,
+            ...(isOpen ? {} : { mx: "auto", width: 36 }),
+          }}
         />
       ))}
     </Box>
@@ -213,39 +264,62 @@ const SidebarSkeleton = ({ theme, isOpen }) => (
 
 /**
  * Skeleton untuk Content Area saat loading
- * @param {Object} props
- * @param {Object} props.theme - MUI theme
- * @returns {JSX.Element}
  */
 const ContentSkeleton = ({ theme }) => (
   <Box
     sx={{
       flex: 1,
-
       display: "flex",
       flexDirection: "column",
-      gap: 3,
+      gap: theme.spacing(3),
       overflow: "hidden",
     }}
   >
     {/* Page Header */}
-    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        flexWrap: "wrap",
+        gap: theme.spacing(2),
+      }}
+    >
       <Box>
         <Skeleton variant="text" width={200} height={36} />
-        <Skeleton variant="text" width={280} height={20} sx={{ mt: 0.5 }} />
+        <Skeleton
+          variant="text"
+          width={280}
+          height={20}
+          sx={{ mt: 0.5 }}
+        />
       </Box>
-      <Skeleton variant="rounded" width={140} height={40} sx={{ borderRadius: `${theme.shape.borderRadius}px` }} />
+      <Skeleton
+        variant="rounded"
+        width={140}
+        height={40}
+        sx={{ borderRadius: `${theme.shape.borderRadius}px` }}
+      />
     </Box>
 
     {/* Stats Cards */}
-    <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "1fr",
+          sm: "1fr 1fr",
+          md: "repeat(4, 1fr)",
+        },
+        gap: theme.spacing(2),
+      }}
+    >
       {[1, 2, 3, 4].map((i) => (
         <Skeleton
           key={i}
           variant="rounded"
           sx={{
-            flex: "1 1 calc(25% - 16px)",
-            minWidth: 200,
+            width: "100%",
             height: 120,
             borderRadius: `${theme.shape.borderRadius}px`,
           }}
@@ -254,16 +328,43 @@ const ContentSkeleton = ({ theme }) => (
     </Box>
 
     {/* Table/Chart */}
-    <Skeleton variant="rounded" sx={{ flex: 1, borderRadius: `${theme.shape.borderRadius}px`, minHeight: 400 }} />
+    <Skeleton
+      variant="rounded"
+      sx={{
+        flex: 1,
+        borderRadius: `${theme.shape.borderRadius}px`,
+        minHeight: 400,
+      }}
+    />
+
+    {/* Additional Section */}
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+        gap: theme.spacing(2),
+      }}
+    >
+      <Skeleton
+        variant="rounded"
+        sx={{
+          height: 200,
+          borderRadius: `${theme.shape.borderRadius}px`,
+        }}
+      />
+      <Skeleton
+        variant="rounded"
+        sx={{
+          height: 200,
+          borderRadius: `${theme.shape.borderRadius}px`,
+        }}
+      />
+    </Box>
   </Box>
 );
 
 /**
  * MainLayoutLoader - Full layout skeleton untuk loading state
- * Digunakan saat data user sudah ready (auth) tapi data layout belum siap
- * @param {Object} props
- * @param {boolean} props.isLoading - Status loading
- * @returns {JSX.Element|null} Layout skeleton atau null
  */
 const MainLayoutLoader = ({ isLoading }) => {
   const theme = useTheme();
@@ -273,19 +374,34 @@ const MainLayoutLoader = ({ isLoading }) => {
   if (!isLoading) return null;
 
   return (
-    <>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        backgroundColor: theme.palette.background.default,
+      }}
+    >
+      {/* Header */}
       <HeaderSkeleton theme={theme} isMobile={isMobile} isOpen={isOpen} />
-      
- 
-        {/* Sidebar skeleton - hanya desktop */}
+
+      {/* Body */}
+      <Box
+        sx={{
+          display: "flex",
+          flex: 1,
+          pt: isMobile ? `${HEADER.MOBILE_HEIGHT}px` : `${HEADER.DESKTOP_HEIGHT}px`,
+        }}
+      >
+        {/* Sidebar - only desktop */}
         {!isMobile && <SidebarSkeleton theme={theme} isOpen={isOpen} />}
-        
-        {/* Content skeleton */}
+
+        {/* Content */}
         <MainContentStyled open={isOpen} isMobile={isMobile}>
           <ContentSkeleton theme={theme} />
         </MainContentStyled>
-    
-    </>
+      </Box>
+    </Box>
   );
 };
 

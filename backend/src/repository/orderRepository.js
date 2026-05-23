@@ -64,6 +64,7 @@ class OrderRepository {
     id: true,
     status: true,
     createdAt: true,
+    note : true,
     changedBy: {
       select: { id: true, fullName: true },
     },

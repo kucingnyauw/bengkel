@@ -35,8 +35,29 @@ import {
 import { alpha } from "@mui/material/styles";
 
 import { formatToIdr, formatDateTime } from "@shared/utils";
-import { useOpenShiftMutation, useStartingCashSuggestion } from "@views/shifts/hooks";
+import {
+  useOpenShiftMutation,
+  useStartingCashSuggestion,
+} from "@views/shifts/hooks";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
+
+const IconBox = ({ icon: Icon, color, size = 40 }) => (
+  <Box
+    sx={(theme) => ({
+      width: size,
+      height: size,
+      borderRadius: `${theme.shape.borderRadius}px`,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      bgcolor: alpha(theme.palette.secondary.main, 0.1),
+      color: color || theme.palette.secondary.main,
+      flexShrink: 0,
+    })}
+  >
+    <Icon size={size === 40 ? 20 : 18} strokeWidth={1.5} />
+  </Box>
+);
 
 const ShiftOpenDialog = ({ onClose, open }) => {
   const theme = useTheme();
@@ -103,25 +124,21 @@ const ShiftOpenDialog = ({ onClose, open }) => {
       maxWidth="xs"
       onClose={isPending ? undefined : handleClose}
       open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
     >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Buka Shift Baru
-        <IconButton onClick={handleClose} disabled={isPending} size="small">
+        <IconButton
+          onClick={handleClose}
+          disabled={isPending}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -129,16 +146,11 @@ const ShiftOpenDialog = ({ onClose, open }) => {
       <Divider />
 
       <DialogContent>
-        <Stack sx={{ gap: 3 }}>
+        <Stack sx={{ gap: theme.spacing(3) }}>
           {/* Suggestion Card */}
           {isSuggestionLoading ? (
-            <Card
-              sx={{
-                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                boxShadow: "none",
-              }}
-            >
-              <CardContent sx={{ py: 2.5 }}>
+            <Card>
+              <CardContent>
                 <Skeleton width="40%" height={14} />
                 <Skeleton width="60%" height={28} sx={{ mt: 1.5 }} />
                 <Skeleton width="80%" height={14} sx={{ mt: 1 }} />
@@ -146,73 +158,67 @@ const ShiftOpenDialog = ({ onClose, open }) => {
             </Card>
           ) : suggestion ? (
             <Card
-              sx={{
+              sx={(theme) => ({
                 border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
                 bgcolor: alpha(theme.palette.secondary.main, 0.02),
                 boxShadow: "none",
-              }}
+              })}
             >
-              <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
-                <Stack direction="row" sx={{ gap: 1.5, alignItems: "center", mb: 2 }}>
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: `${theme.shape.borderRadius}px`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      bgcolor: alpha(theme.palette.secondary.main, 0.1),
-                      color: theme.palette.secondary.main,
-                    }}
-                  >
-                    <Wallet size={20} strokeWidth={1.5} />
-                  </Box>
+              <CardContent>
+                <Stack
+                  direction="row"
+                  sx={{
+                    gap: theme.spacing(1.5),
+                    alignItems: "center",
+                    mb: theme.spacing(2),
+                  }}
+                >
+                  <IconBox icon={Wallet} />
                   <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                    <Typography variant="caption" color="text.secondary">
                       Saran Saldo Awal
                     </Typography>
-                    <Typography variant="h5" color="secondary" sx={{ fontWeight: 400 }}>
+                    <Typography variant="h5" color="secondary">
                       {formatToIdr(suggestion.suggestedStartingCash)}
                     </Typography>
                   </Box>
                 </Stack>
 
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                <Typography variant="caption" color="text.secondary">
                   {suggestion.message}
                 </Typography>
 
                 {suggestion.lastShift && (
                   <>
-                    <Divider sx={{ my: 2 }} />
-                    <Stack direction="row" sx={{ gap: 1.5, alignItems: "flex-start" }}>
-                      <Box
-                        sx={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: `${theme.shape.borderRadius}px`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          bgcolor: alpha(theme.palette.secondary.main, 0.06),
-                          color: theme.palette.text.secondary,
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Clock size={18} strokeWidth={1.5} />
-                      </Box>
+                    <Divider sx={{ my: theme.spacing(2) }} />
+                    <Stack
+                      direction="row"
+                      sx={{
+                        gap: theme.spacing(1.5),
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <IconBox
+                        icon={Clock}
+                        color={theme.palette.text.secondary}
+                      />
                       <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                        <Typography variant="body2">
                           Shift Sebelumnya
                         </Typography>
                         <Chip
                           label={formatToIdr(suggestion.lastShift.endingCash)}
                           size="small"
                           variant="outlined"
-                          sx={{ fontWeight: 400, mt: 0.5 }}
+                          sx={{ mt: 0.5 }}
                         />
-                        <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400, display: "block", mt: 0.5 }}>
-                          Ditutup {formatDateTime(suggestion.lastShift.closedAt)}
+                        <Typography
+                          variant="caption"
+                          color="text.disabled"
+                          sx={{ display: "block", mt: 0.5 }}
+                        >
+                          Ditutup{" "}
+                          {formatDateTime(suggestion.lastShift.closedAt)}
                         </Typography>
                       </Box>
                     </Stack>
@@ -221,19 +227,17 @@ const ShiftOpenDialog = ({ onClose, open }) => {
               </CardContent>
             </Card>
           ) : (
-            <Card
-              sx={{
-                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                boxShadow: "none",
-                bgcolor: alpha(theme.palette.secondary.main, 0.02),
-              }}
-            >
-              <CardContent sx={{ py: 2.5, textAlign: "center" }}>
-                <Wallet size={32} strokeWidth={1.5} style={{ opacity: 0.3, marginBottom: 8 }} />
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+            <Card>
+              <CardContent sx={{ textAlign: "center" }}>
+                <Wallet
+                  size={32}
+                  strokeWidth={1.5}
+                  style={{ opacity: 0.3, marginBottom: 8 }}
+                />
+                <Typography variant="body2" color="text.secondary">
                   Tidak ada data shift sebelumnya
                 </Typography>
-                <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400 }}>
+                <Typography variant="caption" color="text.disabled">
                   Masukkan saldo awal secara manual
                 </Typography>
               </CardContent>
@@ -253,17 +257,16 @@ const ShiftOpenDialog = ({ onClose, open }) => {
                 label="Saldo Awal"
                 placeholder="Rp 0"
                 error={!!fieldState.error}
-                helperText={fieldState.error ? "Saldo awal wajib diisi (min. Rp 1.000)" : ""}
+                helperText={
+                  fieldState.error
+                    ? "Saldo awal wajib diisi (min. Rp 1.000)"
+                    : ""
+                }
                 disabled={isPending}
                 value={field.value ? formatToIdr(field.value) : ""}
                 onChange={(e) => {
                   const raw = e.target.value.replace(/[^0-9]/g, "");
                   field.onChange(raw ? Number(raw) : "");
-                }}
-                slotProps={{
-                  input: { sx: { fontWeight: 400 } },
-                  inputLabel: { sx: { fontWeight: 400 } },
-                  formHelperText: { sx: { fontWeight: 400 } },
                 }}
               />
             )}
@@ -279,7 +282,6 @@ const ShiftOpenDialog = ({ onClose, open }) => {
           variant="outlined"
           disabled={isPending}
           onClick={handleClose}
-          sx={{ fontWeight: 400 }}
         >
           Batal
         </Button>
@@ -288,14 +290,10 @@ const ShiftOpenDialog = ({ onClose, open }) => {
           disabled={!watchStartingCash || isPending}
           onClick={handleSubmit(onSubmit)}
           startIcon={
-            isPending ? <CircularProgress size={14} color="inherit" /> : null
+            isPending ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
           }
-          sx={{
-            fontWeight: 400,
-            "&:hover": {
-              boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-            },
-          }}
         >
           {isPending ? "Membuka..." : "Buka Shift"}
         </Button>

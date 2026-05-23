@@ -57,6 +57,22 @@ const validationRules = {
 
 const currencyFields = ["shift_min_starting_cash"];
 
+const SettingsSkeleton = () => (
+  <Card>
+    <CardContent>
+      <Stack sx={{ gap: 1 }}>
+        <Skeleton variant="rounded" height={36} width="40%" />
+        <Skeleton variant="rounded" height={20} width="60%" />
+      </Stack>
+      <Stack sx={{ gap: 2, mt: 4 }}>
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} variant="rounded" height={80} />
+        ))}
+      </Stack>
+    </CardContent>
+  </Card>
+);
+
 const Settings = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
@@ -106,155 +122,128 @@ const Settings = () => {
   };
 
   if (isLoading) {
-    return (
-    
-        <Card
-          sx={{
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-            boxShadow: "none",
-          }}
-        >
-          <CardContent sx={{ p: 4 }}>
-            <Typography variant="h5" sx={{ mb: 4, fontWeight: 400 }}>
-              Pengaturan Sistem
-            </Typography>
-            <Stack spacing={2}>
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} variant="rounded" height={80} />
-              ))}
-            </Stack>
-          </CardContent>
-        </Card>
-      
-    );
+    return <SettingsSkeleton />;
   }
 
   return (
-    <Box>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <Card
-          sx={{
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-            boxShadow: "none",
-          }}
-        >
-          <CardContent sx={{ p: 4 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 4,
-              }}
-            >
-              <Box>
-                <Typography variant="h5" sx={{ fontWeight: 400 }}>
-                  Pengaturan Sistem
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                  Konfigurasi parameter operasional bengkel
-                </Typography>
-              </Box>
-
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={!isDirty || isSubmitting}
-                sx={{
-                  minWidth: 140,
-                  px: 3,
-                  fontWeight: 400,
-                  "&:hover": {
-                    boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-                  },
-                }}
+    <Box
+      component="form"
+      onSubmit={handleSubmit(onSubmit)}
+      sx={{ maxWidth: 720, mx: "auto" }}
+    >
+      <Card>
+        <CardContent>
+          {/* Header */}
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            sx={{
+              justifyContent: "space-between",
+              alignItems: { xs: "flex-start", sm: "center" },
+              gap: theme.spacing(2),
+              mb: theme.spacing(3),
+            }}
+          >
+            <Box>
+              <Typography variant="h5">Pengaturan Sistem</Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
               >
-                {isSubmitting ? (
-                  <>
-                    <CircularProgress size={14} sx={{ mr: 1 }} color="inherit" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  "Simpan"
-                )}
-              </Button>
+                Konfigurasi parameter operasional bengkel
+              </Typography>
             </Box>
 
-            <Divider sx={{ mb: 1 }} />
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={!isDirty || isSubmitting}
+              sx={{ minWidth: 140, flexShrink: 0 }}
+              startIcon={
+                isSubmitting ? (
+                  <CircularProgress size={14} color="inherit" />
+                ) : null
+              }
+            >
+              {isSubmitting ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </Stack>
 
-            <Stack divider={<Divider />}>
-              {settings?.map((setting) => (
-                <Box
-                  key={setting.id}
-                  sx={{
-                    py: 2.5,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
-                      {labelMap[setting.key] || setting.key}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mt: 0.5, fontWeight: 400 }}
-                    >
-                      {helperMap[setting.key] || ""}
-                    </Typography>
-                  </Box>
+          <Divider />
 
-                  <Controller
-                    name={setting.key}
-                    control={control}
-                    rules={validationRules[setting.key] || {}}
-                    render={({ field, fieldState }) => (
-                      <TextField
-                        size="small"
-                        error={!!fieldState.error}
-                        helperText={fieldState.error?.message}
-                        value={
-                          currencyFields.includes(setting.key)
-                            ? field.value
-                              ? formatToIdr(field.value)
-                              : ""
-                            : field.value ?? ""
-                        }
-                        onChange={(e) => {
-                          const raw = e.target.value.replace(/[^0-9]/g, "");
-                          field.onChange(raw ? Number(raw) : "");
-                        }}
-                        sx={{
-                          width: 180,
-                          flexShrink: 0,
-                        }}
-                        slotProps={{
-                          input: {
-                            sx: { fontWeight: 400 },
-                            endAdornment:
-                              setting.key === "tax_rate" ? (
-                                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                                  %
-                                </Typography>
-                              ) : null,
-                          },
-                          inputLabel: { sx: { fontWeight: 400 } },
-                          formHelperText: { sx: { fontWeight: 400 } },
-                        }}
-                      />
-                    )}
-                  />
+          {/* Setting Items */}
+          <Stack divider={<Divider />}>
+            {settings?.map((setting) => (
+              <Stack
+                key={setting.id}
+                direction={{ xs: "column", sm: "row" }}
+                sx={{
+                  justifyContent: "space-between",
+                  alignItems: { xs: "stretch", sm: "center" },
+                  gap: theme.spacing(2),
+                  py: theme.spacing(2.5),
+                }}
+              >
+                {/* Label & Helper */}
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="subtitle1">
+                    {labelMap[setting.key] || setting.key}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 0.5 }}
+                  >
+                    {helperMap[setting.key] || ""}
+                  </Typography>
                 </Box>
-              ))}
-            </Stack>
-          </CardContent>
-        </Card>
-      </form>
+
+                {/* Input */}
+                <Controller
+                  name={setting.key}
+                  control={control}
+                  rules={validationRules[setting.key] || {}}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      size="small"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                      value={
+                        currencyFields.includes(setting.key)
+                          ? field.value
+                            ? formatToIdr(field.value)
+                            : ""
+                          : field.value ?? ""
+                      }
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9]/g, "");
+                        field.onChange(raw ? Number(raw) : "");
+                      }}
+                      sx={{
+                        width: { xs: "100%", sm: 200 },
+                        flexShrink: 0,
+                      }}
+                      slotProps={{
+                        input: {
+                          endAdornment:
+                            setting.key === "tax_rate" ? (
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                %
+                              </Typography>
+                            ) : null,
+                        },
+                      }}
+                    />
+                  )}
+                />
+              </Stack>
+            ))}
+          </Stack>
+        </CardContent>
+      </Card>
     </Box>
   );
 };

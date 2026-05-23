@@ -32,15 +32,12 @@ import {
   IconButton,
   Stack,
   Typography,
-  useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 
 import { useDeleteStockMovementMutation } from "@views/stock/hooks";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const StockDeleteDialog = ({ open, movement, onClose }) => {
-  const theme = useTheme();
   const dispatch = useDispatch();
 
   const deleteMutation = useDeleteStockMovementMutation({
@@ -72,6 +69,18 @@ const StockDeleteDialog = ({ open, movement, onClose }) => {
   const isPending = deleteMutation.isPending;
   const isIn = movement?.type === "IN";
 
+  const getMovementTypeLabel = () => {
+    if (isIn) return "Masuk";
+    if (movement?.type === "OUT") return "Keluar";
+    return "Penyesuaian";
+  };
+
+  const getMovementTypeColor = () => {
+    if (isIn) return "success";
+    if (movement?.type === "OUT") return "error";
+    return "warning";
+  };
+
   const handleConfirm = () => {
     if (!movement) return;
     deleteMutation.mutate(movement.id);
@@ -83,25 +92,21 @@ const StockDeleteDialog = ({ open, movement, onClose }) => {
       maxWidth="xs"
       onClose={isPending ? undefined : onClose}
       open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
     >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Hapus Mutasi Stok
-        <IconButton onClick={onClose} disabled={isPending} size="small">
+        <IconButton
+          onClick={onClose}
+          disabled={isPending}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -110,40 +115,33 @@ const StockDeleteDialog = ({ open, movement, onClose }) => {
 
       <DialogContent>
         <Stack sx={{ gap: 2.5 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+          <Typography variant="body2" color="text.secondary">
             Apakah Anda yakin ingin menghapus mutasi stok berikut? Tindakan ini tidak dapat dibatalkan.
           </Typography>
 
-          <Card
-            sx={{
-              border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-              boxShadow: "none",
-            }}
-          >
-            <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
+          <Card>
+            <CardContent>
               <Stack sx={{ gap: 1.5 }}>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  <Typography variant="caption" color="text.secondary">
                     Produk
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 400, mt: 0.3 }}>
+                  <Typography variant="body2" sx={{ mt: 0.3 }}>
                     {movement?.product?.name || "—"}
                   </Typography>
                 </Box>
 
                 <Stack direction="row" sx={{ gap: 1 }}>
                   <Chip
-                    label={isIn ? "Masuk" : movement?.type === "OUT" ? "Keluar" : "Penyesuaian"}
-                    color={isIn ? "success" : movement?.type === "OUT" ? "error" : "warning"}
+                    label={getMovementTypeLabel()}
+                    color={getMovementTypeColor()}
                     size="small"
                     variant="outlined"
-                    sx={{ fontWeight: 400 }}
                   />
                   <Chip
                     label={`Qty: ${movement?.quantity || 0}`}
                     size="small"
                     variant="outlined"
-                    sx={{ fontWeight: 400 }}
                   />
                 </Stack>
               </Stack>
@@ -160,7 +158,6 @@ const StockDeleteDialog = ({ open, movement, onClose }) => {
           variant="outlined"
           disabled={isPending}
           onClick={onClose}
-          sx={{ fontWeight: 400 }}
         >
           Batal
         </Button>
@@ -170,9 +167,10 @@ const StockDeleteDialog = ({ open, movement, onClose }) => {
           disabled={isPending}
           onClick={handleConfirm}
           startIcon={
-            isPending ? <CircularProgress size={14} color="inherit" /> : null
+            isPending ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
           }
-          sx={{ fontWeight: 400 }}
         >
           {isPending ? "Menghapus..." : "Hapus"}
         </Button>

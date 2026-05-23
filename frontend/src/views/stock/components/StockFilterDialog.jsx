@@ -36,7 +36,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
+
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 
 import { StockMovementType, StockSourceType } from "@shared/constant";
@@ -55,30 +55,16 @@ const StockFilterDialog = ({
   const theme = useTheme();
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
-    >
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Filter Mutasi Stok
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={onClose} size="small" sx={{ mr: -0.5 }}>
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -86,49 +72,46 @@ const StockFilterDialog = ({
       <Divider />
 
       <DialogContent>
-        <Stack sx={{ gap: 2.5 }}>
+        <Stack sx={{ gap: theme.spacing(2.5) }}>
+          {/* Filter Tipe */}
           <FormControl fullWidth>
-            <InputLabel sx={{ fontWeight: 400 }}>Tipe</InputLabel>
+            <InputLabel>Tipe</InputLabel>
             <Select
               value={tempFilters.type || ""}
               label="Tipe"
               onChange={(e) =>
                 onFilterChange({ ...tempFilters, type: e.target.value })
               }
-              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="" sx={{ fontWeight: 400 }}>
-                Semua
-              </MenuItem>
+              <MenuItem value="">Semua</MenuItem>
               {Object.entries(StockMovementType).map(([key, value]) => (
-                <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
+                <MenuItem key={key} value={value}>
                   {normalizeEnumText(value)}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
+          {/* Filter Sumber */}
           <FormControl fullWidth>
-            <InputLabel sx={{ fontWeight: 400 }}>Sumber</InputLabel>
+            <InputLabel>Sumber</InputLabel>
             <Select
               value={tempFilters.sourceType || ""}
               label="Sumber"
               onChange={(e) =>
                 onFilterChange({ ...tempFilters, sourceType: e.target.value })
               }
-              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="" sx={{ fontWeight: 400 }}>
-                Semua
-              </MenuItem>
+              <MenuItem value="">Semua</MenuItem>
               {Object.entries(StockSourceType).map(([key, value]) => (
-                <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
+                <MenuItem key={key} value={value}>
                   {normalizeEnumText(value)}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
+          {/* Pencarian Produk */}
           <AsyncAutocomplete
             value={tempFilters.product}
             onChange={(val) =>
@@ -155,10 +138,10 @@ const StockFilterDialog = ({
               return (
                 <Box key={key} component="li" {...rest}>
                   <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                    <Typography variant="body2">
                       {option.name}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                    <Typography variant="caption" color="text.secondary">
                       SKU: {option.sku || "—"} • Stok: {option.stock ?? 0}
                     </Typography>
                   </Box>
@@ -167,6 +150,7 @@ const StockFilterDialog = ({
             }}
           />
 
+          {/* Rentang Tanggal */}
           <DatePicker
             label="Dari Tanggal"
             value={tempFilters.startDate}
@@ -179,7 +163,6 @@ const StockFilterDialog = ({
             slotProps={{
               textField: {
                 fullWidth: true,
-                sx: { fontWeight: 400 },
               },
             }}
           />
@@ -196,7 +179,6 @@ const StockFilterDialog = ({
             slotProps={{
               textField: {
                 fullWidth: true,
-                sx: { fontWeight: 400 },
               },
             }}
           />
@@ -210,33 +192,14 @@ const StockFilterDialog = ({
           justifyContent: "space-between",
         }}
       >
-        <Button
-          color="inherit"
-          variant="outlined"
-          onClick={onReset}
-          sx={{ fontWeight: 400 }}
-        >
+        <Button color="inherit" variant="outlined" onClick={onReset}>
           Reset
         </Button>
-        <Stack direction="row" sx={{ gap: 1.5 }}>
-          <Button
-            color="inherit"
-            variant="outlined"
-            onClick={onClose}
-            sx={{ fontWeight: 400 }}
-          >
+        <Stack direction="row" sx={{ gap: theme.spacing(1.5) }}>
+          <Button color="inherit" variant="outlined" onClick={onClose}>
             Batal
           </Button>
-          <Button
-            variant="contained"
-            onClick={onApply}
-            sx={{
-              fontWeight: 400,
-              "&:hover": {
-                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-              },
-            }}
-          >
+          <Button variant="contained" onClick={onApply}>
             Terapkan
           </Button>
         </Stack>

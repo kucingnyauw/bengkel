@@ -28,7 +28,6 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 
 import { getProducts } from "@api/productApi.js";
 import { ProductType } from "@shared/constant";
@@ -92,25 +91,21 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
       maxWidth="xs"
       onClose={isSubmitting ? undefined : handleClose}
       open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
     >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Penyesuaian Stok
-        <IconButton onClick={handleClose} disabled={isSubmitting} size="small">
+        <IconButton
+          onClick={handleClose}
+          disabled={isSubmitting}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -118,7 +113,8 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
       <Divider />
 
       <DialogContent>
-        <Stack sx={{ gap: 2.5 }}>
+        <Stack sx={{ gap: theme.spacing(2.5) }}>
+          {/* Pilih Produk */}
           <Controller
             name="product"
             control={control}
@@ -149,10 +145,10 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
                   return (
                     <Box key={key} component="li" {...rest}>
                       <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                        <Typography variant="body2">
                           {option.name}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                        <Typography variant="caption" color="text.secondary">
                           SKU: {option.sku || "—"} • Stok: {option.stock ?? 0}
                         </Typography>
                       </Box>
@@ -169,6 +165,7 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
             )}
           />
 
+          {/* Jumlah Penyesuaian */}
           <Controller
             name="quantity"
             control={control}
@@ -186,15 +183,11 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
                 }
                 placeholder="Contoh: 10 atau -5"
                 disabled={isSubmitting}
-                slotProps={{
-                  input: { sx: { fontWeight: 400 } },
-                  inputLabel: { sx: { fontWeight: 400 } },
-                  formHelperText: { sx: { fontWeight: 400 } },
-                }}
               />
             )}
           />
 
+          {/* Catatan */}
           <Controller
             name="note"
             control={control}
@@ -210,11 +203,6 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
                 helperText={fieldState.error?.message}
                 placeholder="Alasan penyesuaian stok"
                 disabled={isSubmitting}
-                slotProps={{
-                  input: { sx: { fontWeight: 400 } },
-                  inputLabel: { sx: { fontWeight: 400 } },
-                  formHelperText: { sx: { fontWeight: 400 } },
-                }}
               />
             )}
           />
@@ -229,7 +217,6 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
           variant="outlined"
           disabled={isSubmitting}
           onClick={handleClose}
-          sx={{ fontWeight: 400 }}
         >
           Batal
         </Button>
@@ -238,14 +225,10 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
           variant="contained"
           disabled={isSubmitting}
           startIcon={
-            isSubmitting ? <CircularProgress size={14} color="inherit" /> : null
+            isSubmitting ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
           }
-          sx={{
-            fontWeight: 400,
-            "&:hover": {
-              boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-            },
-          }}
         >
           {isSubmitting ? "Menyimpan..." : "Simpan"}
         </Button>

@@ -4,6 +4,7 @@ import NotificationRepository from "#repository/notificationRepository.js";
 import ApiError from "#shared/utils/error.js";
 import logger from "#app/logger.js";
 import supabase from "#lib/supabase.js";
+import CacheManager from "#shared/utils/cache.js";
 
 /**
  * Service untuk mengelola logika bisnis user
@@ -14,6 +15,7 @@ class UserService {
     this.userRepo = new UserRepository();
     this.shiftRepo = new ShiftRepository();
     this.notifRepo = new NotificationRepository();
+    this.cache = new CacheManager("auth:user");
   }
 
   /**
@@ -429,6 +431,8 @@ class UserService {
         isActive: updated.isActive,
       },
     });
+
+    await this.cache.invalidate(`history:${orderNumber}`);
 
     return updated;
   }

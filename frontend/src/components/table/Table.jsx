@@ -51,7 +51,6 @@ import {
   Popover,
   Skeleton,
   Snackbar,
-  Alert,
   Stack,
   Table,
   TableBody,
@@ -173,10 +172,9 @@ const AppTable = memo(
             align="left"
             key={idx}
             sx={{
-              py: 2.5,
-              px: 3,
-              fontWeight: 400,
-              [theme.breakpoints.down("sm")]: { py: 2, px: 2 },
+              py: 2,
+              px: 2.5,
+              [theme.breakpoints.down("sm")]: { py: 1.5, px: 1.5 },
             }}
           >
             {isLoading ? (
@@ -196,10 +194,9 @@ const AppTable = memo(
             <TableCell
               key={`cell-skeleton-${i}`}
               sx={{
-                py: 2.5,
-                px: 3,
-                fontWeight: 400,
-                [theme.breakpoints.down("sm")]: { py: 2, px: 2 },
+                py: 2,
+                px: 2.5,
+                [theme.breakpoints.down("sm")]: { py: 1.5, px: 1.5 },
               }}
             >
               <Skeleton
@@ -223,15 +220,15 @@ const AppTable = memo(
             colSpan={headers.length}
             sx={{
               borderBottom: 0,
-              py: 10,
-              [theme.breakpoints.down("sm")]: { py: 6 },
+              py: 8,
+              [theme.breakpoints.down("sm")]: { py: 5 },
             }}
           >
-            <Stack sx={{ gap: 1.5, alignItems: "center" }}>
-              <Typography color="text.primary" fontWeight={400} variant="subtitle1">
+            <Stack sx={{ gap: 1, alignItems: "center" }}>
+              <Typography color="text.secondary" variant="body1">
                 {emptyStateMessage}
               </Typography>
-              <Typography color="text.secondary" fontWeight={400} variant="body2">
+              <Typography color="text.disabled" variant="caption">
                 Silakan coba ubah filter atau tambahkan data baru
               </Typography>
             </Stack>
@@ -273,10 +270,9 @@ const AppTable = memo(
                   key={i}
                   onContextMenu={(e) => handleContextMenu(e, val, rowId, i)}
                   sx={{
-                    py: 2.5,
-                    px: 3,
-                    fontWeight: 400,
-                    [theme.breakpoints.down("sm")]: { py: 2, px: 2 },
+                    py: 2,
+                    px: 2.5,
+                    [theme.breakpoints.down("sm")]: { py: 1.5, px: 1.5 },
                     userSelect: "none",
                     position: "relative",
                     transition: theme.transitions.create(
@@ -370,8 +366,8 @@ const AppTable = memo(
                 alignItems: { xs: "stretch", sm: "center" },
                 justifyContent: "space-between",
                 gap: 2,
-                px: 4,
-                py: 3,
+                px: { xs: 2, sm: 3 },
+                py: { xs: 2, sm: 2.5 },
               }}
             >
               <Box
@@ -382,12 +378,12 @@ const AppTable = memo(
                 }}
               >
                 {title && (
-                  <Typography variant="h6" fontWeight={400}>
+                  <Typography variant="h6">
                     {title}
                   </Typography>
                 )}
                 {subtitle && (
-                  <Typography variant="body2" color="text.secondary" fontWeight={400} sx={{ mt: 0.5 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                     {subtitle}
                   </Typography>
                 )}
@@ -411,17 +407,17 @@ const AppTable = memo(
                       input: {
                         startAdornment: (
                           <Box
-                            sx={{
+                            sx={(theme) => ({
                               display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 40,
-                        height: 28,
-                        borderRadius: `${theme.shape.borderRadius}px`,
-                        bgcolor: alpha(theme.palette.secondary.main, 0.08),
-                        color: theme.palette.secondary.main,
-                        mr: 1,
-                            }}
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: 36,
+                              height: 28,
+                              borderRadius: `${theme.shape.borderRadius}px`,
+                              bgcolor: alpha(theme.palette.secondary.main, 0.08),
+                              color: theme.palette.secondary.main,
+                              mr: 1,
+                            })}
                           >
                             <Search size={15} strokeWidth={1.5} />
                           </Box>
@@ -467,131 +463,123 @@ const AppTable = memo(
                 display: "flex",
                 flexDirection: { xs: "column", sm: "row" },
                 alignItems: "center",
-                justifyContent: "space-between",
-                gap: 2,
-                px: 4,
-                py: 3,
+                justifyContent: { xs: "center", sm: "space-between" },
+                gap: { xs: 1.5, sm: 2 },
+                px: { xs: 2, sm: 3 },
+                py: { xs: 1.5, sm: 2 },
               }}
             >
+              {/* Rows per page */}
               {onRowsPerPageChange && (
-              <Box
-              sx={{
-                order: { xs: 2, sm: 1 },
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                width: { xs: "100%", sm: "auto" },
-                justifyContent: { xs: "center", sm: "flex-start" },
-              }}
-            >
-              <Typography 
-                variant="body2" 
-                color="text.secondary" 
-                sx={{ fontWeight: 500, whiteSpace: "nowrap" }}
-              >
-                Tampilkan
-              </Typography>
-              <TextField
-                select
-                size="small"
-                value={rowsPerPage}
-                onChange={(e) => onRowsPerPageChange(Number(e.target.value))}
-                slotProps={{ select: { native: true } }}
-                sx={(theme) => ({
-                  minWidth: 68,
-                  "& .MuiInputBase-root": {
-                    fontSize: "0.875rem",
-                    fontWeight: 600,
-                    color: "text.primary",
-                    borderRadius: `${theme.shape.borderRadius}px`,
-                    bgcolor: "background.paper",
-                    transition: "all 0.2s ease-in-out",
-                    "&:hover .MuiOutlinedInput-notchedOutline": {
-                      borderColor: alpha(theme.palette.primary.main, 0.4),
-                    },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                      borderColor: theme.palette.primary.main,
-                      borderWidth: "1px",
-                      boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.15)}`,
-                    },
-                  },
-                  "& .MuiNativeSelect-select": {
-                    py: 0.5,
-                    pl: 1.25,
-                    pr: 3,
-                  },
-                })}
-              >
-                {rowsPerPageOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </TextField>
-            </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1.5,
+                    flexShrink: 0,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ whiteSpace: "nowrap" }}
+                  >
+                    Baris per halaman
+                  </Typography>
+                  <TextField
+                    select
+                    size="small"
+                    value={rowsPerPage}
+                    onChange={(e) => onRowsPerPageChange(Number(e.target.value))}
+                    slotProps={{ select: { native: true } }}
+                    sx={{
+                      minWidth: 70,
+                      "& .MuiInputBase-root": {
+                        fontSize: "0.8125rem",
+                      },
+                      "& .MuiNativeSelect-select": {
+                        py: 0.5,
+                        pl: 1,
+                        pr: 2.5,
+                      },
+                    }}
+                  >
+                    {rowsPerPageOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </TextField>
+                </Box>
               )}
 
+              {/* Pagination */}
               <Box
                 sx={{
-                  order: { xs: 1, sm: 2 },
                   display: "flex",
-                  justifyContent: { xs: "center", sm: "flex-end" },
-                  width: { xs: "100%", sm: "auto" },
+                  justifyContent: "center",
+                  flexShrink: 0,
                 }}
               >
                 {isLoading ? (
-                  <Skeleton height={40} variant="rounded" width={isMobile ? 250 : 350} />
+                  <Skeleton height={36} variant="rounded" width={isMobile ? 200 : 300} />
                 ) : (
                   <Pagination
-                  count={count}
-                  page={page}
-                  onChange={onChange}
-                  showFirstButton
-                  showLastButton
-                  shape="rounded"
-                  size={isMobile ? "small" : "medium"}
-                  siblingCount={isMobile ? 0 : 1}
-                  boundaryCount={isMobile ? 1 : 2}
-                  sx={(theme) => ({
-                    display: "flex",
-                    justifyContent: "center",
-                    "& .MuiPaginationItem-root": {
-                      fontWeight: 500,
-                      fontSize: "0.875rem",
-                      borderRadius: `${theme.shape.borderRadius}px`,
-                      border: `1px solid ${theme.palette.divider}`,
-                      bgcolor: "background.paper",
-                      color: "text.secondary",
-                      transition: "all 0.2s ease-in-out",
-                      "&:hover": {
-                        bgcolor: alpha(theme.palette.primary.main, 0.06),
-                        borderColor: alpha(theme.palette.primary.main, 0.4),
-                        color: theme.palette.primary.main,
+                    count={count}
+                    page={page}
+                    onChange={onChange}
+                    showFirstButton={!isMobile}
+                    showLastButton={!isMobile}
+                    shape="rounded"
+                    size="small"
+                    siblingCount={isMobile ? 0 : 1}
+                    boundaryCount={isMobile ? 1 : 1}
+                    sx={{
+                      "& .MuiPaginationItem-root": {
+                        fontSize: "0.8125rem",
+                        minWidth: 32,
+                        height: 32,
+                        borderRadius: `${theme.shape.borderRadius}px`,
+                        border: `1px solid ${theme.palette.divider}`,
+                        bgcolor: "background.paper",
+                        color: "text.secondary",
+                        transition: theme.transitions.create(
+                          ["background-color", "border-color", "color", "box-shadow"],
+                          { duration: theme.transitions.duration.shorter }
+                        ),
+                        "&:hover": {
+                          bgcolor: alpha(theme.palette.secondary.main, 0.06),
+                          borderColor: alpha(theme.palette.secondary.main, 0.4),
+                          color: theme.palette.secondary.main,
+                        },
+                        "&.Mui-selected": {
+                          bgcolor: theme.palette.secondary.main,
+                          color: theme.palette.secondary.contrastText,
+                          borderColor: theme.palette.secondary.main,
+                          fontWeight: 500,
+                          boxShadow: `0 2px 8px ${alpha(theme.palette.secondary.main, 0.3)}`,
+                          "&:hover": {
+                            bgcolor: theme.palette.secondary.dark,
+                          },
+                        },
                       },
-                    },
-                    "& .MuiPaginationItem-root.Mui-selected": {
-                      bgcolor: theme.palette.primary.main,
-                      color: theme.palette.primary.contrastText,
-                      borderColor: theme.palette.primary.main,
-                      boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.24)}`,
-                      "&:hover": {
-                        bgcolor: theme.palette.primary.dark,
-                      },
-                    },
-                    "& .MuiPaginationItem-ellipsis": {
-                      border: "none",
-                      bgcolor: "transparent",
-                      "&:hover": {
+                      "& .MuiPaginationItem-ellipsis": {
+                        border: "none",
                         bgcolor: "transparent",
+                        "&:hover": {
+                          bgcolor: "transparent",
+                        },
                       },
-                    },
-                    "& .MuiPagination-ul": {
-                      gap: { xs: 0.5, sm: 1 },
-                    },
-                  })}
-                />
+                      "& .MuiPagination-ul": {
+                        gap: 0.5,
+                      },
+                    }}
+                  />
                 )}
               </Box>
+
+              {/* Spacer for alignment when no rowsPerPage */}
+              {!onRowsPerPageChange && <Box sx={{ flexShrink: 0 }} />}
             </Box>
           </>
         )}
@@ -631,7 +619,7 @@ const AppTable = memo(
               <ListItemIcon>
                 <Copy size={15} strokeWidth={1.5} />
               </ListItemIcon>
-              <ListItemText sx={{ fontWeight: 400 }}>Salin</ListItemText>
+              <ListItemText>Salin</ListItemText>
             </MenuItem>
           </MenuList>
         </Popover>
@@ -642,21 +630,35 @@ const AppTable = memo(
           onClose={handleCloseSnackbar}
           anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
-          <Alert
-            severity="success"
-            variant="outlined"
-            onClose={handleCloseSnackbar}
-            sx={{
+          <Box
+            onClick={handleCloseSnackbar}
+            sx={(theme) => ({
+              px: 2,
+              py: 1,
               borderRadius: `${theme.shape.borderRadius}px`,
-              border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
-              bgcolor: alpha(theme.palette.background.paper, 0.95),
+              bgcolor: alpha(theme.palette.success.main, 0.9),
+              color: theme.palette.success.contrastText,
+              fontSize: "0.8125rem",
+              fontWeight: 500,
+              cursor: "pointer",
+              boxShadow: `0 4px 12px ${alpha(theme.palette.common.black, 0.15)}`,
               backdropFilter: "blur(8px)",
-              boxShadow: `0 4px 20px ${alpha(theme.palette.secondary.main, 0.1)}`,
+              display: "flex",
               alignItems: "center",
-            }}
+              gap: 1,
+            })}
           >
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                bgcolor: "currentColor",
+                opacity: 0.8,
+              }}
+            />
             Berhasil disalin
-          </Alert>
+          </Box>
         </Snackbar>
       </Card>
     );

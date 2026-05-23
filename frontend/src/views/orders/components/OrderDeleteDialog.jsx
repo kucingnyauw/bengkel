@@ -11,8 +11,6 @@ import {
   DialogTitle,
   Divider,
   IconButton,
-  useTheme,
-  alpha
 } from "@mui/material";
 
 import { useDeleteOrderMutation } from "@views/orders/hooks";
@@ -35,7 +33,6 @@ import { showNotification } from "@store/notifications/notificationsSlice.js";
  */
 const OrderDeleteDialog = ({ onClose, open, order }) => {
   const dispatch = useDispatch();
-  const theme = useTheme();
 
   const deleteOrder = useDeleteOrderMutation({
     onSuccess: (data) => {
@@ -71,26 +68,27 @@ const OrderDeleteDialog = ({ onClose, open, order }) => {
   };
 
   return (
-    <Dialog fullWidth maxWidth="xs" onClose={isDeleting ? undefined : onClose} open={open}     slotProps={{
-      paper : {
-        sx: {
-          borderRadius: `${theme.shape.borderRadius}px`,
-          border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-        },
-      }
-    }}
- >
+    <Dialog
+      fullWidth
+      maxWidth="xs"
+      onClose={isDeleting ? undefined : onClose}
+      open={open}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight : 500
         }}
       >
         Hapus Pesanan
-        <IconButton onClick={onClose} disabled={isDeleting} size="small">
-          <X size={20} />
+        <IconButton
+          onClick={onClose}
+          disabled={isDeleting}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
@@ -112,7 +110,12 @@ const OrderDeleteDialog = ({ onClose, open, order }) => {
       <Divider />
 
       <DialogActions>
-        <Button color="inherit" variant="outlined" disabled={isDeleting} onClick={onClose}>
+        <Button
+          color="inherit"
+          variant="outlined"
+          disabled={isDeleting}
+          onClick={onClose}
+        >
           Batal
         </Button>
         <Button
@@ -120,7 +123,9 @@ const OrderDeleteDialog = ({ onClose, open, order }) => {
           disabled={isDeleting}
           onClick={handleConfirm}
           startIcon={
-            isDeleting ? <CircularProgress size={14} color="inherit" /> : null
+            isDeleting ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
           }
         >
           {isDeleting ? "Menghapus..." : "Hapus"}

@@ -30,7 +30,6 @@ import {
   Stack,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 
 const UserFilterDialog = ({
   open,
@@ -43,30 +42,16 @@ const UserFilterDialog = ({
   const theme = useTheme();
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
-    >
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Filter Karyawan
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={onClose} size="small" sx={{ mr: -0.5 }}>
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -74,9 +59,10 @@ const UserFilterDialog = ({
       <Divider />
 
       <DialogContent>
-        <Stack sx={{ gap: 2.5 }}>
+        <Stack sx={{ gap: theme.spacing(2.5) }}>
+          {/* Filter Status */}
           <FormControl fullWidth>
-            <InputLabel sx={{ fontWeight: 400 }}>Status</InputLabel>
+            <InputLabel>Status</InputLabel>
             <Select
               value={tempFilters.isActive || ""}
               label="Status"
@@ -87,17 +73,10 @@ const UserFilterDialog = ({
                   isActive: val === "" ? "" : val === "true",
                 });
               }}
-              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="" sx={{ fontWeight: 400 }}>
-                Semua
-              </MenuItem>
-              <MenuItem value="true" sx={{ fontWeight: 400 }}>
-                Aktif
-              </MenuItem>
-              <MenuItem value="false" sx={{ fontWeight: 400 }}>
-                Nonaktif
-              </MenuItem>
+              <MenuItem value="">Semua</MenuItem>
+              <MenuItem value="true">Aktif</MenuItem>
+              <MenuItem value="false">Nonaktif</MenuItem>
             </Select>
           </FormControl>
         </Stack>
@@ -110,33 +89,14 @@ const UserFilterDialog = ({
           justifyContent: "space-between",
         }}
       >
-        <Button
-          color="inherit"
-          variant="outlined"
-          onClick={onReset}
-          sx={{ fontWeight: 400 }}
-        >
+        <Button color="inherit" variant="outlined" onClick={onReset}>
           Reset
         </Button>
-        <Stack direction="row" sx={{ gap: 1.5 }}>
-          <Button
-            color="inherit"
-            variant="outlined"
-            onClick={onClose}
-            sx={{ fontWeight: 400 }}
-          >
+        <Stack direction="row" sx={{ gap: theme.spacing(1.5) }}>
+          <Button color="inherit" variant="outlined" onClick={onClose}>
             Batal
           </Button>
-          <Button
-            variant="contained"
-            onClick={onApply}
-            sx={{
-              fontWeight: 400,
-              "&:hover": {
-                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-              },
-            }}
-          >
+          <Button variant="contained" onClick={onApply}>
             Terapkan
           </Button>
         </Stack>

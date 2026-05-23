@@ -36,7 +36,6 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 
 import { useDeleteVehicleMutation } from "@views/vehicles/hooks";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
@@ -87,25 +86,21 @@ const VehicleDeleteDialog = ({ open, vehicle, onClose }) => {
       maxWidth="xs"
       onClose={isPending ? undefined : onClose}
       open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
     >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Hapus Kendaraan
-        <IconButton onClick={onClose} disabled={isPending} size="small">
+        <IconButton
+          onClick={onClose}
+          disabled={isPending}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -113,26 +108,29 @@ const VehicleDeleteDialog = ({ open, vehicle, onClose }) => {
       <Divider />
 
       <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3.5, fontWeight: 400 }}>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mb: theme.spacing(3.5) }}
+        >
           Pilih kendaraan milik <strong>{vehicle?.name || "pelanggan"}</strong>{" "}
           yang akan dihapus.
         </Typography>
 
         <FormControl fullWidth disabled={isPending}>
-          <InputLabel sx={{ fontWeight: 400 }}>Pilih Kendaraan</InputLabel>
+          <InputLabel>Pilih Kendaraan</InputLabel>
           <Select
             value={selectedId}
             label="Pilih Kendaraan"
             onChange={(e) => setSelectedId(e.target.value)}
-            sx={{ fontWeight: 400 }}
           >
             {vehicles.map((v) => (
-              <MenuItem key={v.id} value={v.id} sx={{ fontWeight: 400 }}>
+              <MenuItem key={v.id} value={v.id}>
                 <Stack>
-                  <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                  <Typography variant="body2">
                     {v.plateNumber}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  <Typography variant="caption" color="text.secondary">
                     {v.brand} {v.model}
                   </Typography>
                 </Stack>
@@ -150,7 +148,6 @@ const VehicleDeleteDialog = ({ open, vehicle, onClose }) => {
           variant="outlined"
           disabled={isPending}
           onClick={onClose}
-          sx={{ fontWeight: 400 }}
         >
           Batal
         </Button>
@@ -160,9 +157,10 @@ const VehicleDeleteDialog = ({ open, vehicle, onClose }) => {
           disabled={isPending || !selectedId}
           onClick={handleConfirm}
           startIcon={
-            isPending ? <CircularProgress size={14} color="inherit" /> : null
+            isPending ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
           }
-          sx={{ fontWeight: 400 }}
         >
           {isPending ? "Menghapus..." : "Hapus"}
         </Button>

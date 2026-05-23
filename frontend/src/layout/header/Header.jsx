@@ -1,10 +1,3 @@
-/**
- * Header - Application header with sidebar toggle, theme switcher, notifications, cart, and profile.
- * Hanya dirender ketika user sudah terautentikasi (status: "auth")
- *
- * @component
- * @returns {JSX.Element} Rendered header component
- */
 import { useState, useCallback, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -33,7 +26,11 @@ import { HEADER, SIDEBAR } from "@shared/constant";
 import { useDevice, usePermission } from "@hooks";
 import { getAvatarUrl } from "@shared/utils";
 
-import { HeaderCart, NotificationPopover, ProfilePopover } from "./components";
+import {
+  HeaderCart,
+  NotificationPopover,
+  ProfilePopover,
+} from "@layout/header/components";
 import {
   useNotifications,
   useUnreadCount,
@@ -41,39 +38,11 @@ import {
   useMarkAllAsRead,
   useDeleteAllNotifications,
   useDeleteNotification,
-} from "./hooks/useNotifications.js";
+} from "@layout/header/hooks/useNotifications.js";
 
 import INFO from "@data/Info.js";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
-
-const searchPages = [
-  { label: "Dashboard", path: "/dashboard" },
-  { label: "Point of Sale", path: "/pos" },
-  { label: "Pesanan Aktif", path: "/orders" },
-  { label: "Riwayat Pesanan", path: "/orders/history" },
-  { label: "Pelanggan", path: "/customers" },
-  { label: "Kendaraan", path: "/vehicles" },
-  { label: "Semua Tugas", path: "/tasks" },
-  { label: "Tugas Saya", path: "/tasks/mechanic" },
-  { label: "Riwayat Tugas", path: "/tasks/history" },
-  { label: "Tugas Belum Ditugaskan", path: "/tasks/unassigned" },
-  { label: "Mekanik Tersedia", path: "/tasks/mechanics/available" },
-  { label: "Daftar Produk", path: "/products" },
-  { label: "Mutasi Stok", path: "/stock/movements" },
-  { label: "Pembayaran", path: "/payments" },
-  { label: "Pengeluaran", path: "/expenses" },
-  { label: "Riwayat Pengeluaran", path: "/expenses/history" },
-  { label: "Shift Saya", path: "/shifts" },
-  { label: "Semua Shift", path: "/shifts/all" },
-  { label: "Laporan Penjualan", path: "/reports/sales" },
-  { label: "Laba & Rugi", path: "/reports/profitloss" },
-  { label: "Laporan Inventaris", path: "/reports/inventory" },
-  { label: "Laporan Mekanik", path: "/reports/mechanics" },
-  { label: "Laporan Pengeluaran", path: "/reports/expenses" },
-  { label: "Laporan Pembayaran", path: "/reports/payments" },
-  { label: "Karyawan", path: "/users" },
-  { label: "Pengaturan", path: "/settings" },
-];
+import { getSearchPages } from "@menu/index.js";
 
 const Header = () => {
   const theme = useTheme();
@@ -98,11 +67,13 @@ const Header = () => {
     ? SIDEBAR.EXPANDED_WIDTH
     : SIDEBAR.COLLAPSED_WIDTH;
 
+  const searchPages = useMemo(() => getSearchPages(user?.role), [user?.role]);
+
   const filteredPages = useMemo(() => {
     if (!searchVal.trim()) return [];
     const q = searchVal.toLowerCase();
     return searchPages.filter((p) => p.label.toLowerCase().includes(q));
-  }, [searchVal]);
+  }, [searchVal, searchPages]);
 
   const { data: unreadData } = useUnreadCount();
   const unreadCount = unreadData?.unreadCount ?? 0;
@@ -116,42 +87,17 @@ const Header = () => {
     refetch,
   } = useNotifications({ enabled: notifOpen });
 
-  /** Inisialisasi mutation hooks */
   const markAsRead = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead();
   const deleteAll = useDeleteAllNotifications();
   const deleteOne = useDeleteNotification();
 
-  const handleMarkRead = (id) => {
-    markAsRead.mutate(id, {
-      onSuccess: () => {
-        dispatch(
-          showNotification({
-            message: "Notifikasi ditandai sudah dibaca",
-            type: "success",
-            title: "Berhasil",
-            variant: "snackbar",
-            autoHide: 2000,
-          })
-        );
-      },
-      onError: (error) => {
-        dispatch(
-          showNotification({
-            message: error.message || "Gagal menandai notifikasi",
-            type: "error",
-            title: "Error",
-            variant: "snackbar",
-            autoHide: 3000,
-          })
-        );
-      },
-    });
-  };
+  const handleMarkRead = (id) => markAsRead.mutate(id);
+  const handleMarkAllRead = () => markAllAsRead.mutate();
 
   const handleDelete = (id) => {
     deleteOne.mutate(id, {
-      onSuccess: () => {
+      onSuccess: () =>
         dispatch(
           showNotification({
             message: "Notifikasi berhasil dihapus",
@@ -160,9 +106,8 @@ const Header = () => {
             variant: "snackbar",
             autoHide: 2000,
           })
-        );
-      },
-      onError: (error) => {
+        ),
+      onError: (error) =>
         dispatch(
           showNotification({
             message: error.message || "Gagal menghapus notifikasi",
@@ -171,14 +116,13 @@ const Header = () => {
             variant: "snackbar",
             autoHide: 3000,
           })
-        );
-      },
+        ),
     });
   };
 
   const handleDeleteAll = () => {
     deleteAll.mutate(undefined, {
-      onSuccess: () => {
+      onSuccess: () =>
         dispatch(
           showNotification({
             message: "Semua notifikasi berhasil dihapus",
@@ -187,9 +131,8 @@ const Header = () => {
             variant: "snackbar",
             autoHide: 2000,
           })
-        );
-      },
-      onError: (error) => {
+        ),
+      onError: (error) =>
         dispatch(
           showNotification({
             message: error.message || "Gagal menghapus semua notifikasi",
@@ -198,62 +141,25 @@ const Header = () => {
             variant: "snackbar",
             autoHide: 3000,
           })
-        );
-      },
-    });
-  };
-
-  const handleMarkAllRead = () => {
-    markAllAsRead.mutate(undefined, {
-      onSuccess: () => {
-        dispatch(
-          showNotification({
-            message: "Semua notifikasi ditandai sudah dibaca",
-            type: "success",
-            title: "Berhasil",
-            variant: "snackbar",
-            autoHide: 2000,
-          })
-        );
-      },
-      onError: (error) => {
-        dispatch(
-          showNotification({
-            message: error.message || "Gagal menandai semua notifikasi",
-            type: "error",
-            title: "Error",
-            variant: "snackbar",
-            autoHide: 3000,
-          })
-        );
-      },
+        ),
     });
   };
 
   const handleToggleSidebar = () => dispatch(toggleSidebar());
-
   const handleToggleCart = useCallback(() => {
-    if (isCashier) {
-      setCartOpen((prev) => !prev);
-    }
+    if (isCashier) setCartOpen((prev) => !prev);
   }, [isCashier]);
-
   const handleToggleTheme = () => dispatch(toggleTheme());
-
   const handleProfileOpen = (e) => setProfileAnchorEl(e.currentTarget);
-
   const handleProfileClose = () => setProfileAnchorEl(null);
-
   const handleNotifOpen = (e) => {
     setNotifAnchorEl(e.currentTarget);
     setNotifOpen(true);
   };
-
   const handleNotifClose = () => {
     setNotifAnchorEl(null);
     setNotifOpen(false);
   };
-
   const handleRefresh = () => refetch();
 
   const iconBtnStyle = {
@@ -279,7 +185,8 @@ const Header = () => {
           height: isMobile ? HEADER.MOBILE_HEIGHT : HEADER.DESKTOP_HEIGHT,
           justifyContent: "center",
           bgcolor: "background.paper",
-          borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          zIndex: theme.zIndex.appBar,
         }}
       >
         <Toolbar
@@ -287,38 +194,42 @@ const Header = () => {
             minHeight: `${
               isMobile ? HEADER.MOBILE_HEIGHT : HEADER.DESKTOP_HEIGHT
             }px !important`,
-            pl: { xs: 2, md: 0 },
-            pr: { xs: 2, sm: 3, md: 2 },
+            pl: { xs: 1.5, sm: 2, md: 0 },
+            pr: { xs: 1.5, sm: 2, md: 2 },
             display: "flex",
-            gap: 2,
+            gap: { xs: 1, sm: 2 },
           }}
         >
+          {/* LEFT BOX */}
           <Box
             sx={{
               display: showMobileSearch ? "none" : "flex",
               alignItems: "center",
-              gap: 1.5,
+              gap: 1,
               width: { xs: "auto", md: `${sidebarWidth}px` },
               transition: "width 0.3s ease, padding 0.3s ease",
-              justifyContent: { xs: "flex-start", md: isOpen ? "flex-start" : "center" },
+              justifyContent: {
+                xs: "flex-start",
+                md: isOpen ? "flex-start" : "center",
+              },
               pl: { xs: 0, md: isOpen ? 3 : 0 },
               pr: { xs: 0, md: isOpen ? 2 : 0 },
+              flexShrink: 0,
             }}
           >
-           <Box
-  component="img"
-  src={INFO.logoUrl}
-  alt={INFO.name}
-  sx={{
-    display: { xs: "none", md: isOpen ? "block" : "none" },
-    height: 47,
-    width: "auto",
-    maxWidth: 120,
-    objectFit: "contain",
-    flexShrink: 0,
-  }}
-/>
-
+            <Box
+              component="img"
+              src={INFO.logoUrl}
+              alt={INFO.name}
+              sx={{
+                display: { xs: "none", md: isOpen ? "block" : "none" },
+                height: 40,
+                width: "auto",
+                maxWidth: 120,
+                objectFit: "contain",
+                flexShrink: 0,
+              }}
+            />
             <IconButton
               onClick={handleToggleSidebar}
               size="small"
@@ -332,12 +243,14 @@ const Header = () => {
             </IconButton>
           </Box>
 
+          {/* CENTER BOX (Search Bar) */}
           <Box
             sx={{
               flex: 1,
               display: { xs: showMobileSearch ? "flex" : "none", md: "flex" },
               justifyContent: { xs: "flex-start", md: "center" },
               position: "relative",
+              minWidth: 0,
             }}
           >
             <TextField
@@ -354,8 +267,8 @@ const Header = () => {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        width: 40,
-                        height: 28,
+                        width: 32,
+                        height: 26,
                         borderRadius: `${theme.shape.borderRadius}px`,
                         bgcolor: alpha(theme.palette.secondary.main, 0.08),
                         color: theme.palette.secondary.main,
@@ -365,12 +278,10 @@ const Header = () => {
                       <Search size={14} strokeWidth={1.5} />
                     </Box>
                   ),
-                  sx: { fontWeight: 400, borderRadius: 2 },
                 },
               }}
               sx={{ maxWidth: { xs: "100%", md: 320 } }}
             />
-
             {filteredPages.length > 0 && (
               <Box
                 sx={{
@@ -382,14 +293,14 @@ const Header = () => {
                   maxWidth: { xs: "100%", md: 320 },
                   bgcolor: "background.paper",
                   borderRadius: `${theme.shape.borderRadius}px`,
-                  border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+                  border: `1px solid ${theme.palette.divider}`,
                   boxShadow: `0 8px 24px ${alpha(
                     theme.palette.common.black,
                     0.1
                   )}`,
                   maxHeight: 320,
                   overflowY: "auto",
-                  zIndex: 1300,
+                  zIndex: theme.zIndex.appBar + 1,
                 }}
               >
                 {filteredPages.map((page) => (
@@ -418,14 +329,8 @@ const Header = () => {
                       },
                     }}
                   >
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {page.label}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ fontWeight: 400 }}
-                    >
+                    <Typography variant="body2">{page.label}</Typography>
+                    <Typography variant="caption" color="text.secondary">
                       {page.path}
                     </Typography>
                   </Box>
@@ -434,13 +339,22 @@ const Header = () => {
             )}
           </Box>
 
+          {/* SPACER: Berfungsi mendorong ikon ke kanan saat layar kecil & search tertutup */}
+          <Box
+            sx={{
+              flexGrow: 1,
+              display: { xs: showMobileSearch ? "none" : "block", md: "none" },
+            }}
+          />
+
+          {/* RIGHT BOX (Action Icons) */}
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
               justifyContent: "flex-end",
-              gap: { xs: 1, sm: 1.5 },
-              flexGrow: { xs: showMobileSearch ? 0 : 1, md: 0 },
+              gap: { xs: 0.5, sm: 1.5 },
+              flexShrink: 0,
             }}
           >
             <IconButton
@@ -452,7 +366,6 @@ const Header = () => {
             >
               <Search size={18} strokeWidth={1.5} />
             </IconButton>
-
             <IconButton
               onClick={handleToggleTheme}
               sx={{
@@ -466,7 +379,6 @@ const Header = () => {
                 <Moon size={18} strokeWidth={1.5} />
               )}
             </IconButton>
-
             <IconButton onClick={handleNotifOpen} sx={iconBtnStyle}>
               <Badge
                 badgeContent={unreadCount}
@@ -483,7 +395,6 @@ const Header = () => {
                 <Bell size={18} strokeWidth={1.5} />
               </Badge>
             </IconButton>
-
             {isCashier && (
               <IconButton
                 onClick={handleToggleCart}
@@ -508,23 +419,22 @@ const Header = () => {
                 </Badge>
               </IconButton>
             )}
-
             <Divider
               orientation="vertical"
               flexItem
-              sx={{ height: 24, alignSelf: "center", mx: { xs: 0, sm: 0.5 } }}
+              sx={{ height: 24, alignSelf: "center", mx: { xs: 0.5, sm: 0.5 } }}
             />
-
             <Avatar
               onClick={handleProfileOpen}
               src={getAvatarUrl(user?.fullName)}
               sx={{
-                width: { xs: 32, sm: 36 },
-                height: { xs: 32, sm: 36 },
+                width: { xs: 30, sm: 36 },
+                height: { xs: 30, sm: 36 },
                 cursor: "pointer",
                 border: "1px solid",
                 borderRadius: "50%",
                 borderColor: alpha(theme.palette.divider, 0.8),
+                flexShrink: 0,
                 "&:hover": {
                   borderColor: alpha(theme.palette.secondary.main, 0.4),
                 },
@@ -535,7 +445,6 @@ const Header = () => {
       </AppBar>
 
       {isCashier && <HeaderCart open={cartOpen} onClose={handleToggleCart} />}
-
       <ProfilePopover
         open={Boolean(profileAnchorEl)}
         anchorEl={profileAnchorEl}
@@ -544,7 +453,6 @@ const Header = () => {
         isCashier={isCashier}
         onOpenCart={handleToggleCart}
       />
-
       {notifOpen && (
         <NotificationPopover
           open={Boolean(notifAnchorEl)}

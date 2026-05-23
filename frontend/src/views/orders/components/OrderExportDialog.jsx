@@ -27,9 +27,8 @@ import {
   Select,
   Stack,
   useTheme,
-
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
+
 import { MobileDatePicker } from "@mui/x-date-pickers/MobileDatePicker";
 
 import { getOrders } from "@api/orderApi.js";
@@ -88,8 +87,12 @@ const OrderExportDialog = ({ open, onClose }) => {
       headers: csvHeaders,
       mapRow: (row) => {
         const getItemType = (row) => {
-          const hasService = row.items?.some((item) => item.product?.type === "SERVICE");
-          const hasSparepart = row.items?.some((item) => item.product?.type === "SPAREPART");
+          const hasService = row.items?.some(
+            (item) => item.product?.type === "SERVICE"
+          );
+          const hasSparepart = row.items?.some(
+            (item) => item.product?.type === "SPAREPART"
+          );
 
           if (hasService && hasSparepart) return "Campuran";
           if (hasService) return "Servis";
@@ -129,26 +132,21 @@ const OrderExportDialog = ({ open, onClose }) => {
       onClose={isFetching ? undefined : onClose}
       maxWidth="xs"
       fullWidth
-      slotProps={{
-        paper : {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        }
-      }}
-   
     >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight : 500
         }}
       >
         Export CSV
-        <IconButton onClick={onClose} disabled={isFetching} size="small">
+        <IconButton
+          onClick={onClose}
+          disabled={isFetching}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -156,9 +154,8 @@ const OrderExportDialog = ({ open, onClose }) => {
       <Divider />
 
       <DialogContent>
-        <Stack spacing={2.5}>
-   
-
+        <Stack sx={{ gap: theme.spacing(2.5) }}>
+          {/* Rentang Tanggal */}
           <MobileDatePicker
             label="Dari Tanggal"
             value={startDate}
@@ -169,7 +166,6 @@ const OrderExportDialog = ({ open, onClose }) => {
             slotProps={{
               textField: {
                 fullWidth: true,
-                sx: { fontWeight: 400 },
               },
             }}
           />
@@ -184,24 +180,21 @@ const OrderExportDialog = ({ open, onClose }) => {
             slotProps={{
               textField: {
                 fullWidth: true,
-                sx: { fontWeight: 400 },
               },
             }}
           />
 
+          {/* Filter Status */}
           <FormControl fullWidth>
-            <InputLabel sx={{ fontWeight: 400 }}>Status</InputLabel>
+            <InputLabel>Status</InputLabel>
             <Select
               value={status}
               label="Status"
               onChange={(e) => setStatus(e.target.value)}
-              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="" sx={{ fontWeight: 400 }}>
-                Semua
-              </MenuItem>
+              <MenuItem value="">Semua</MenuItem>
               {Object.entries(OrderStatus).map(([key, value]) => (
-                <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
+                <MenuItem key={key} value={value}>
                   {normalizeEnumText(value)}
                 </MenuItem>
               ))}
@@ -215,8 +208,6 @@ const OrderExportDialog = ({ open, onClose }) => {
       <DialogActions
         sx={{
           justifyContent: "space-between",
-          px: 3,
-          py: 2,
         }}
       >
         <Button
@@ -224,17 +215,15 @@ const OrderExportDialog = ({ open, onClose }) => {
           variant="outlined"
           onClick={handleReset}
           disabled={isFetching}
-          sx={{ fontWeight: 400 }}
         >
           Reset
         </Button>
-        <Stack direction="row" sx={{ gap: 1.5 }}>
+        <Stack direction="row" sx={{ gap: theme.spacing(1.5) }}>
           <Button
             color="inherit"
             variant="outlined"
             disabled={isFetching}
             onClick={onClose}
-            sx={{ fontWeight: 400 }}
           >
             Batal
           </Button>
@@ -243,14 +232,10 @@ const OrderExportDialog = ({ open, onClose }) => {
             onClick={handleExport}
             disabled={isFetching}
             startIcon={
-              isFetching ? <CircularProgress size={14} color="inherit" /> : null
+              isFetching ? (
+                <CircularProgress size={14} color="inherit" />
+              ) : null
             }
-            sx={{
-              fontWeight: 400,
-              "&:hover": {
-                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-              },
-            }}
           >
             {isFetching ? "Mengexport..." : "Export"}
           </Button>

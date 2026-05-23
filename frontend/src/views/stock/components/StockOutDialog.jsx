@@ -32,7 +32,6 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 
 import { getProducts } from "@api/productApi.js";
 import { ProductType, StockSourceType } from "@shared/constant";
@@ -98,25 +97,21 @@ const StockOutDialog = ({ open, onClose }) => {
       maxWidth="xs"
       onClose={isSubmitting ? undefined : handleClose}
       open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
     >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Stok Keluar
-        <IconButton onClick={handleClose} disabled={isSubmitting} size="small">
+        <IconButton
+          onClick={handleClose}
+          disabled={isSubmitting}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -124,7 +119,8 @@ const StockOutDialog = ({ open, onClose }) => {
       <Divider />
 
       <DialogContent>
-        <Stack sx={{ gap: 2.5 }}>
+        <Stack sx={{ gap: theme.spacing(2.5) }}>
+          {/* Pilih Produk */}
           <Controller
             name="product"
             control={control}
@@ -155,10 +151,10 @@ const StockOutDialog = ({ open, onClose }) => {
                   return (
                     <Box key={key} component="li" {...rest}>
                       <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                        <Typography variant="body2">
                           {option.name}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                        <Typography variant="caption" color="text.secondary">
                           SKU: {option.sku || "—"} • Stok: {option.stock ?? 0}
                         </Typography>
                       </Box>
@@ -175,6 +171,7 @@ const StockOutDialog = ({ open, onClose }) => {
             )}
           />
 
+          {/* Jumlah */}
           <Controller
             name="quantity"
             control={control}
@@ -193,25 +190,23 @@ const StockOutDialog = ({ open, onClose }) => {
                 disabled={isSubmitting}
                 slotProps={{
                   htmlInput: { min: 1 },
-                  input: { sx: { fontWeight: 400 } },
-                  inputLabel: { sx: { fontWeight: 400 } },
-                  formHelperText: { sx: { fontWeight: 400 } },
                 }}
               />
             )}
           />
 
+          {/* Sumber */}
           <Controller
             name="sourceType"
             control={control}
             render={({ field }) => (
               <FormControl fullWidth disabled={isSubmitting}>
-                <InputLabel sx={{ fontWeight: 400 }}>Sumber</InputLabel>
-                <Select {...field} label="Sumber" sx={{ fontWeight: 400 }}>
+                <InputLabel>Sumber</InputLabel>
+                <Select {...field} label="Sumber">
                   {Object.entries(StockSourceType)
                     .filter(([key]) => !["PURCHASE", "RETURN"].includes(key))
                     .map(([key, value]) => (
-                      <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
+                      <MenuItem key={key} value={value}>
                         {normalizeEnumText(value)}
                       </MenuItem>
                     ))}
@@ -220,6 +215,7 @@ const StockOutDialog = ({ open, onClose }) => {
             )}
           />
 
+          {/* Catatan */}
           <Controller
             name="note"
             control={control}
@@ -232,10 +228,6 @@ const StockOutDialog = ({ open, onClose }) => {
                 multiline
                 rows={3}
                 disabled={isSubmitting}
-                slotProps={{
-                  input: { sx: { fontWeight: 400 } },
-                  inputLabel: { sx: { fontWeight: 400 } },
-                }}
               />
             )}
           />
@@ -250,7 +242,6 @@ const StockOutDialog = ({ open, onClose }) => {
           variant="outlined"
           disabled={isSubmitting}
           onClick={handleClose}
-          sx={{ fontWeight: 400 }}
         >
           Batal
         </Button>
@@ -259,14 +250,10 @@ const StockOutDialog = ({ open, onClose }) => {
           variant="contained"
           disabled={isSubmitting}
           startIcon={
-            isSubmitting ? <CircularProgress size={14} color="inherit" /> : null
+            isSubmitting ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
           }
-          sx={{
-            fontWeight: 400,
-            "&:hover": {
-              boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-            },
-          }}
         >
           {isSubmitting ? "Menyimpan..." : "Simpan"}
         </Button>

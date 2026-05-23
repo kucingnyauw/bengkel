@@ -44,19 +44,69 @@ import { useVehicleDetailQuery } from "@views/vehicles/hooks";
 
 const DetailSkeleton = () => (
   <Stack sx={{ gap: 3 }}>
-    <Skeleton variant="rounded" height={100} sx={{ borderRadius: 2 }} />
-    <Skeleton variant="rounded" height={120} sx={{ borderRadius: 2 }} />
-    <Skeleton variant="rounded" height={80} sx={{ borderRadius: 2 }} />
+    <Skeleton variant="rounded" height={100} />
+    <Skeleton variant="rounded" height={120} />
+    <Skeleton variant="rounded" height={80} />
+  </Stack>
+);
+
+const SectionHeader = ({ title, count, expanded, onToggle }) => (
+  <Box
+    onClick={onToggle}
+    sx={(theme) => ({
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      px: theme.spacing(2),
+      py: theme.spacing(2),
+      cursor: "pointer",
+      userSelect: "none",
+      transition: theme.transitions.create("background-color", {
+        duration: theme.transitions.duration.shorter,
+      }),
+      "&:hover": {
+        bgcolor: alpha(theme.palette.secondary.main, 0.04),
+      },
+    })}
+  >
+    <Stack direction="row" sx={{ gap: 1, alignItems: "center" }}>
+      <Typography variant="subtitle2">{title}</Typography>
+      <Chip label={count} size="small" variant="outlined" />
+    </Stack>
+    <ChevronDown
+      size={16}
+      strokeWidth={1.5}
+      style={{
+        flexShrink: 0,
+        transition: "transform 0.2s ease",
+        transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+        opacity: 0.5,
+      }}
+    />
+  </Box>
+);
+
+const DetailRow = ({ label, value }) => (
+  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+    <Typography variant="body2" color="text.secondary">
+      {label}
+    </Typography>
+    <Typography variant="body2">{value}</Typography>
   </Stack>
 );
 
 const VehicleDetailDialog = ({ open, vehicleId, customer, onClose }) => {
   const theme = useTheme();
   const vehicles = customer?.vehicles || [];
-  const [selectedId, setSelectedId] = useState(vehicleId || vehicles[0]?.id || "");
+  const [selectedId, setSelectedId] = useState(
+    vehicleId || vehicles[0]?.id || ""
+  );
   const [ordersExpanded, setOrdersExpanded] = useState(false);
 
-  const { data: vehicle, isLoading } = useVehicleDetailQuery(selectedId, open && !!selectedId);
+  const { data: vehicle, isLoading } = useVehicleDetailQuery(
+    selectedId,
+    open && !!selectedId
+  );
 
   useEffect(() => {
     if (open) {
@@ -73,30 +123,16 @@ const VehicleDetailDialog = ({ open, vehicleId, customer, onClose }) => {
   };
 
   return (
-    <Dialog
-      fullWidth
-      maxWidth="sm"
-      onClose={handleClose}
-      open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
-    >
+    <Dialog fullWidth maxWidth="sm" onClose={handleClose} open={open}>
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Detail Kendaraan
-        <IconButton onClick={handleClose} size="small">
+        <IconButton onClick={handleClose} size="small" sx={{ mr: -0.5 }}>
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -104,22 +140,20 @@ const VehicleDetailDialog = ({ open, vehicleId, customer, onClose }) => {
       <Divider />
 
       <DialogContent>
+        {/* Pilihan Kendaraan (jika lebih dari 1) */}
         {vehicles.length > 1 && (
-          <FormControl fullWidth sx={{ mb: 3 }}>
-            <InputLabel sx={{ fontWeight: 400 }}>Pilih Kendaraan</InputLabel>
+          <FormControl fullWidth sx={{ mb: theme.spacing(3) }}>
+            <InputLabel>Pilih Kendaraan</InputLabel>
             <Select
               value={selectedId}
               label="Pilih Kendaraan"
               onChange={(e) => setSelectedId(e.target.value)}
-              sx={{ fontWeight: 400 }}
             >
               {vehicles.map((v) => (
-                <MenuItem key={v.id} value={v.id} sx={{ fontWeight: 400 }}>
+                <MenuItem key={v.id} value={v.id}>
                   <Stack>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {v.plateNumber}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                    <Typography variant="body2">{v.plateNumber}</Typography>
+                    <Typography variant="caption" color="text.secondary">
                       {v.brand} {v.model}
                     </Typography>
                   </Stack>
@@ -132,148 +166,74 @@ const VehicleDetailDialog = ({ open, vehicleId, customer, onClose }) => {
         {isLoading ? (
           <DetailSkeleton />
         ) : vehicle ? (
-          <Stack sx={{ gap: 3 }}>
-            <Card
-              sx={{
-                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                boxShadow: "none",
-              }}
-            >
-              <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+          <Stack sx={{ gap: theme.spacing(3) }}>
+            {/* Informasi Kendaraan */}
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ mb: theme.spacing(2) }}>
                   Informasi Kendaraan
                 </Typography>
-                <Stack sx={{ gap: 1.5 }}>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Plat Nomor
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {vehicle.plateNumber}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Merek
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {vehicle.brand || "—"}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Model
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {vehicle.model || "—"}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Tanggal Terdaftar
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {formatDateTime(vehicle.createdAt)}
-                    </Typography>
-                  </Stack>
+                <Stack sx={{ gap: theme.spacing(1.5) }}>
+                  <DetailRow
+                    label="Plat Nomor"
+                    value={vehicle.plateNumber}
+                  />
+                  <DetailRow label="Merek" value={vehicle.brand || "—"} />
+                  <DetailRow label="Model" value={vehicle.model || "—"} />
+                  <DetailRow
+                    label="Tanggal Terdaftar"
+                    value={formatDateTime(vehicle.createdAt)}
+                  />
                 </Stack>
               </CardContent>
             </Card>
 
+            {/* Pemilik */}
             {vehicle.customer && (
-              <Card
-                sx={{
-                  border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                  boxShadow: "none",
-                }}
-              >
-                <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
-                  <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="subtitle2" sx={{ mb: theme.spacing(2) }}>
                     Pemilik
                   </Typography>
-                  <Stack sx={{ gap: 1.5 }}>
-                    <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                        Nama
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                        {vehicle.customer.name}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                        Telepon
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                        {vehicle.customer.phone || "—"}
-                      </Typography>
-                    </Stack>
+                  <Stack sx={{ gap: theme.spacing(1.5) }}>
+                    <DetailRow label="Nama" value={vehicle.customer.name} />
+                    <DetailRow
+                      label="Telepon"
+                      value={vehicle.customer.phone || "—"}
+                    />
                   </Stack>
                 </CardContent>
               </Card>
             )}
 
-            <Card
-              sx={{
-                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                boxShadow: "none",
-                overflow: "hidden",
-              }}
-            >
-              <Box
-                onClick={() => setOrdersExpanded(!ordersExpanded)}
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  px: 2,
-                  py: 2,
-                  cursor: "pointer",
-                  userSelect: "none",
-                  transition: "background-color 0.15s ease",
-                  "&:hover": {
-                    bgcolor: alpha(theme.palette.secondary.main, 0.04),
-                  },
-                }}
-              >
-                <Stack direction="row" sx={{ gap: 1, alignItems: "center" }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 400 }}>
-                    Riwayat Order
-                  </Typography>
-                  <Chip
-                    label={vehicle.orders?.length || 0}
-                    size="small"
-                    variant="outlined"
-                    sx={{ fontWeight: 400 }}
-                  />
-                </Stack>
-                <ChevronDown
-                  size={16}
-                  strokeWidth={1.5}
-                  style={{
-                    flexShrink: 0,
-                    transition: "transform 0.2s ease",
-                    transform: ordersExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                    opacity: 0.5,
-                  }}
-                />
-              </Box>
+            {/* Riwayat Order */}
+            <Card>
+              <SectionHeader
+                title="Riwayat Order"
+                count={vehicle.orders?.length || 0}
+                expanded={ordersExpanded}
+                onToggle={() => setOrdersExpanded(!ordersExpanded)}
+              />
 
               <Collapse in={ordersExpanded} timeout="auto" unmountOnExit>
                 <Divider />
-                <CardContent sx={{ pt: 2 }}>
+                <CardContent sx={{ pt: theme.spacing(2) }}>
                   {vehicle.orders?.length > 0 ? (
                     <Stack spacing={0}>
                       {vehicle.orders.map((order, index) => (
                         <Box key={order.id}>
                           <Stack
                             direction="row"
-                            sx={{ justifyContent: "space-between", alignItems: "center", py: 1.5 }}
+                            sx={{
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              py: theme.spacing(1.5),
+                            }}
                           >
-                            <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                            <Typography variant="body2">
                               {order.orderNumber}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                            <Typography variant="caption" color="text.secondary">
                               {formatDateTime(order.createdAt)}
                             </Typography>
                           </Stack>
@@ -282,25 +242,53 @@ const VehicleDetailDialog = ({ open, vehicleId, customer, onClose }) => {
                       ))}
                     </Stack>
                   ) : (
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400, textAlign: "center", py: 2 }}>
-                      Belum ada riwayat order
-                    </Typography>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        py: theme.spacing(4),
+                        gap: theme.spacing(1),
+                      }}
+                    >
+                      <Typography variant="body1" color="text.secondary">
+                        Belum ada riwayat order
+                      </Typography>
+                      <Typography variant="caption" color="text.disabled">
+                        Kendaraan ini belum memiliki pesanan
+                      </Typography>
+                    </Box>
                   )}
                 </CardContent>
               </Collapse>
             </Card>
           </Stack>
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 4, fontWeight: 400 }}>
-            Data tidak ditemukan
-          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              py: theme.spacing(4),
+              gap: theme.spacing(1),
+            }}
+          >
+            <Typography variant="body1" color="text.secondary">
+              Data tidak ditemukan
+            </Typography>
+            <Typography variant="caption" color="text.disabled">
+              Kendaraan mungkin telah dihapus atau ID tidak valid
+            </Typography>
+          </Box>
         )}
       </DialogContent>
 
       <Divider />
 
       <DialogActions>
-        <Button variant="outlined" onClick={handleClose} sx={{ fontWeight: 400 }}>
+        <Button variant="outlined" onClick={handleClose}>
           Tutup
         </Button>
       </DialogActions>

@@ -25,12 +25,9 @@ import {
   Divider,
   IconButton,
   Typography,
-  useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 
 const TaskActionDialog = ({ dialog, isLoading, onClose, onConfirm }) => {
-  const theme = useTheme();
   const isStart = dialog.type === "start";
 
   return (
@@ -39,25 +36,21 @@ const TaskActionDialog = ({ dialog, isLoading, onClose, onConfirm }) => {
       maxWidth="xs"
       onClose={isLoading ? undefined : onClose}
       open={dialog.open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
     >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         {isStart ? "Mulai Tugas" : "Selesaikan Tugas"}
-        <IconButton onClick={onClose} disabled={isLoading} size="small">
+        <IconButton
+          onClick={onClose}
+          disabled={isLoading}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -65,7 +58,7 @@ const TaskActionDialog = ({ dialog, isLoading, onClose, onConfirm }) => {
       <Divider />
 
       <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+        <Typography variant="body2" color="text.secondary">
           {isStart
             ? "Apakah Anda yakin ingin memulai tugas ini?"
             : "Apakah Anda yakin ingin menyelesaikan tugas ini?"}
@@ -80,7 +73,6 @@ const TaskActionDialog = ({ dialog, isLoading, onClose, onConfirm }) => {
           variant="outlined"
           disabled={isLoading}
           onClick={onClose}
-          sx={{ fontWeight: 400 }}
         >
           Batal
         </Button>
@@ -89,14 +81,10 @@ const TaskActionDialog = ({ dialog, isLoading, onClose, onConfirm }) => {
           disabled={isLoading}
           onClick={() => onConfirm(dialog.task)}
           startIcon={
-            isLoading ? <CircularProgress size={14} color="inherit" /> : null
+            isLoading ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
           }
-          sx={{
-            fontWeight: 400,
-            "&:hover": {
-              boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-            },
-          }}
         >
           {isLoading ? "Memproses..." : isStart ? "Mulai" : "Selesaikan"}
         </Button>

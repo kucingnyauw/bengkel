@@ -16,6 +16,7 @@ import { selectUser } from "@store/auth/authSelector.js";
 import { filterMenuByRole, menuItems } from "@menu/index.js";
 import { useDevice } from "@hooks/useDevice.js";
 
+import INFO from "@data/Info.js";
 import MenuItem from "@layout/sidebar/MenuItem.jsx";
 
 /**
@@ -42,11 +43,6 @@ const Sidebar = () => {
    * Effect untuk menandai menu item yang aktif berdasarkan URL saat ini
    */
   useEffect(() => {
-    /**
-     * Mencari item menu yang aktif berdasarkan pathname
-     * @param {Array} items - Array menu items
-     * @returns {string|null} ID item yang aktif atau null
-     */
     const findActiveItem = (items) => {
       for (const item of items) {
         if (item.url && location.pathname === item.url) return item.id;
@@ -77,6 +73,37 @@ const Sidebar = () => {
     : SIDEBAR.COLLAPSED_WIDTH;
 
   /**
+   * Logo component
+   */
+  const LogoSection = (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: isMobile ? "flex-start" : "center",
+        px: isMobile ? 2 : isSidebarOpen ? 2.5 : 1,
+        py: 2,
+        flexShrink: 0,
+      }}
+    >
+      <Box
+        component="img"
+        src={INFO.logoUrl}
+        alt={INFO.name}
+        sx={{
+          height: 36,
+          width: "auto",
+          maxWidth: isMobile || isSidebarOpen ? 120 : 36,
+          objectFit: "contain",
+          transition: theme.transitions.create("max-width", {
+            duration: "0.3s",
+          }),
+        }}
+      />
+    </Box>
+  );
+
+  /**
    * Menu content yang akan dirender di sidebar/drawer
    */
   const MenuContent = (
@@ -85,8 +112,8 @@ const Sidebar = () => {
         flexGrow: 1,
         overflowY: "auto",
         overflowX: "hidden",
-        px: isSidebarOpen ? 2 : 1,
-        py: 2.5,
+        px: isMobile || isSidebarOpen ? 2 : 1,
+        py: 1,
         display: "flex",
         flexDirection: "column",
         gap: 0.5,
@@ -118,7 +145,7 @@ const Sidebar = () => {
   );
 
   /**
-   * Mobile: render sebagai Drawer
+   * Mobile: render sebagai Drawer full height dengan logo
    */
   if (isMobile) {
     return (
@@ -128,20 +155,22 @@ const Sidebar = () => {
         onClose={() => dispatch(toggleSidebar())}
         ModalProps={{ keepMounted: true }}
         sx={{
-          zIndex: theme.zIndex.appBar - 10,
+          zIndex: theme.zIndex.appBar + 1,
           "& .MuiDrawer-paper": {
-            top: HEADER.MOBILE_HEIGHT,
-            height: `calc(100% - ${HEADER.MOBILE_HEIGHT}px)`,
+            top: 0,
+            height: "100%",
             width: SIDEBAR.EXPANDED_WIDTH,
             borderRadius: 0,
             border: "none",
-            borderRight: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            backgroundColor: alpha(theme.palette.background.paper, 0.9),
+            borderRight: `1px solid ${theme.palette.divider}`,
+            backgroundColor: theme.palette.background.paper,
+            boxShadow: `4px 0 20px -8px ${alpha(theme.palette.common.black, 0.12)}`,
+            display: "flex",
+            flexDirection: "column",
           },
         }}
       >
+        {LogoSection}
         {MenuContent}
       </Drawer>
     );
@@ -170,11 +199,9 @@ const Sidebar = () => {
         overflowX: "hidden",
         borderRadius: 0,
         border: "none",
-        borderRight: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        backgroundColor: alpha(theme.palette.background.paper, 0.8),
-        boxShadow: `2px 0 12px -6px ${alpha(theme.palette.secondary.main, 0.08)}`,
+        borderRight: `1px solid ${theme.palette.divider}`,
+        backgroundColor: theme.palette.background.paper,
+        boxShadow: `4px 0 20px -8px ${alpha(theme.palette.common.black, 0.08)}`,
       }}
     >
       {MenuContent}

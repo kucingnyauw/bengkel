@@ -41,18 +41,15 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 
 import { useUserForm } from "@views/users/hooks";
-import { useCreateUserMutation, useUpdateUserMutation } from "@views/users/hooks";
+import {
+  useCreateUserMutation,
+  useUpdateUserMutation,
+} from "@views/users/hooks";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
-const UserFormDialog = ({
-  open,
-  user,
-  onClose,
-  type = "create",
-}) => {
+const UserFormDialog = ({ open, user, onClose, type = "create" }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const isEdit = type === "edit";
@@ -170,25 +167,21 @@ const UserFormDialog = ({
       onClose={isPending ? undefined : handleClose}
       maxWidth="xs"
       fullWidth
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
     >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         {isEdit ? "Edit Karyawan" : "Tambah Karyawan"}
-        <IconButton onClick={handleClose} disabled={isPending} size="small">
+        <IconButton
+          onClick={handleClose}
+          disabled={isPending}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -197,7 +190,8 @@ const UserFormDialog = ({
 
       <Box component="form" onSubmit={handleSubmit(onSubmit)}>
         <DialogContent>
-          <Stack sx={{ gap: 2.5 }}>
+          <Stack sx={{ gap: theme.spacing(2.5) }}>
+            {/* Email */}
             <Controller
               name="email"
               control={control}
@@ -218,15 +212,11 @@ const UserFormDialog = ({
                   disabled={isEdit}
                   error={!!errors.email}
                   helperText={errors.email?.message}
-                  slotProps={{
-                    input: { sx: { fontWeight: 400 } },
-                    inputLabel: { sx: { fontWeight: 400 } },
-                    formHelperText: { sx: { fontWeight: 400 } },
-                  }}
                 />
               )}
             />
 
+            {/* Nama Lengkap */}
             <Controller
               name="fullName"
               control={control}
@@ -241,15 +231,11 @@ const UserFormDialog = ({
                   error={!!errors.fullName}
                   helperText={errors.fullName?.message}
                   disabled={isPending}
-                  slotProps={{
-                    input: { sx: { fontWeight: 400 } },
-                    inputLabel: { sx: { fontWeight: 400 } },
-                    formHelperText: { sx: { fontWeight: 400 } },
-                  }}
                 />
               )}
             />
 
+            {/* Nomor Telepon */}
             <Controller
               name="phone"
               control={control}
@@ -260,33 +246,31 @@ const UserFormDialog = ({
                   label="Nomor Telepon"
                   placeholder="08123456789"
                   disabled={isPending}
-                  slotProps={{
-                    input: { sx: { fontWeight: 400 } },
-                    inputLabel: { sx: { fontWeight: 400 } },
-                  }}
                 />
               )}
             />
 
+            {/* Role */}
             <Controller
               name="role"
               control={control}
               rules={{ required: "Role wajib dipilih" }}
               render={({ field }) => (
-                <FormControl fullWidth error={!!errors.role} disabled={isPending}>
-                  <InputLabel sx={{ fontWeight: 400 }}>Role</InputLabel>
-                  <Select {...field} label="Role" sx={{ fontWeight: 400 }}>
-                    <MenuItem value="CASHIER" sx={{ fontWeight: 400 }}>
-                      Kasir
-                    </MenuItem>
-                    <MenuItem value="MECHANIC" sx={{ fontWeight: 400 }}>
-                      Mekanik
-                    </MenuItem>
+                <FormControl
+                  fullWidth
+                  error={!!errors.role}
+                  disabled={isPending}
+                >
+                  <InputLabel>Role</InputLabel>
+                  <Select {...field} label="Role">
+                    <MenuItem value="CASHIER">Kasir</MenuItem>
+                    <MenuItem value="MECHANIC">Mekanik</MenuItem>
                   </Select>
                 </FormControl>
               )}
             />
 
+            {/* Status Aktif (Edit only) */}
             {isEdit && (
               <Controller
                 name="isActive"
@@ -301,7 +285,7 @@ const UserFormDialog = ({
                       />
                     }
                     label={
-                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                      <Typography variant="body2">
                         {field.value ? "Aktif" : "Nonaktif"}
                       </Typography>
                     }
@@ -320,7 +304,6 @@ const UserFormDialog = ({
             variant="outlined"
             disabled={isPending}
             onClick={handleClose}
-            sx={{ fontWeight: 400 }}
           >
             Batal
           </Button>
@@ -329,14 +312,10 @@ const UserFormDialog = ({
             type="submit"
             disabled={isPending || (isEdit && !isDirty)}
             startIcon={
-              isPending ? <CircularProgress size={14} color="inherit" /> : null
+              isPending ? (
+                <CircularProgress size={14} color="inherit" />
+              ) : null
             }
-            sx={{
-              fontWeight: 400,
-              "&:hover": {
-                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-              },
-            }}
           >
             {isPending
               ? "Menyimpan..."

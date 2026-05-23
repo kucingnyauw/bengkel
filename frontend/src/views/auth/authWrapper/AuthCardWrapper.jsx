@@ -6,49 +6,42 @@
  * @param {React.ReactNode} props.children - Child components
  * @returns {JSX.Element} Rendered auth card
  */
-import { Card, alpha, styled } from "@mui/material";
+import { Card, useTheme } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
-const AuthCardWrapper = styled(Card)(({ theme }) => ({
-  width: "100%",
-  maxWidth: 440,
-  maxHeight: 400,
-  margin: "0 auto",
-  padding: theme.spacing(6),
+const AuthCardWrapper = ({ children }) => {
+  const theme = useTheme();
 
-  display: "flex",
-  flexDirection: "column",
-
-  backgroundColor: alpha(theme.palette.background.paper, 0.78),
-  backdropFilter: "blur(14px)",
-  WebkitBackdropFilter: "blur(14px)",
-
-  borderRadius: 16,
-  border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
-
-  boxShadow: `0 8px 30px ${alpha(theme.palette.common.black, 0.08)}`,
-
-  transition: theme.transitions.create(
-    ["box-shadow", "border-color", "transform"],
-    {
-      duration: theme.transitions.duration.standard,
-    }
-  ),
-
-  "&:hover": {
-    boxShadow: `0 12px 40px ${alpha(theme.palette.common.black, 0.12)}`,
-    borderColor: alpha(theme.palette.primary.main, 0.35),
-  },
-
-  [theme.breakpoints.down("md")]: {
-    padding: theme.spacing(4),
-    maxWidth: 420,
-  },
-
-  [theme.breakpoints.down("sm")]: {
-    padding: theme.spacing(4, 2.5),
-    maxWidth: "calc(100vw - 32px)",
-    borderRadius: 20,
-  },
-}));
+  return (
+    <Card
+      sx={{
+        width: "100%",
+        maxWidth: 440,
+        margin: "0 auto",
+        px: { xs: 3, sm: 5 },
+        py: { xs: 4, sm: 5 },
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        backgroundColor: alpha(theme.palette.background.paper, 0.85),
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        borderRadius: { xs: 3, sm: 4 },
+        border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+        boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.06)}`,
+        transition: theme.transitions.create(
+          ["box-shadow", "border-color"],
+          { duration: theme.transitions.duration.standard }
+        ),
+        "&:hover": {
+          boxShadow: `0 12px 40px ${alpha(theme.palette.common.black, 0.1)}`,
+          borderColor: alpha(theme.palette.secondary.main, 0.3),
+        },
+      }}
+    >
+      {children}
+    </Card>
+  );
+};
 
 export default AuthCardWrapper;

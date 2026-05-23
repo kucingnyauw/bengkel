@@ -37,7 +37,6 @@ import {
   TextField,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 
 const PosProductFilterDialog = ({
   onApply,
@@ -50,30 +49,16 @@ const PosProductFilterDialog = ({
   const theme = useTheme();
 
   return (
-    <Dialog
-      fullWidth
-      maxWidth="xs"
-      onClose={onClose}
-      open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
-    >
+    <Dialog fullWidth maxWidth="xs" onClose={onClose} open={open}>
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Filter Produk
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={onClose} size="small" sx={{ mr: -0.5 }}>
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -81,51 +66,40 @@ const PosProductFilterDialog = ({
       <Divider />
 
       <DialogContent>
-        <Stack sx={{ gap: 2.5 }}>
+        <Stack sx={{ gap: theme.spacing(2.5) }}>
+          {/* Filter Tipe */}
           <FormControl fullWidth>
-            <InputLabel sx={{ fontWeight: 400 }}>Tipe</InputLabel>
+            <InputLabel>Tipe</InputLabel>
             <Select
               label="Tipe"
               onChange={(e) =>
                 onFilterChange({ ...tempFilters, type: e.target.value })
               }
               value={tempFilters.type || ""}
-              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="" sx={{ fontWeight: 400 }}>
-                Semua
-              </MenuItem>
-              <MenuItem value="SPAREPART" sx={{ fontWeight: 400 }}>
-                Sparepart
-              </MenuItem>
-              <MenuItem value="SERVICE" sx={{ fontWeight: 400 }}>
-                Servis
-              </MenuItem>
+              <MenuItem value="">Semua</MenuItem>
+              <MenuItem value="SPAREPART">Sparepart</MenuItem>
+              <MenuItem value="SERVICE">Servis</MenuItem>
             </Select>
           </FormControl>
 
+          {/* Filter Status */}
           <FormControl fullWidth>
-            <InputLabel sx={{ fontWeight: 400 }}>Status</InputLabel>
+            <InputLabel>Status</InputLabel>
             <Select
               label="Status"
               onChange={(e) =>
                 onFilterChange({ ...tempFilters, isActive: e.target.value })
               }
               value={tempFilters.isActive || ""}
-              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="" sx={{ fontWeight: 400 }}>
-                Semua
-              </MenuItem>
-              <MenuItem value="true" sx={{ fontWeight: 400 }}>
-                Aktif
-              </MenuItem>
-              <MenuItem value="false" sx={{ fontWeight: 400 }}>
-                Nonaktif
-              </MenuItem>
+              <MenuItem value="">Semua</MenuItem>
+              <MenuItem value="true">Aktif</MenuItem>
+              <MenuItem value="false">Nonaktif</MenuItem>
             </Select>
           </FormControl>
 
+          {/* Harga Minimal */}
           <TextField
             fullWidth
             label="Harga Minimal"
@@ -136,11 +110,10 @@ const PosProductFilterDialog = ({
             value={tempFilters.minPrice || ""}
             slotProps={{
               htmlInput: { min: 0 },
-              input: { sx: { fontWeight: 400 } },
-              inputLabel: { sx: { fontWeight: 400 } },
             }}
           />
 
+          {/* Harga Maksimal */}
           <TextField
             fullWidth
             label="Harga Maksimal"
@@ -151,11 +124,10 @@ const PosProductFilterDialog = ({
             value={tempFilters.maxPrice || ""}
             slotProps={{
               htmlInput: { min: 0 },
-              input: { sx: { fontWeight: 400 } },
-              inputLabel: { sx: { fontWeight: 400 } },
             }}
           />
 
+          {/* Stok di Bawah */}
           <TextField
             fullWidth
             label="Stok di Bawah"
@@ -169,52 +141,38 @@ const PosProductFilterDialog = ({
             value={tempFilters.lowStockThreshold || ""}
             slotProps={{
               htmlInput: { min: 0 },
-              input: { sx: { fontWeight: 400 } },
-              inputLabel: { sx: { fontWeight: 400 } },
             }}
           />
 
+          {/* Urutkan */}
           <FormControl fullWidth>
-            <InputLabel sx={{ fontWeight: 400 }}>Urutkan</InputLabel>
+            <InputLabel>Urutkan</InputLabel>
             <Select
               label="Urutkan"
               onChange={(e) =>
                 onFilterChange({ ...tempFilters, sortBy: e.target.value })
               }
               value={tempFilters.sortBy || ""}
-              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="createdAt" sx={{ fontWeight: 400 }}>
-                Terbaru
-              </MenuItem>
-              <MenuItem value="name" sx={{ fontWeight: 400 }}>
-                Nama
-              </MenuItem>
-              <MenuItem value="price" sx={{ fontWeight: 400 }}>
-                Harga
-              </MenuItem>
-              <MenuItem value="stock" sx={{ fontWeight: 400 }}>
-                Stok
-              </MenuItem>
+              <MenuItem value="createdAt">Terbaru</MenuItem>
+              <MenuItem value="name">Nama</MenuItem>
+              <MenuItem value="price">Harga</MenuItem>
+              <MenuItem value="stock">Stok</MenuItem>
             </Select>
           </FormControl>
 
+          {/* Arah */}
           <FormControl fullWidth>
-            <InputLabel sx={{ fontWeight: 400 }}>Arah</InputLabel>
+            <InputLabel>Arah</InputLabel>
             <Select
               label="Arah"
               onChange={(e) =>
                 onFilterChange({ ...tempFilters, sortOrder: e.target.value })
               }
               value={tempFilters.sortOrder || ""}
-              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="desc" sx={{ fontWeight: 400 }}>
-                Turun
-              </MenuItem>
-              <MenuItem value="asc" sx={{ fontWeight: 400 }}>
-                Naik
-              </MenuItem>
+              <MenuItem value="desc">Turun</MenuItem>
+              <MenuItem value="asc">Naik</MenuItem>
             </Select>
           </FormControl>
         </Stack>
@@ -225,37 +183,16 @@ const PosProductFilterDialog = ({
       <DialogActions
         sx={{
           justifyContent: "space-between",
-          px: 3,
-          py: 2,
         }}
       >
-        <Button
-          color="inherit"
-          variant="outlined"
-          onClick={onReset}
-          sx={{ fontWeight: 400 }}
-        >
+        <Button color="inherit" variant="outlined" onClick={onReset}>
           Reset
         </Button>
-        <Stack direction="row" sx={{ gap: 1.5 }}>
-          <Button
-            color="inherit"
-            variant="outlined"
-            onClick={onClose}
-            sx={{ fontWeight: 400 }}
-          >
+        <Stack direction="row" sx={{ gap: theme.spacing(1.5) }}>
+          <Button color="inherit" variant="outlined" onClick={onClose}>
             Batal
           </Button>
-          <Button
-            variant="contained"
-            onClick={onApply}
-            sx={{
-              fontWeight: 400,
-              "&:hover": {
-                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-              },
-            }}
-          >
+          <Button variant="contained" onClick={onApply}>
             Terapkan
           </Button>
         </Stack>

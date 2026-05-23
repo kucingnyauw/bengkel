@@ -37,40 +37,51 @@ import { useExpenseDetailQuery } from "@views/expenses/hooks";
 
 const DetailSkeleton = () => (
   <Stack sx={{ gap: 3 }}>
-    <Skeleton variant="rounded" height={160} sx={{ borderRadius: 2 }} />
-    <Skeleton variant="rounded" height={200} sx={{ borderRadius: 2 }} />
+    <Skeleton variant="rounded" height={160} />
+    <Skeleton variant="rounded" height={200} />
+  </Stack>
+);
+
+const DetailRow = ({ label, value, endAction }) => (
+  <Stack
+    direction="row"
+    sx={{
+      justifyContent: "space-between",
+      alignItems: "center",
+    }}
+  >
+    <Typography variant="body2" color="text.secondary">
+      {label}
+    </Typography>
+    {endAction ? (
+      <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
+        <Typography variant="body2">{value}</Typography>
+        {endAction}
+      </Stack>
+    ) : (
+      <Typography variant="body2">{value}</Typography>
+    )}
   </Stack>
 );
 
 const ExpenseDetailDialog = ({ expense, onClose, open }) => {
   const theme = useTheme();
-  const { data: detailData, isLoading } = useExpenseDetailQuery(expense?.id, open);
+  const { data: detailData, isLoading } = useExpenseDetailQuery(
+    expense?.id,
+    open
+  );
 
   return (
-    <Dialog
-      fullWidth
-      maxWidth="sm"
-      onClose={onClose}
-      open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
-    >
+    <Dialog fullWidth maxWidth="sm" onClose={onClose} open={open}>
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight : 500
-                }}
+        }}
       >
         Detail Pengeluaran
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={onClose} size="small" sx={{ mr: -0.5 }}>
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -81,87 +92,61 @@ const ExpenseDetailDialog = ({ expense, onClose, open }) => {
         {isLoading ? (
           <DetailSkeleton />
         ) : detailData ? (
-          <Stack sx={{ gap: 3 }}>
+          <Stack sx={{ gap: theme.spacing(3) }}>
             {/* Informasi Pengeluaran */}
-            <Card
-              sx={{
-                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                boxShadow: "none",
-              }}
-            >
-              <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ mb: theme.spacing(2) }}>
                   Informasi Pengeluaran
                 </Typography>
-                <Stack sx={{ gap: 1.5 }}>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Judul
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {detailData.title}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Jumlah
-                    </Typography>
-                    <Typography variant="body2" color="error.main" sx={{ fontWeight: 400 }}>
-                      -{formatToIdr(detailData.amount)}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Kategori
-                    </Typography>
-                    <Chip
-                      color={expenseCategoryColorMap[detailData.category] || "default"}
-                      label={normalizeEnumText(
-                        ExpenseCategory[detailData.category] || detailData.category
-                      )}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontWeight: 400 }}
-                    />
-                  </Stack>
-                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Tanggal
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                      {formatDateTime(detailData.date)}
-                    </Typography>
-                  </Stack>
+                <Stack sx={{ gap: theme.spacing(1.5) }}>
+                  <DetailRow label="Judul" value={detailData.title} />
+                  <DetailRow
+                    label="Jumlah"
+                    value={`-${formatToIdr(detailData.amount)}`}
+                    valueSx={{ color: "error.main" }}
+                  />
+                  <DetailRow
+                    label="Kategori"
+                    value={
+                      <Chip
+                        color={
+                          expenseCategoryColorMap[detailData.category] ||
+                          "default"
+                        }
+                        label={normalizeEnumText(
+                          ExpenseCategory[detailData.category] ||
+                            detailData.category
+                        )}
+                        size="small"
+                        variant="outlined"
+                      />
+                    }
+                  />
+                  <DetailRow
+                    label="Tanggal"
+                    value={formatDateTime(detailData.date)}
+                  />
                   {detailData.description && (
-                    <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
-                        Deskripsi
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                        {detailData.description}
-                      </Typography>
-                    </Stack>
+                    <DetailRow
+                      label="Deskripsi"
+                      value={detailData.description}
+                    />
                   )}
                 </Stack>
               </CardContent>
             </Card>
 
             {/* Bukti Pembayaran */}
-            <Card
-              sx={{
-                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                boxShadow: "none",
-                overflow: "hidden",
-              }}
-            >
-              <Box sx={{ px: 2.5, py: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 400 }}>
+            <Card>
+              <Box sx={{ px: theme.spacing(2.5), py: theme.spacing(2) }}>
+                <Typography variant="subtitle2">
                   Bukti Pembayaran
                 </Typography>
               </Box>
               <Divider />
               {detailData.receipt?.url ? (
-                <Box sx={{ p: 2 }}>
+                <Box sx={{ p: theme.spacing(2) }}>
                   <Box
                     component="img"
                     alt="Bukti Pembayaran"
@@ -182,8 +167,8 @@ const ExpenseDetailDialog = ({ expense, onClose, open }) => {
                     flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    py: 8,
-                    gap: 1.5,
+                    py: theme.spacing(8),
+                    gap: theme.spacing(1.5),
                     bgcolor: alpha(theme.palette.secondary.main, 0.02),
                   }}
                 >
@@ -198,9 +183,13 @@ const ExpenseDetailDialog = ({ expense, onClose, open }) => {
                       justifyContent: "center",
                     }}
                   >
-                    <Receipt size={24} strokeWidth={1.5} style={{ opacity: 0.3 }} />
+                    <Receipt
+                      size={24}
+                      strokeWidth={1.5}
+                      style={{ opacity: 0.3 }}
+                    />
                   </Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  <Typography variant="body2" color="text.secondary">
                     Tidak ada bukti pembayaran
                   </Typography>
                 </Box>
@@ -213,7 +202,7 @@ const ExpenseDetailDialog = ({ expense, onClose, open }) => {
       <Divider />
 
       <DialogActions>
-        <Button variant="outlined" onClick={onClose} sx={{ fontWeight: 400 }}>
+        <Button variant="outlined" onClick={onClose}>
           Tutup
         </Button>
       </DialogActions>

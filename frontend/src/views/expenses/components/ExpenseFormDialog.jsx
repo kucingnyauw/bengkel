@@ -62,7 +62,6 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
     handleSubmit,
     reset,
     setValue,
-    watch,
     formState: { isDirty },
   } = useExpenseForm();
 
@@ -205,25 +204,21 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
       maxWidth="sm"
       onClose={isSubmitting ? undefined : handleClose}
       open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
     >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight : 500
         }}
       >
         {mode === "create" ? "Catat Pengeluaran" : "Edit Pengeluaran"}
-        <IconButton onClick={handleClose} disabled={isSubmitting} size="small">
+        <IconButton
+          onClick={handleClose}
+          disabled={isSubmitting}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -235,7 +230,7 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
           sx={{
             display: "grid",
             gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-            gap: 2.5,
+            gap: theme.spacing(2.5),
           }}
         >
           {/* Judul - Full Width */}
@@ -254,11 +249,6 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
                   helperText={fieldState.error?.message}
                   placeholder="Masukkan judul pengeluaran"
                   disabled={isSubmitting}
-                  slotProps={{
-                    input: { sx: { fontWeight: 400 } },
-                    inputLabel: { sx: { fontWeight: 400 } },
-                    formHelperText: { sx: { fontWeight: 400 } },
-                  }}
                 />
               )}
             />
@@ -286,11 +276,6 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
                   field.onChange(raw ? Number(raw) : "");
                 }}
                 disabled={isSubmitting}
-                slotProps={{
-                  input: { sx: { fontWeight: 400 } },
-                  inputLabel: { sx: { fontWeight: 400 } },
-                  formHelperText: { sx: { fontWeight: 400 } },
-                }}
               />
             )}
           />
@@ -301,10 +286,10 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
             name="category"
             render={({ field }) => (
               <FormControl fullWidth disabled={isSubmitting}>
-                <InputLabel sx={{ fontWeight: 400 }}>Kategori</InputLabel>
-                <Select {...field} label="Kategori" sx={{ fontWeight: 400 }}>
+                <InputLabel>Kategori</InputLabel>
+                <Select {...field} label="Kategori">
                   {Object.entries(ExpenseCategory).map(([key, value]) => (
-                    <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
+                    <MenuItem key={key} value={value}>
                       {normalizeEnumText(value)}
                     </MenuItem>
                   ))}
@@ -327,10 +312,6 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
                   multiline
                   rows={2}
                   disabled={isSubmitting}
-                  slotProps={{
-                    input: { sx: { fontWeight: 400 } },
-                    inputLabel: { sx: { fontWeight: 400 } },
-                  }}
                 />
               )}
             />
@@ -343,7 +324,7 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
                 sx={{
                   border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
                   borderRadius: `${theme.shape.borderRadius}px`,
-                  p: 1,
+                  p: theme.spacing(1),
                   position: "relative",
                 }}
               >
@@ -356,7 +337,6 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
                     right: 4,
                     top: 4,
                     bgcolor: "background.paper",
-                    borderRadius: `${theme.shape.borderRadius}px`,
                     boxShadow: `0 1px 4px ${alpha(
                       theme.palette.common.black,
                       0.1
@@ -382,7 +362,7 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
               <Box
                 onClick={() => !isSubmitting && fileInputRef.current?.click()}
                 sx={{
-                  p: 2.5,
+                  p: theme.spacing(2.5),
                   height: 300,
                   border: "2px dashed",
                   borderColor: alpha(theme.palette.divider, 0.6),
@@ -392,7 +372,7 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 1,
+                  gap: theme.spacing(1),
                   bgcolor: alpha(theme.palette.secondary.main, 0.03),
                   transition: theme.transitions.create([
                     "border-color",
@@ -408,20 +388,16 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
                   },
                 }}
               >
-                <Upload size={20} strokeWidth={1.5} style={{ opacity: 0.3 }} />
+                <Upload
+                  size={20}
+                  strokeWidth={1.5}
+                  style={{ opacity: 0.3 }}
+                />
                 <Box textAlign="center">
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ fontWeight: 400 }}
-                  >
+                  <Typography variant="body2" color="text.secondary">
                     Klik untuk unggah bukti
                   </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.disabled"
-                    sx={{ fontWeight: 400 }}
-                  >
+                  <Typography variant="caption" color="text.disabled">
                     JPG, PNG, atau WEBP
                   </Typography>
                 </Box>
@@ -439,7 +415,6 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
           variant="outlined"
           disabled={isSubmitting}
           onClick={handleClose}
-          sx={{ fontWeight: 400 }}
         >
           Batal
         </Button>
@@ -448,17 +423,10 @@ const ExpenseFormDialog = ({ mode, onClose, open, selectedExpense }) => {
           variant="contained"
           disabled={isSubmitting || (mode === "update" && !isDirty)}
           startIcon={
-            isSubmitting ? <CircularProgress size={14} color="inherit" /> : null
+            isSubmitting ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
           }
-          sx={{
-            fontWeight: 400,
-            "&:hover": {
-              boxShadow: `0 4px 14px 0 ${alpha(
-                theme.palette.secondary.main,
-                0.3
-              )}`,
-            },
-          }}
         >
           {isSubmitting
             ? "Menyimpan..."

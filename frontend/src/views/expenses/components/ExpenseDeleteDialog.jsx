@@ -58,23 +58,34 @@ const ExpenseDeleteDialog = ({ expense, onClose, open }) => {
     },
   });
 
+  const isPending = deleteMutation.isPending;
+
   const handleConfirm = () => {
     if (expense?.id) deleteMutation.mutate(expense.id);
   };
 
   return (
-    <Dialog fullWidth maxWidth="xs" onClose={deleteMutation.isPending ? undefined : onClose} open={open}>
+    <Dialog
+      fullWidth
+      maxWidth="xs"
+      onClose={isPending ? undefined : onClose}
+      open={open}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight : 500
         }}
       >
         Hapus Pengeluaran
-        <IconButton onClick={onClose} disabled={deleteMutation.isPending} size="small">
-          <X size={20} />
+        <IconButton
+          onClick={onClose}
+          disabled={isPending}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
@@ -93,7 +104,7 @@ const ExpenseDeleteDialog = ({ expense, onClose, open }) => {
         <Button
           color="inherit"
           variant="outlined"
-          disabled={deleteMutation.isPending}
+          disabled={isPending}
           onClick={onClose}
         >
           Batal
@@ -101,12 +112,14 @@ const ExpenseDeleteDialog = ({ expense, onClose, open }) => {
         <Button
           variant="contained"
           onClick={handleConfirm}
-          disabled={deleteMutation.isPending}
+          disabled={isPending}
           startIcon={
-            deleteMutation.isPending ? <CircularProgress size={14} color="inherit" /> : null
+            isPending ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
           }
         >
-          {deleteMutation.isPending ? "Menghapus..." : "Hapus"}
+          {isPending ? "Menghapus..." : "Hapus"}
         </Button>
       </DialogActions>
     </Dialog>

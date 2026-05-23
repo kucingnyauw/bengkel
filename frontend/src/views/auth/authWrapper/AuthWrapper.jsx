@@ -6,22 +6,29 @@
  * @param {React.ReactNode} props.children - Child components
  * @returns {JSX.Element} Rendered auth wrapper
  */
-import { styled } from "@mui/material/styles";
+import { Box, useTheme } from "@mui/material";
 
-const AuthWrapper = styled("div")(({ theme }) => ({
-  minHeight: "100vh",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: theme.palette.background.default,
-  padding: theme.spacing(3),
+const AuthWrapper = ({ children }) => {
+  const theme = useTheme();
 
-  [theme.breakpoints.down("sm")]: {
-    padding: theme.spacing(2),
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: theme.spacing(10),
-  },
-}));
+  return (
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: theme.palette.background.default,
+        p: { xs: 2, sm: 3 },
+        [theme.breakpoints.down("sm")]: {
+          alignItems: "flex-start",
+          pt: { xs: 10, sm: 14 },
+        },
+      }}
+    >
+      {children}
+    </Box>
+  );
+};
 
 export default AuthWrapper;

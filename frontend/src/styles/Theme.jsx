@@ -3,7 +3,6 @@ import { createTheme, alpha } from "@mui/material/styles";
 import { Color } from "@styles/Colors.jsx";
 import { Size } from "@styles/Size.jsx";
 
-
 /**
  * @param {import("@mui/material/styles").Theme} theme
  * @returns {import("@mui/material/styles").Components}
@@ -11,11 +10,6 @@ import { Size } from "@styles/Size.jsx";
 const componentsOverride = (theme) => ({
   MuiCssBaseline: {
     styleOverrides: {
-      "@keyframes shimmerLoop": {
-        "0%": { left: "-100%" },
-        "100%": { left: "100%" },
-      },
-      
       body: {
         backgroundColor: theme.palette.background.default,
         color: theme.palette.text.primary,
@@ -65,7 +59,7 @@ const componentsOverride = (theme) => ({
       root: {
         borderRadius: `${theme.shape.borderRadius}px`,
         padding: "8px 16px",
-        fontWeight: 400,
+        fontWeight: 500,
         fontSize: "0.875rem",
         textTransform: "none",
         letterSpacing: "0",
@@ -88,7 +82,6 @@ const componentsOverride = (theme) => ({
         },
         "&:hover::after": {
           opacity: 1,
-          animation: "shimmerLoop 2.2s ease-in-out infinite",
         },
         "&:active": {
           transform: "scale(0.98)",
@@ -98,7 +91,7 @@ const componentsOverride = (theme) => ({
           boxShadow: `0 0 0 2px ${theme.palette.background.default}, 0 0 0 4px ${theme.palette.secondary.main}`,
         },
       },
-      
+
       contained: {
         backgroundColor: theme.palette.text.primary,
         color: theme.palette.background.paper,
@@ -239,12 +232,12 @@ const componentsOverride = (theme) => ({
 
   MuiCardHeader: {
     styleOverrides: {
-      root: { padding: "24px 24px 16px" },
+      root: { padding: "16px 20px 12px" },
       title: {
         fontSize: "1.125rem",
-        fontWeight: 400,
+        fontWeight: 500,
         letterSpacing: "-0.01em",
-        lineHeight: 1.75,
+        lineHeight: 1.5,
       },
       subheader: {
         fontSize: "0.875rem",
@@ -259,13 +252,13 @@ const componentsOverride = (theme) => ({
 
   MuiCardContent: {
     styleOverrides: {
-      root: { padding: "24px", "&:last-child": { paddingBottom: "24px" } },
+      root: { padding: "20px", "&:last-child": { paddingBottom: "20px" } },
     },
   },
 
   MuiCardActions: {
     styleOverrides: {
-      root: { padding: "12px 24px 20px", gap: 12 },
+      root: { padding: "12px 20px 16px", gap: 12 },
     },
   },
 
@@ -343,7 +336,7 @@ const componentsOverride = (theme) => ({
 
   MuiListItemText: {
     styleOverrides: {
-      primary: { fontSize: "0.875rem", fontWeight: 400, lineHeight: 1.5 },
+      primary: { fontSize: "0.875rem", fontWeight: 500, lineHeight: 1.5 },
       secondary: { fontSize: "0.8125rem", fontWeight: 400, lineHeight: 1.25 },
     },
   },
@@ -391,7 +384,7 @@ const componentsOverride = (theme) => ({
     styleOverrides: {
       root: {
         fontSize: "0.875rem",
-        fontWeight: 400,
+        fontWeight: 500,
         color: theme.palette.text.secondary,
         "&.Mui-focused": { color: theme.palette.secondary.main },
         "&.Mui-error": { color: theme.palette.error.main },
@@ -481,9 +474,8 @@ const componentsOverride = (theme) => ({
     styleOverrides: {
       root: {
         border: `1px solid ${theme.palette.divider}`,
-         overflowX : "scroll",
+        overflowX: "scroll",
         overflowY: "hidden",
-      
       },
     },
   },
@@ -520,7 +512,7 @@ const componentsOverride = (theme) => ({
         fontWeight: 400,
       },
       head: {
-        fontWeight: 400,
+        fontWeight: 500,
         fontSize: "0.75rem",
         color: theme.palette.text.secondary,
         textTransform: "uppercase",
@@ -545,7 +537,7 @@ const componentsOverride = (theme) => ({
     styleOverrides: {
       root: {
         borderRadius: `${theme.shape.borderRadius}px`,
-        fontWeight: 400,
+        fontWeight: 500,
         fontSize: "0.75rem",
         height: 28,
         letterSpacing: "0",
@@ -574,7 +566,7 @@ const componentsOverride = (theme) => ({
   MuiBadge: {
     styleOverrides: {
       badge: {
-        fontWeight: 400,
+        fontWeight: 500,
         fontSize: "0.625rem",
         height: 18,
         minWidth: 18,
@@ -626,17 +618,18 @@ const componentsOverride = (theme) => ({
   MuiDialogTitle: {
     styleOverrides: {
       root: {
-        fontSize: "1rem",
-        fontWeight: 400,
-        padding: "16px 20px",
+        fontSize: "1.125rem",
+        fontWeight: 500,
+        padding: "20px 24px 16px",
         letterSpacing: "-0.01em",
+        lineHeight: 1.5,
       },
     },
   },
 
   MuiDialogContent: {
     styleOverrides: {
-      root: { padding: "4px 20px 16px" },
+      root: { padding: "8px 24px 20px" },
       dividers: {
         borderTop: `1px solid ${theme.palette.divider}`,
         borderBottom: `1px solid ${theme.palette.divider}`,
@@ -645,7 +638,15 @@ const componentsOverride = (theme) => ({
   },
 
   MuiDialogActions: {
-    styleOverrides: { root: { padding: "12px 20px 16px", gap: 10 } },
+    styleOverrides: {
+      root: {
+        padding: "16px 24px 20px",
+        gap: 12,
+        "& .MuiButton-root": {
+          fontWeight: 500,
+        },
+      },
+    },
   },
 
   // ==================== ALERT ====================
@@ -754,13 +755,13 @@ const componentsOverride = (theme) => ({
       root: {
         minHeight: 44,
         textTransform: "none",
-        fontWeight: 400,
+        fontWeight: 500,
         fontSize: "0.875rem",
         padding: "10px 16px",
         transition: "all 0.15s ease",
         "&.Mui-selected": {
           color: theme.palette.secondary.main,
-          fontWeight: 400,
+          fontWeight: 500,
         },
         "&:hover": { backgroundColor: theme.palette.action.hover },
       },
@@ -784,7 +785,7 @@ const componentsOverride = (theme) => ({
     styleOverrides: {
       root: {
         textDecoration: "underline",
-        fontWeight: 400,
+        fontWeight: 500,
         fontSize: "0.875rem",
         textUnderlineOffset: "4px",
         textDecorationThickness: "1px",
@@ -875,7 +876,6 @@ const componentsOverride = (theme) => ({
           borderRadius: `${theme.shape.borderRadius}px`,
           boxShadow: theme.shadows[3],
           border: `1px solid ${theme.palette.divider}`,
-          
         },
       },
     },
@@ -901,7 +901,7 @@ const componentsOverride = (theme) => ({
         padding: "0 16px",
         minHeight: 48,
         borderRadius: `${theme.shape.borderRadius}px`,
-        fontWeight: 400,
+        fontWeight: 500,
         "&.Mui-expanded": {
           minHeight: 48,
           borderBottom: `1px solid ${theme.palette.divider}`,
@@ -933,9 +933,10 @@ const componentsOverride = (theme) => ({
     styleOverrides: {
       root: {
         transition: "all 0.15s ease",
+        fontWeight: 500,
         "&.Mui-selected": {
           color: theme.palette.secondary.main,
-          fontWeight: 400,
+          fontWeight: 500,
         },
       },
     },
@@ -961,7 +962,7 @@ const componentsOverride = (theme) => ({
         border: "none",
         padding: "6px 12px",
         textTransform: "none",
-        fontWeight: 400,
+        fontWeight: 500,
         fontSize: "0.8125rem",
         color: theme.palette.text.secondary,
         transition: "all 0.15s ease",
@@ -984,7 +985,7 @@ const componentsOverride = (theme) => ({
     styleOverrides: {
       root: {
         borderRadius: `${theme.shape.borderRadius}px`,
-        fontWeight: 400,
+        fontWeight: 500,
         transition: "all 0.15s ease",
         "&.Mui-selected": {
           backgroundColor: alpha(theme.palette.secondary.main, 0.12),
@@ -1079,7 +1080,7 @@ const componentsOverride = (theme) => ({
         borderBottom: `1px solid ${theme.palette.divider}`,
       },
       columnHeader: {
-        fontWeight: 400,
+        fontWeight: 500,
         fontSize: "0.8125rem",
         color: theme.palette.text.secondary,
         textTransform: "none",
@@ -1114,7 +1115,7 @@ const componentsOverride = (theme) => ({
         fontSize: "0.875rem",
         fontWeight: 400,
         "&.Mui-active": {
-          fontWeight: 400,
+          fontWeight: 500,
           color: theme.palette.secondary.main,
         },
         "&.Mui-completed": {
@@ -1176,7 +1177,7 @@ const componentsOverride = (theme) => ({
     styleOverrides: {
       root: {
         fontSize: "0.875rem",
-        fontWeight: 400,
+        fontWeight: 500,
         border: `1px solid ${theme.palette.divider}`,
         boxShadow: "none",
         borderRadius: `${theme.shape.borderRadius}px`,

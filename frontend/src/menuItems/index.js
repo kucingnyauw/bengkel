@@ -115,7 +115,7 @@ const menuItems = {
       id: "operations-group",
       title: "Operasional",
       type: "group",
-      roles: [Role.ADMIN, Role.MECHANIC , Role.CASHIER],
+      roles: [Role.ADMIN, Role.MECHANIC, Role.CASHIER],
       children: [
         {
           id: "operations-my-tasks",
@@ -327,20 +327,33 @@ const menuItems = {
   ],
 };
 
+/**
+ * Normalize role ke lowercase string
+ * @param {string} role - Role user
+ * @returns {string} Normalized role
+ */
+const normalize = (role) =>
+  typeof role === "string" ? role.toLowerCase() : Role[role]?.toLowerCase() || "";
+
+/**
+ * Filter menu items berdasarkan role user
+ * @param {Array} items - Array menu items
+ * @param {string} userRole - Role user
+ * @returns {Array} Filtered menu items
+ */
 const filterMenuByRole = (items, userRole) => {
   if (!userRole) return [];
 
-  const normalize = (role) => (typeof role === "string" ? role : Role[role]);
-  const normalizedUserRole = normalize(userRole).toLowerCase();
+  const normalizedUserRole = normalize(userRole);
 
   return items
     .map((item) => {
-      const allowedRoles = (item.roles || []).map((r) => normalize(r).toLowerCase());
+      const allowedRoles = (item.roles || []).map((r) => normalize(r));
       if (!allowedRoles.includes(normalizedUserRole)) return null;
 
       const children = (item.children || [])
         .filter((child) => {
-          const childRoles = (child.roles || []).map((r) => normalize(r).toLowerCase());
+          const childRoles = (child.roles || []).map((r) => normalize(r));
           return childRoles.includes(normalizedUserRole);
         })
         .map(({ roles, ...rest }) => rest);
@@ -353,4 +366,34 @@ const filterMenuByRole = (items, userRole) => {
     .filter(Boolean);
 };
 
-export { filterMenuByRole, menuItems };
+/**
+ * Mendapatkan semua halaman yang bisa diakses user berdasarkan role
+ * @param {string} userRole - Role user
+ * @returns {Array} Array halaman { label, path }
+ */
+const getSearchPages = (userRole) => {
+  if (!userRole) return [];
+
+  const normalizedRole = normalize(userRole);
+  const pages = [];
+
+  const traverse = (menuItems) => {
+    menuItems.forEach((item) => {
+      const allowedRoles = (item.roles || []).map((r) => normalize(r));
+
+      if (allowedRoles.includes(normalizedRole)) {
+        if (item.type === "item" && item.url && item.title) {
+          pages.push({ label: item.title, path: item.url });
+        }
+        if (item.children) {
+          traverse(item.children);
+        }
+      }
+    });
+  };
+
+  traverse(menuItems.items);
+  return pages;
+};
+
+export { filterMenuByRole, menuItems, getSearchPages };

@@ -26,6 +26,7 @@ import {
   Stack,
   TextField,
   Typography,
+  useTheme,
 } from "@mui/material";
 
 import { getCustomers } from "@api/customerApi.js";
@@ -38,6 +39,7 @@ import {
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const VehicleCreateDialog = ({ open, onClose }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const { control, handleSubmit, reset } = useVehicleForm();
   const [customerSearch, setCustomerSearch] = useState("");
@@ -106,12 +108,16 @@ const VehicleCreateDialog = ({ open, onClose }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Tambah Kendaraan
-        <IconButton onClick={onClose} disabled={isPending} size="small">
-          <X size={20} />
+        <IconButton
+          onClick={onClose}
+          disabled={isPending}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
@@ -123,7 +129,8 @@ const VehicleCreateDialog = ({ open, onClose }) => {
           id="vehicle-create-form"
           onSubmit={handleSubmit(onSubmit)}
         >
-          <Stack spacing={2.5}>
+          <Stack sx={{ gap: theme.spacing(2.5) }}>
+            {/* Pilih Pelanggan */}
             <Controller
               name="customerId"
               control={control}
@@ -179,6 +186,7 @@ const VehicleCreateDialog = ({ open, onClose }) => {
               )}
             />
 
+            {/* Nomor Plat */}
             <Controller
               name="plateNumber"
               control={control}
@@ -186,6 +194,7 @@ const VehicleCreateDialog = ({ open, onClose }) => {
               render={({ field, fieldState }) => (
                 <TextField
                   {...field}
+                  fullWidth
                   disabled={isPending}
                   error={!!fieldState.error}
                   helperText={fieldState.error?.message}
@@ -195,12 +204,14 @@ const VehicleCreateDialog = ({ open, onClose }) => {
               )}
             />
 
+            {/* Merek */}
             <Controller
               name="brand"
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
+                  fullWidth
                   disabled={isPending}
                   label="Merek"
                   placeholder="Contoh: Vespa (opsional)"
@@ -208,12 +219,14 @@ const VehicleCreateDialog = ({ open, onClose }) => {
               )}
             />
 
+            {/* Model */}
             <Controller
               name="model"
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
+                  fullWidth
                   disabled={isPending}
                   label="Model"
                   placeholder="Contoh: Sprint 150 (opsional)"
@@ -241,7 +254,9 @@ const VehicleCreateDialog = ({ open, onClose }) => {
           type="submit"
           form="vehicle-create-form"
           startIcon={
-            isPending ? <CircularProgress size={14} color="inherit" /> : null
+            isPending ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
           }
         >
           {isPending ? "Menyimpan..." : "Simpan"}

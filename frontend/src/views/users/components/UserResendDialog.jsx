@@ -24,15 +24,12 @@ import {
   Divider,
   IconButton,
   Typography,
-  useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 
 import { useResendMagicLinkMutation } from "@views/users/hooks";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const UserResendDialog = ({ open, user, onClose }) => {
-  const theme = useTheme();
   const dispatch = useDispatch();
 
   const resendMutation = useResendMagicLinkMutation({
@@ -74,25 +71,21 @@ const UserResendDialog = ({ open, user, onClose }) => {
       maxWidth="xs"
       onClose={isPending ? undefined : onClose}
       open={open}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
     >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Kirim Ulang Magic Link
-        <IconButton onClick={onClose} disabled={isPending} size="small">
+        <IconButton
+          onClick={onClose}
+          disabled={isPending}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -100,12 +93,16 @@ const UserResendDialog = ({ open, user, onClose }) => {
       <Divider />
 
       <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+        <Typography variant="body2" color="text.secondary">
           Kirim ulang email verifikasi ke{" "}
           <strong>{user?.fullName || "karyawan ini"}</strong>?
         </Typography>
         {user?.email && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5, fontWeight: 400 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mt: 0.5 }}
+          >
             {user.email}
           </Typography>
         )}
@@ -119,7 +116,6 @@ const UserResendDialog = ({ open, user, onClose }) => {
           variant="outlined"
           disabled={isPending}
           onClick={onClose}
-          sx={{ fontWeight: 400 }}
         >
           Batal
         </Button>
@@ -128,14 +124,10 @@ const UserResendDialog = ({ open, user, onClose }) => {
           disabled={isPending}
           onClick={handleConfirm}
           startIcon={
-            isPending ? <CircularProgress size={14} color="inherit" /> : null
+            isPending ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : null
           }
-          sx={{
-            fontWeight: 400,
-            "&:hover": {
-              boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-            },
-          }}
         >
           {isPending ? "Mengirim..." : "Ya, Kirim"}
         </Button>

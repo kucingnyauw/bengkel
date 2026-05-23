@@ -32,7 +32,7 @@ import {
   Stack,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
+
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 
 import { ExpenseCategory } from "@shared/constant";
@@ -49,30 +49,16 @@ const ExpenseFilterDialog = ({
   const theme = useTheme();
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
-    >
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight : 500
         }}
       >
         Filter Pengeluaran
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={onClose} size="small" sx={{ mr: -0.5 }}>
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -80,28 +66,27 @@ const ExpenseFilterDialog = ({
       <Divider />
 
       <DialogContent>
-        <Stack sx={{ gap: 2.5 }}>
+        <Stack sx={{ gap: theme.spacing(2.5) }}>
+          {/* Filter Kategori */}
           <FormControl fullWidth>
-            <InputLabel sx={{ fontWeight: 400 }}>Kategori</InputLabel>
+            <InputLabel>Kategori</InputLabel>
             <Select
               value={tempFilters.category || ""}
               label="Kategori"
               onChange={(e) =>
                 onFilterChange({ ...tempFilters, category: e.target.value })
               }
-              sx={{ fontWeight: 400 }}
             >
-              <MenuItem value="" sx={{ fontWeight: 400 }}>
-                Semua
-              </MenuItem>
+              <MenuItem value="">Semua</MenuItem>
               {Object.entries(ExpenseCategory).map(([key, value]) => (
-                <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
+                <MenuItem key={key} value={value}>
                   {normalizeEnumText(value)}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
+          {/* Rentang Tanggal */}
           <DatePicker
             label="Dari Tanggal"
             value={tempFilters.startDate || null}
@@ -114,7 +99,6 @@ const ExpenseFilterDialog = ({
             slotProps={{
               textField: {
                 fullWidth: true,
-                sx: { fontWeight: 400 },
               },
             }}
           />
@@ -131,7 +115,6 @@ const ExpenseFilterDialog = ({
             slotProps={{
               textField: {
                 fullWidth: true,
-                sx: { fontWeight: 400 },
               },
             }}
           />
@@ -145,33 +128,14 @@ const ExpenseFilterDialog = ({
           justifyContent: "space-between",
         }}
       >
-        <Button
-          color="inherit"
-          variant="outlined"
-          onClick={onReset}
-          sx={{ fontWeight: 400 }}
-        >
+        <Button color="inherit" variant="outlined" onClick={onReset}>
           Reset
         </Button>
-        <Stack direction="row" sx={{ gap: 1.5 }}>
-          <Button
-            color="inherit"
-            variant="outlined"
-            onClick={onClose}
-            sx={{ fontWeight: 400 }}
-          >
+        <Stack direction="row" sx={{ gap: theme.spacing(1.5) }}>
+          <Button color="inherit" variant="outlined" onClick={onClose}>
             Batal
           </Button>
-          <Button
-            variant="contained"
-            onClick={onApply}
-            sx={{
-              fontWeight: 400,
-              "&:hover": {
-                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
-              },
-            }}
-          >
+          <Button variant="contained" onClick={onApply}>
             Terapkan
           </Button>
         </Stack>

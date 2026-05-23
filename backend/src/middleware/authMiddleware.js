@@ -37,20 +37,23 @@ const getSupabaseUser = async (token) => {
       ) {
         throw ApiError.unauthorized({
           code: "SESSION_EXPIRED",
-          message: "Sesi login Anda sudah berakhir. Silakan login kembali untuk melanjutkan.",
+          message:
+            "Sesi login Anda sudah berakhir. Silakan login kembali untuk melanjutkan.",
         });
       }
 
       throw ApiError.serviceUnavailable({
         code: "AUTH_SERVICE_UNAVAILABLE",
-        message: "Layanan autentikasi sedang mengalami gangguan. Silakan coba beberapa saat lagi.",
+        message:
+          "Layanan autentikasi sedang mengalami gangguan. Silakan coba beberapa saat lagi.",
       });
     }
 
     if (!data?.user) {
       throw ApiError.unauthorized({
         code: "INVALID_SESSION",
-        message: "Sesi login tidak valid. Silakan login kembali untuk melanjutkan.",
+        message:
+          "Sesi login tidak valid. Silakan login kembali untuk melanjutkan.",
       });
     }
 
@@ -67,7 +70,8 @@ const getSupabaseUser = async (token) => {
 
     throw ApiError.serviceUnavailable({
       code: "NETWORK_ERROR",
-      message: "Tidak dapat terhubung ke layanan autentikasi. Periksa koneksi internet Anda dan coba kembali.",
+      message:
+        "Tidak dapat terhubung ke layanan autentikasi. Periksa koneksi internet Anda dan coba kembali.",
     });
   }
 };
@@ -127,7 +131,9 @@ const authMiddleware = async (req, res, next) => {
       });
     }
 
-    const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null;
 
     logger.info({
       message: "[AUTH] Access Token",
@@ -153,14 +159,16 @@ const authMiddleware = async (req, res, next) => {
     if (!user) {
       throw ApiError.unauthorized({
         code: "USER_NOT_FOUND",
-        message: "Akun tidak ditemukan dalam sistem. Silakan hubungi administrator.",
+        message:
+          "Akun tidak ditemukan dalam sistem. Silakan hubungi administrator.",
       });
     }
 
     if (!user.isActive) {
       throw ApiError.forbidden({
         code: "ACCOUNT_INACTIVE",
-        message: "Akun Anda sedang tidak aktif. Silakan hubungi administrator untuk informasi lebih lanjut.",
+        message:
+          "Akun Anda sedang tidak aktif. Silakan hubungi administrator untuk informasi lebih lanjut.",
       });
     }
 

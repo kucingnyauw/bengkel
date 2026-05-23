@@ -50,6 +50,43 @@ const fadeInUp = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
+const EmptyNotificationSvg = ({ opacity = 0.15 }) => (
+  <Box
+    component="svg"
+    viewBox="0 0 120 120"
+    sx={{
+      width: 80,
+      height: 80,
+      opacity,
+    }}
+  >
+    {/* Bell Body */}
+    <path
+      d="M60 10 C60 10 45 15 45 35 L45 50 C45 55 40 60 35 65 L85 65 C80 60 75 55 75 50 L75 35 C75 15 60 10 60 10Z"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    {/* Bell Bottom */}
+    <path
+      d="M40 70 Q60 85 80 70"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+    />
+    {/* Clapper */}
+    <circle cx="60" cy="82" r="5" fill="none" stroke="currentColor" strokeWidth="2.5" />
+    <line x1="60" y1="87" x2="60" y2="97" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+    {/* Zzz */}
+    <text x="75" y="35" fontSize="16" fill="currentColor" fontWeight="600">Z</text>
+    <text x="88" y="25" fontSize="12" fill="currentColor" fontWeight="600">Z</text>
+    <text x="97" y="18" fontSize="9" fill="currentColor" fontWeight="600">Z</text>
+  </Box>
+);
+
 const NotificationSkeleton = () => (
   <Stack sx={{ gap: 1 }}>
     {[1, 2, 3, 4].map((i) => (
@@ -187,8 +224,8 @@ const NotificationPopover = ({
               width: 420,
               maxHeight: `calc(100vh - ${theme.spacing(12)})`,
               borderRadius: `${theme.shape.borderRadius}px`,
-              border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-              boxShadow: `0 12px 40px ${alpha(theme.palette.common.black, 0.12)}`,
+              border: `1px solid ${theme.palette.divider}`,
+              boxShadow: theme.shadows[4],
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
@@ -197,20 +234,20 @@ const NotificationPopover = ({
           },
         }}
       >
+        {/* Header */}
         <Box
           sx={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            px: 3,
-            py: 2,
-            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+            px: theme.spacing(2.5),
+            py: theme.spacing(2),
+            borderBottom: `1px solid ${theme.palette.divider}`,
             flexShrink: 0,
-            bgcolor: theme.palette.background.paper,
           }}
         >
           <Stack direction="row" sx={{ gap: 1.5, alignItems: "center" }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
+            <Typography variant="subtitle1">
               Notifikasi
             </Typography>
             {unreadCount > 0 && (
@@ -221,49 +258,36 @@ const NotificationPopover = ({
                 variant="soft"
                 sx={{
                   height: 22,
-                  fontWeight: 400,
                   fontSize: "0.6875rem",
-                  px: 0.5,
                   "& .MuiChip-label": { px: 1 },
                 }}
               />
             )}
           </Stack>
-          <Stack direction="row" sx={{ gap: 0.5 }}>
+          <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
             {onRefresh && (
-              <Tooltip title="Refresh">
+              <Tooltip title="Refresh" placement="bottom">
                 <IconButton
                   size="small"
                   onClick={onRefresh}
                   disabled={isAnyDeleting}
-                  sx={{
-                    "&:hover": {
-                      color: "secondary.main",
-                      bgcolor: alpha(theme.palette.secondary.main, 0.08),
-                    },
-                  }}
                 >
                   <RotateCcw size={16} strokeWidth={1.5} />
                 </IconButton>
               </Tooltip>
             )}
             {unreadCount > 0 && (
-              <Tooltip title="Tandai semua dibaca">
+              <Tooltip title="Tandai semua dibaca" placement="bottom">
                 <IconButton
                   size="small"
                   onClick={onMarkAllRead}
                   disabled={isAnyDeleting}
-                  sx={{
-                    "&:hover": {
-                      color: "secondary.main",
-                      bgcolor: alpha(theme.palette.secondary.main, 0.08),
-                    },
-                  }}
                 >
                   <CheckCheck size={16} strokeWidth={1.5} />
                 </IconButton>
               </Tooltip>
             )}
+            <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
             <IconButton
               size="small"
               onClick={onClose}
@@ -274,6 +298,7 @@ const NotificationPopover = ({
           </Stack>
         </Box>
 
+        {/* Content */}
         <Box
           ref={scrollRef}
           onScroll={handleScroll}
@@ -281,34 +306,30 @@ const NotificationPopover = ({
             flex: 1,
             overflowY: "auto",
             overflowX: "hidden",
-            bgcolor: theme.palette.background.paper,
           }}
         >
           {isLoading ? (
             <NotificationSkeleton />
           ) : allNotifications.length === 0 ? (
-            <Box sx={{ py: 10, textAlign: "center" }}>
-              <Box
-                sx={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: "50%",
-                  bgcolor: alpha(theme.palette.secondary.main, 0.06),
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  mx: "auto",
-                  mb: 2,
-                }}
-              >
-                <CheckCheck size={24} strokeWidth={1.5} style={{ opacity: 0.3 }} />
-              </Box>
-              <Typography color="text.secondary" sx={{ fontWeight: 400 }}>
-                Belum ada notifikasi
-              </Typography>
-              <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400 }}>
-                Notifikasi akan muncul di sini
-              </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                py: theme.spacing(6),
+                gap: theme.spacing(2),
+              }}
+            >
+              <EmptyNotificationSvg />
+              <Stack sx={{ gap: theme.spacing(0.5), alignItems: "center" }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                  Belum ada notifikasi
+                </Typography>
+                <Typography variant="caption" color="text.disabled">
+                  Notifikasi akan muncul di sini
+                </Typography>
+              </Stack>
             </Box>
           ) : (
             allNotifications.map((notif, index) => {
@@ -320,16 +341,16 @@ const NotificationPopover = ({
                   key={notif.id}
                   onClick={() => handleNotifClick(notif)}
                   sx={{
-                    px: 3,
-                    py: 2,
+                    px: theme.spacing(2.5),
+                    py: theme.spacing(2),
                     cursor: isAnyDeleting ? "default" : "pointer",
                     transition: theme.transitions.create(["background-color", "opacity"]),
                     bgcolor: notif.isRead
                       ? "transparent"
-                      : alpha(theme.palette.secondary.main, 0.03),
+                      : alpha(theme.palette.secondary.main, 0.02),
                     borderBottom:
                       index < allNotifications.length - 1
-                        ? `1px solid ${alpha(theme.palette.divider, 0.4)}`
+                        ? `1px solid ${theme.palette.divider}`
                         : 0,
                     opacity: isDeleting ? 0.4 : 1,
                     animation: newItemIds.includes(notif.id)
@@ -338,23 +359,25 @@ const NotificationPopover = ({
                     "&:hover": {
                       bgcolor: isAnyDeleting
                         ? undefined
-                        : alpha(theme.palette.secondary.main, 0.06),
+                        : alpha(theme.palette.secondary.main, 0.04),
                     },
                   }}
                 >
                   <Stack direction="row" sx={{ gap: 2, alignItems: "flex-start" }}>
-                    {!notif.isRead && (
-                      <Box
-                        sx={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          bgcolor: theme.palette[notifColor]?.main || theme.palette.secondary.main,
-                          flexShrink: 0,
-                          mt: 0.8,
-                        }}
-                      />
-                    )}
+                    {/* Unread Dot */}
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        bgcolor: notif.isRead
+                          ? "transparent"
+                          : theme.palette[notifColor]?.main || theme.palette.secondary.main,
+                        flexShrink: 0,
+                        mt: 0.6,
+                        transition: theme.transitions.create("background-color"),
+                      }}
+                    />
 
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Stack
@@ -367,13 +390,11 @@ const NotificationPopover = ({
                       >
                         <Typography
                           variant="body2"
+                          noWrap
                           sx={{
-                            fontWeight: !notif.isRead ? 500 : 400,
+                            fontWeight: !notif.isRead ? 600 : 400,
                             flex: 1,
                             minWidth: 0,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
                           }}
                         >
                           {notif.title}
@@ -381,7 +402,7 @@ const NotificationPopover = ({
                         <Typography
                           variant="caption"
                           color="text.disabled"
-                          sx={{ fontWeight: 400, flexShrink: 0, mt: 0.1 }}
+                          sx={{ flexShrink: 0, mt: 0.1 }}
                         >
                           {formatRelativeTime(notif.createdAt)}
                         </Typography>
@@ -397,7 +418,6 @@ const NotificationPopover = ({
                           overflow: "hidden",
                           lineHeight: 1.5,
                           mt: 0.5,
-                          fontWeight: 400,
                         }}
                       >
                         {notif.message}
@@ -420,7 +440,6 @@ const NotificationPopover = ({
                             sx={{
                               height: 18,
                               fontSize: "0.625rem",
-                              fontWeight: 400,
                               "& .MuiChip-label": { px: 0.75 },
                             }}
                           />
@@ -433,28 +452,44 @@ const NotificationPopover = ({
                               sx={{
                                 height: 18,
                                 fontSize: "0.625rem",
-                                fontWeight: 400,
-                                px: 0.5,
                                 "& .MuiChip-label": { px: 1 },
                               }}
                             />
                           )}
                         </Stack>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => handleDelete(e, notif.id)}
-                          disabled={isAnyDeleting}
-                          sx={{
-                            p: 0.25,
-                            opacity: isDeleting ? 0.3 : 1,
+
+                        {/* Delete Button dengan Background */}
+                        <Box
+                          component="span"
+                          onClick={(e) => e.stopPropagation()}
+                          sx={(theme) => ({
+                            display: "inline-flex",
+                            borderRadius: `${theme.shape.borderRadius}px`,
+                            border: "1px solid",
+                            borderColor: alpha(theme.palette.divider, 0.8),
+                            transition: theme.transitions.create(
+                              ["background-color", "border-color", "color"],
+                              { duration: theme.transitions.duration.shorter }
+                            ),
                             "&:hover": {
-                              color: "error.main",
-                              bgcolor: alpha(theme.palette.error.main, 0.08),
+                              bgcolor: alpha(theme.palette.error.main, 0.06),
+                              borderColor: alpha(theme.palette.error.main, 0.4),
+                              color: theme.palette.error.main,
                             },
-                          }}
+                          })}
                         >
-                          <Trash2 size={12} strokeWidth={1.5} />
-                        </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => handleDelete(e, notif.id)}
+                            disabled={isAnyDeleting}
+                            sx={{
+                              borderRadius: "inherit",
+                              opacity: isDeleting ? 0.3 : 1,
+                            }}
+                          >
+                            <Trash2 size={12} strokeWidth={1.5} />
+                          </IconButton>
+                        </Box>
                       </Stack>
                     </Box>
                   </Stack>
@@ -465,24 +500,23 @@ const NotificationPopover = ({
           {isFetchingNextPage && <NotificationSkeleton />}
         </Box>
 
+        {/* Footer - Delete All */}
         {allNotifications.length > 0 && (
           <Box
             sx={{
-              borderTop: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-              px: 3,
-              py: 2,
+              borderTop: `1px solid ${theme.palette.divider}`,
+              px: theme.spacing(2.5),
+              py: theme.spacing(2),
               flexShrink: 0,
-              bgcolor: theme.palette.background.paper,
             }}
           >
             <Button
               size="small"
-              variant="contained"
+              variant="outlined"
               color="error"
               fullWidth
               disabled={isAnyDeleting}
               onClick={handleDeleteAll}
-              sx={{ fontWeight: 400 }}
             >
               Hapus Semua
             </Button>
@@ -490,32 +524,24 @@ const NotificationPopover = ({
         )}
       </Popover>
 
+      {/* Detail Dialog */}
       <Dialog
         open={!!selectedNotif}
         onClose={handleCloseDetail}
         maxWidth="xs"
         fullWidth
-        slotProps={{
-          paper: {
-            sx: {
-              borderRadius: `${theme.shape.borderRadius}px`,
-              border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-            },
-          },
-        }}
       >
         <DialogTitle
           sx={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            fontWeight: 400,
           }}
         >
-          <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
+          <Typography variant="subtitle1">
             {selectedNotif?.title}
           </Typography>
-          <IconButton onClick={handleCloseDetail} size="small">
+          <IconButton onClick={handleCloseDetail} size="small" sx={{ mr: -0.5 }}>
             <X size={18} strokeWidth={1.5} />
           </IconButton>
         </DialogTitle>
@@ -524,7 +550,7 @@ const NotificationPopover = ({
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ lineHeight: 1.7, fontWeight: 400 }}
+            sx={{ lineHeight: 1.7 }}
           >
             {selectedNotif?.message}
           </Typography>
@@ -535,9 +561,9 @@ const NotificationPopover = ({
                 size="small"
                 color={getNotifColor(selectedNotif.type)}
                 variant="outlined"
-                sx={{ height: 20, fontSize: "0.625rem", fontWeight: 400 }}
+                sx={{ height: 20, fontSize: "0.625rem" }}
               />
-              <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400 }}>
+              <Typography variant="caption" color="text.disabled">
                 {formatRelativeTime(selectedNotif.createdAt)}
               </Typography>
             </Stack>
@@ -545,12 +571,7 @@ const NotificationPopover = ({
         </DialogContent>
         <Divider />
         <DialogActions>
-          <Button
-            color="inherit"
-            variant="outlined"
-            onClick={handleCloseDetail}
-            sx={{ fontWeight: 400 }}
-          >
+          <Button color="inherit" variant="outlined" onClick={handleCloseDetail}>
             Tutup
           </Button>
         </DialogActions>

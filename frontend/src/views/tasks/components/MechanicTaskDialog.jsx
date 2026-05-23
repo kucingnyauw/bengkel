@@ -38,10 +38,18 @@ import { alpha } from "@mui/material/styles";
 
 import { formatDateTime, normalizeEnumText } from "@shared/utils";
 import { OrderStatus, statusColorMap } from "@shared/constant";
-import { useMechanicTasks, useUnassignMechanicMutation } from "@views/tasks/hooks";
+import {
+  useMechanicTasks,
+  useUnassignMechanicMutation,
+} from "@views/tasks/hooks";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
-const OrderCard = ({ order, isUnassigning, onUnassign, unassigningOrderId }) => {
+const OrderCard = ({
+  order,
+  isUnassigning,
+  onUnassign,
+  unassigningOrderId,
+}) => {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -53,12 +61,16 @@ const OrderCard = ({ order, isUnassigning, onUnassign, unassigningOrderId }) => 
     setConfirmOpen(false);
   };
 
+  const getServiceStatusColor = (taskStatus) => {
+    if (taskStatus === "COMPLETED") return "success";
+    if (taskStatus === "IN_PROGRESS") return "secondary";
+    return "default";
+  };
+
   return (
     <>
       <Card
         sx={{
-          border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-          boxShadow: "none",
           opacity: isUnassigning ? 0.5 : 1,
           transition: theme.transitions.create("opacity", {
             duration: theme.transitions.duration.shorter,
@@ -66,7 +78,7 @@ const OrderCard = ({ order, isUnassigning, onUnassign, unassigningOrderId }) => 
           pointerEvents: isUnassigning ? "none" : "auto",
         }}
       >
-        <CardContent sx={{ py: 2, "&:last-child": { pb: 2 } }}>
+        <CardContent>
           <Stack direction="row" sx={{ gap: 2, alignItems: "flex-start" }}>
             <Box
               onClick={() => hasServices && setExpanded(!expanded)}
@@ -93,23 +105,27 @@ const OrderCard = ({ order, isUnassigning, onUnassign, unassigningOrderId }) => 
                 />
               )}
               <Box sx={{ minWidth: 0 }}>
-                <Typography variant="body2" sx={{ fontWeight: 400 }} noWrap>
+                <Typography variant="body2" noWrap>
                   {order.orderNumber}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }} noWrap>
+                <Typography variant="caption" color="text.secondary" noWrap>
                   {order.customer?.name || "—"} •{" "}
                   {order.vehicle?.plateNumber || "—"}
                 </Typography>
               </Box>
             </Box>
 
-            <Stack direction="row" sx={{ gap: 1, alignItems: "center", flexShrink: 0 }}>
+            <Stack
+              direction="row"
+              sx={{ gap: 1, alignItems: "center", flexShrink: 0 }}
+            >
               <Chip
-                label={normalizeEnumText(OrderStatus[order.status] || order.status)}
+                label={normalizeEnumText(
+                  OrderStatus[order.status] || order.status
+                )}
                 color={statusColorMap[order.status] || "default"}
                 size="small"
                 variant="outlined"
-                sx={{ fontWeight: 400 }}
               />
               {isThisUnassigning ? (
                 <CircularProgress size={20} />
@@ -122,7 +138,7 @@ const OrderCard = ({ order, isUnassigning, onUnassign, unassigningOrderId }) => 
                   }}
                   disabled={isUnassigning}
                   aria-label="Hapus Penugasan"
-                  sx={{
+                  sx={(theme) => ({
                     border: "1px solid",
                     borderColor: alpha(theme.palette.divider, 0.8),
                     borderRadius: `${theme.shape.borderRadius}px`,
@@ -137,7 +153,7 @@ const OrderCard = ({ order, isUnassigning, onUnassign, unassigningOrderId }) => 
                       borderColor: alpha(theme.palette.error.main, 0.4),
                       color: theme.palette.error.main,
                     },
-                  }}
+                  })}
                 >
                   <Trash2 size={14} strokeWidth={1.5} />
                 </IconButton>
@@ -147,41 +163,39 @@ const OrderCard = ({ order, isUnassigning, onUnassign, unassigningOrderId }) => 
 
           {hasServices && (
             <Collapse in={expanded} timeout="auto" unmountOnExit>
-              <Divider sx={{ my: 1.5 }} />
+              <Divider sx={{ my: theme.spacing(1.5) }} />
               <Stack sx={{ gap: 0.5 }}>
                 {order.services.map((service) => (
                   <Stack
                     key={service.assignmentId}
                     direction="row"
-                    sx={{
+                    sx={(theme) => ({
                       justifyContent: "space-between",
                       alignItems: "center",
-                      pl: 2.5,
+                      pl: theme.spacing(2.5),
                       borderLeft: 2,
                       borderColor: alpha(theme.palette.secondary.main, 0.4),
                       py: 0.75,
-                    }}
+                    })}
                   >
-                    <Stack direction="row" sx={{ gap: 1, alignItems: "center" }}>
-                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
-                        {service.name}
-                      </Typography>
+                    <Stack
+                      direction="row"
+                      sx={{ gap: 1, alignItems: "center" }}
+                    >
+                      <Typography variant="body2">{service.name}</Typography>
                       <Chip
-                        label={normalizeEnumText(service.taskStatusLabel || service.taskStatus)}
-                        color={
-                          service.taskStatus === "COMPLETED"
-                            ? "success"
-                            : service.taskStatus === "IN_PROGRESS"
-                            ? "secondary"
-                            : "default"
-                        }
+                        label={normalizeEnumText(
+                          service.taskStatusLabel || service.taskStatus
+                        )}
+                        color={getServiceStatusColor(service.taskStatus)}
                         size="small"
                         variant="outlined"
-                        sx={{ fontWeight: 400 }}
                       />
                     </Stack>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      {service.startAt ? formatDateTime(service.startAt) : "Belum dimulai"}
+                    <Typography variant="caption" color="text.secondary">
+                      {service.startAt
+                        ? formatDateTime(service.startAt)
+                        : "Belum dimulai"}
                     </Typography>
                   </Stack>
                 ))}
@@ -191,30 +205,26 @@ const OrderCard = ({ order, isUnassigning, onUnassign, unassigningOrderId }) => 
         </CardContent>
       </Card>
 
+      {/* Confirm Unassign Dialog */}
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         maxWidth="xs"
         fullWidth
-        slotProps={{
-          paper: {
-            sx: {
-              borderRadius: `${theme.shape.borderRadius}px`,
-              border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-            },
-          },
-        }}
       >
         <DialogTitle
           sx={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            fontWeight: 400,
           }}
         >
           Hapus Penugasan
-          <IconButton onClick={() => setConfirmOpen(false)} size="small">
+          <IconButton
+            onClick={() => setConfirmOpen(false)}
+            size="small"
+            sx={{ mr: -0.5 }}
+          >
             <X size={18} strokeWidth={1.5} />
           </IconButton>
         </DialogTitle>
@@ -222,7 +232,7 @@ const OrderCard = ({ order, isUnassigning, onUnassign, unassigningOrderId }) => 
         <Divider />
 
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+          <Typography variant="body2" color="text.secondary">
             Apakah Anda yakin ingin menghapus penugasan mekanik dari pesanan{" "}
             <strong>{order.orderNumber}</strong>?
           </Typography>
@@ -235,7 +245,6 @@ const OrderCard = ({ order, isUnassigning, onUnassign, unassigningOrderId }) => 
             color="inherit"
             variant="outlined"
             onClick={() => setConfirmOpen(false)}
-            sx={{ fontWeight: 400 }}
           >
             Batal
           </Button>
@@ -243,7 +252,6 @@ const OrderCard = ({ order, isUnassigning, onUnassign, unassigningOrderId }) => 
             variant="contained"
             color="error"
             onClick={handleUnassignConfirm}
-            sx={{ fontWeight: 400 }}
           >
             Hapus
           </Button>
@@ -256,7 +264,7 @@ const OrderCard = ({ order, isUnassigning, onUnassign, unassigningOrderId }) => 
 const LoadingSkeleton = () => (
   <Stack sx={{ gap: 2 }}>
     {[1, 2, 3].map((i) => (
-      <Skeleton key={i} variant="rounded" height={72} sx={{ borderRadius: 2 }} />
+      <Skeleton key={i} variant="rounded" height={72} />
     ))}
   </Stack>
 );
@@ -306,25 +314,21 @@ const MechanicTaskDialog = ({ open, mechanic, onClose }) => {
       onClose={unassignMutation.isPending ? undefined : onClose}
       maxWidth="md"
       fullWidth
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${theme.shape.borderRadius}px`,
-            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-          },
-        },
-      }}
     >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 500,
         }}
       >
         Tugas {mechanic?.fullName}
-        <IconButton onClick={onClose} disabled={unassignMutation.isPending} size="small">
+        <IconButton
+          onClick={onClose}
+          disabled={unassignMutation.isPending}
+          size="small"
+          sx={{ mr: -0.5 }}
+        >
           <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
@@ -335,7 +339,7 @@ const MechanicTaskDialog = ({ open, mechanic, onClose }) => {
         {isLoading ? (
           <LoadingSkeleton />
         ) : tasks?.length > 0 ? (
-          <Stack sx={{ gap: 2 }}>
+          <Stack sx={{ gap: theme.spacing(2) }}>
             {tasks.map((order) => (
               <OrderCard
                 key={order.orderId}
@@ -347,21 +351,30 @@ const MechanicTaskDialog = ({ open, mechanic, onClose }) => {
             ))}
           </Stack>
         ) : (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            textAlign="center"
-            sx={{ py: 6, fontWeight: 400 }}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              py: theme.spacing(8),
+              gap: theme.spacing(1),
+            }}
           >
-            Tidak ada tugas aktif
-          </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Tidak ada tugas aktif
+            </Typography>
+            <Typography variant="caption" color="text.disabled">
+              Mekanik belum memiliki pesanan yang ditugaskan
+            </Typography>
+          </Box>
         )}
       </DialogContent>
 
       <Divider />
 
       <DialogActions>
-        <Button variant="outlined" onClick={onClose} sx={{ fontWeight: 400 }}>
+        <Button variant="outlined" onClick={onClose}>
           Tutup
         </Button>
       </DialogActions>

@@ -104,9 +104,10 @@ export function setupInterceptors({ store }) {
        */
       if (statusCode === 401 && !window.location.pathname.includes("/login")) {
         try {
-          const { data, error } = await supabase.auth.getSession();
+          const { data, error: sessionError } =
+            await supabase.auth.getSession();
 
-          if (error) {
+          if (sessionError) {
             await supabase.auth.signOut();
             window.location.replace("/login");
             return Promise.reject({
@@ -131,13 +132,12 @@ export function setupInterceptors({ store }) {
       }
 
       /**
-       * Tampilkan notifikasi error untuk network issues atau server error
+       * Tampilkan notifikasi error hanya untuk koneksi/network issues
        */
       if (
         errorCode === "NO_INTERNET_CONNECTION" ||
         errorCode === "SERVER_UNREACHABLE" ||
-        errorCode === "REQUEST_TIMEOUT" ||
-        statusCode >= 500
+        errorCode === "REQUEST_TIMEOUT"
       ) {
         if (!config?.skipErrorNotification) {
           store.dispatch(
@@ -146,7 +146,7 @@ export function setupInterceptors({ store }) {
               message,
               type: "error",
               variant: "dialog",
-              duration: 6000,
+              autoHide: 6000,
             })
           );
         }
@@ -183,19 +183,7 @@ function getErrorTitle(code) {
     case "REQUEST_TIMEOUT":
       return "Waktu Permintaan Habis";
 
-    case "AUTH_SERVICE_UNAVAILABLE":
-      return "Layanan Masuk Terganggu";
-
-    case "DATABASE_UNAVAILABLE":
-      return "Penyimpanan Data Terganggu";
-
-    case "DATABASE_ERROR":
-      return "Kesalahan Penyimpanan Data";
-
-    case "INTERNAL_SERVER_ERROR":
-      return "Gangguan Layanan";
-
     default:
-      return "Gangguan Sistem";
+      return "Gangguan Koneksi";
   }
 }

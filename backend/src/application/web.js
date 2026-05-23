@@ -13,7 +13,6 @@ import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 import path from "path";
 import { fileURLToPath } from "url";
-
 import privateRouter from "#routes/privateRoutes.js";
 import publicRouter from "#routes/publicRoutes.js";
 import { errorMiddleware } from "#middleware/errorMiddleware.js";

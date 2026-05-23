@@ -11,7 +11,7 @@ import midtrans from "#lib/midtrans.js";
 import axios from "axios";
 import crypto from "crypto";
 import { getIO } from "#app/io.js";
-import { isProd } from "#config/env.js";
+
 
 /**
  * Service untuk mengelola logika bisnis pembayaran
@@ -622,7 +622,9 @@ async createQrisPayment(orderId) {
 
     try {
       const serverKey = process.env.MIDTRANS_SERVER_KEY;
-      const baseUrl = isProd
+      const isMidtransProduction = process.env.MIDTRANS_IS_PRODUCTION === "true";
+
+      const baseUrl = isMidtransProduction
         ? "https://api.midtrans.com/v2"
         : "https://api.sandbox.midtrans.com/v2";
       const authString = Buffer.from(`${serverKey}:`).toString("base64");

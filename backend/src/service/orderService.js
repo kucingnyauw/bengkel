@@ -12,8 +12,6 @@ import prisma from "#app/database.js";
 import logger from "#app/logger.js";
 import axios from "axios";
 
-import { isProd } from "#config/env.js";
-
 class OrderService {
   constructor() {
     this.orderRepo = new OrderRepository();
@@ -94,7 +92,9 @@ class OrderService {
    * @private
    */
   async #cancelMidtransTransaction(orderNumber) {
-    const baseUrl = isProd
+    const isMidtransProduction = process.env.MIDTRANS_IS_PRODUCTION === "true";
+
+    const baseUrl = isMidtransProduction
       ? "https://api.midtrans.com/v2"
       : "https://api.sandbox.midtrans.com/v2";
     const apiUrl = `${baseUrl}/${orderNumber}/cancel`;

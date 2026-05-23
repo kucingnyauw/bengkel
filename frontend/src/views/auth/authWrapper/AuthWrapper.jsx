@@ -1,3 +1,11 @@
+/**
+ * AuthWrapper - Fullscreen authentication wrapper with centered content.
+ *
+ * @component
+ * @param {Object} props - Component props
+ * @param {React.ReactNode} props.children - Child components
+ * @returns {JSX.Element} Rendered auth wrapper
+ */
 import { styled } from "@mui/material/styles";
 
 const AuthWrapper = styled("div")(({ theme }) => ({
@@ -10,8 +18,9 @@ const AuthWrapper = styled("div")(({ theme }) => ({
 
   [theme.breakpoints.down("sm")]: {
     padding: theme.spacing(2),
-    alignItems: "flex-start",
-    paddingTop: theme.spacing(6),
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: theme.spacing(10),
   },
 }));
 

@@ -33,6 +33,7 @@ const LoginForm = ({ onEmailSubmit, isLoading }) => {
       onSubmit={handleSubmit(submit)}
       sx={{
         width: "100%",
+  
         display: "flex",
         justifyContent: "center",
       }}

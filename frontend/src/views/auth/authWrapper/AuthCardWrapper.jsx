@@ -1,8 +1,17 @@
+/**
+ * AuthCardWrapper - Styled card wrapper for authentication forms.
+ *
+ * @component
+ * @param {Object} props - Component props
+ * @param {React.ReactNode} props.children - Child components
+ * @returns {JSX.Element} Rendered auth card
+ */
 import { Card, alpha, styled } from "@mui/material";
 
 const AuthCardWrapper = styled(Card)(({ theme }) => ({
   width: "100%",
   maxWidth: 440,
+  maxHeight: 400,
   margin: "0 auto",
   padding: theme.spacing(6),
 
@@ -28,7 +37,6 @@ const AuthCardWrapper = styled(Card)(({ theme }) => ({
   "&:hover": {
     boxShadow: `0 12px 40px ${alpha(theme.palette.common.black, 0.12)}`,
     borderColor: alpha(theme.palette.primary.main, 0.35),
- 
   },
 
   [theme.breakpoints.down("md")]: {
@@ -37,8 +45,9 @@ const AuthCardWrapper = styled(Card)(({ theme }) => ({
   },
 
   [theme.breakpoints.down("sm")]: {
-    padding: theme.spacing(2),
-    maxWidth: "calc(100vw - 24px)",
+    padding: theme.spacing(4, 2.5),
+    maxWidth: "calc(100vw - 32px)",
+    borderRadius: 20,
   },
 }));
 

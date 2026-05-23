@@ -116,6 +116,7 @@ class TaskRepository {
    * @returns {Promise<{data: Array, metadata: Object}>}
    * @complexity O(log n) - Single query grouped by order
    */
+
   async findMany(query = {}) {
     const limit = query.limit || 10;
     const skip = ((query.page || 1) - 1) * limit;
@@ -124,132 +125,135 @@ class TaskRepository {
     const params = [];
 
     if (query.mechanicId) {
-      params.push(query.mechanicId);
-      conditions.push(`ma."mechanicId" = $${params.length}`);
+        params.push(query.mechanicId);
+        conditions.push(`ma."mechanicId" = $${params.length}`);
     }
 
-    if (query.orderItemId) {
-      params.push(query.orderItemId);
-      conditions.push(`oi."id" = $${params.length}`);
-    }
-
-    if (query.orderId) {
-      params.push(query.orderId);
-      conditions.push(`o."id" = $${params.length}`);
-    }
-
-    if (query.orderStatus) {
-      params.push(query.orderStatus);
-      conditions.push(`o."status"::text = $${params.length}`);
+    if (query.orderNumber) {
+        params.push(`%${query.orderNumber}%`);
+        conditions.push(`o."orderNumber" ILIKE $${params.length}`);
     }
 
     if (query.startDate) {
-      params.push(new Date(query.startDate));
-      conditions.push(`o."createdAt" >= $${params.length}`);
+        params.push(new Date(query.startDate));
+        conditions.push(`ma."startAt" >= $${params.length}`);
     }
 
     if (query.endDate) {
-      params.push(new Date(query.endDate));
-      conditions.push(`o."createdAt" <= $${params.length}`);
+        params.push(new Date(query.endDate));
+        conditions.push(`ma."endAt" <= $${params.length}`);
+    }
+
+    if (query.orderStatus) {
+        params.push(query.orderStatus);
+        conditions.push(`o."status"::text = $${params.length}`);
+    }
+
+    if (query.isActive === true) {
+        conditions.push(`ma."endAt" IS NULL`);
+    }
+
+    if (query.isCompleted === true) {
+        conditions.push(`ma."endAt" IS NOT NULL`);
     }
 
     if (query.search) {
-      params.push(`%${query.search}%`);
-      conditions.push(`(
-        oi."productNameSnapshot" ILIKE $${params.length} OR 
-        o."orderNumber" ILIKE $${params.length} OR 
-        u."fullName" ILIKE $${params.length} OR 
-        c."name" ILIKE $${params.length} OR 
-        v."plateNumber" ILIKE $${params.length}
-      )`);
+        params.push(`%${query.search}%`);
+        conditions.push(`(
+            oi."productNameSnapshot" ILIKE $${params.length} OR 
+            o."orderNumber" ILIKE $${params.length} OR 
+            u."fullName" ILIKE $${params.length} OR 
+            c."name" ILIKE $${params.length} OR 
+            v."plateNumber" ILIKE $${params.length}
+        )`);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const countQuery = `
-      SELECT COUNT(DISTINCT o."id")::int as total
-      FROM "MechanicAssignment" ma
-      INNER JOIN "OrderItem" oi ON ma."orderItemId" = oi."id"
-      INNER JOIN "Order" o ON oi."orderId" = o."id"
-      INNER JOIN "User" u ON ma."mechanicId" = u."id"
-      LEFT JOIN "Customer" c ON o."customerId" = c."id"
-      LEFT JOIN "Vehicle" v ON o."vehicleId" = v."id"
-      ${whereClause}
+        SELECT COUNT(DISTINCT o."id")::int as total
+        FROM "MechanicAssignment" ma
+        INNER JOIN "OrderItem" oi ON ma."orderItemId" = oi."id"
+        INNER JOIN "Order" o ON oi."orderId" = o."id"
+        INNER JOIN "User" u ON ma."mechanicId" = u."id"
+        LEFT JOIN "Customer" c ON o."customerId" = c."id"
+        LEFT JOIN "Vehicle" v ON o."vehicleId" = v."id"
+        ${whereClause}
     `;
 
     const dataQuery = `
-      SELECT 
-        o."id" as "orderId",
-        o."orderNumber",
-        o."status",
-        o."createdAt",
-        c."name" as "customerName",
-        v."plateNumber",
-        v."brand",
-        v."model",
-        ARRAY_AGG(
-          JSON_BUILD_OBJECT(
-            'assignmentId', ma."id",
-            'mechanicId', ma."mechanicId",
-            'mechanicName', u."fullName",
-            'serviceName', oi."productNameSnapshot",
-            'startAt', ma."startAt",
-            'endAt', ma."endAt"
-          )
-          ORDER BY ma."createdAt" ASC
-        ) as "services"
-      FROM "MechanicAssignment" ma
-      INNER JOIN "OrderItem" oi ON ma."orderItemId" = oi."id"
-      INNER JOIN "Order" o ON oi."orderId" = o."id"
-      INNER JOIN "User" u ON ma."mechanicId" = u."id"
-      LEFT JOIN "Customer" c ON o."customerId" = c."id"
-      LEFT JOIN "Vehicle" v ON o."vehicleId" = v."id"
-      ${whereClause}
-      GROUP BY o."id", o."orderNumber", o."status", o."createdAt", c."name", v."plateNumber", v."brand", v."model"
-      ORDER BY o."createdAt" DESC
-      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+        SELECT 
+            o."id" as "orderId",
+            o."orderNumber",
+            o."status",
+            o."createdAt" as "orderCreatedAt",
+            c."name" as "customerName",
+            v."plateNumber",
+            v."brand",
+            v."model",
+            ARRAY_AGG(
+                JSON_BUILD_OBJECT(
+                    'assignmentId', ma."id",
+                    'mechanicId', ma."mechanicId",
+                    'mechanicName', u."fullName",
+                    'serviceName', oi."productNameSnapshot",
+                    'startAt', ma."startAt",
+                    'endAt', ma."endAt"
+                )
+                ORDER BY ma."createdAt" ASC
+            ) as "services"
+        FROM "MechanicAssignment" ma
+        INNER JOIN "OrderItem" oi ON ma."orderItemId" = oi."id"
+        INNER JOIN "Order" o ON oi."orderId" = o."id"
+        INNER JOIN "User" u ON ma."mechanicId" = u."id"
+        LEFT JOIN "Customer" c ON o."customerId" = c."id"
+        LEFT JOIN "Vehicle" v ON o."vehicleId" = v."id"
+        ${whereClause}
+        GROUP BY o."id", o."orderNumber", o."status", o."createdAt", c."name", v."plateNumber", v."brand", v."model"
+        ORDER BY o."createdAt" DESC
+        LIMIT $${params.length + 1} OFFSET $${params.length + 2}
     `;
 
     const [countResult, rawData] = await Promise.all([
-      prisma.$queryRawUnsafe(countQuery, ...params),
-      prisma.$queryRawUnsafe(dataQuery, ...params, limit, skip),
+        prisma.$queryRawUnsafe(countQuery, ...params),
+        prisma.$queryRawUnsafe(dataQuery, ...params, limit, skip),
     ]);
 
     const data = rawData.map((item) => ({
-      orderId: item.orderId,
-      orderNumber: item.orderNumber,
-      status: item.status,
-      createdAt: item.createdAt,
-      customer: {
-        name: item.customerName,
-      },
-      vehicle: item.plateNumber
-        ? {
-            plateNumber: item.plateNumber,
-            brand: item.brand,
-            model: item.model,
-          }
-        : null,
-      services: (item.services || []).map((s) => ({
-        assignmentId: s.assignmentId,
-        mechanicId: s.mechanicId,
-        mechanicName: s.mechanicName,
-        serviceName: s.serviceName,
-        startAt: s.startAt,
-        endAt: s.endAt,
-        taskStatus: s.endAt ? "COMPLETED" : s.startAt ? "IN_PROGRESS" : "PENDING",
-      })),
+        orderId: item.orderId,
+        orderNumber: item.orderNumber,
+        status: item.status,
+        createdAt: item.orderCreatedAt,
+        customer: {
+            name: item.customerName,
+        },
+        vehicle: item.plateNumber
+            ? {
+                plateNumber: item.plateNumber,
+                brand: item.brand,
+                model: item.model,
+            }
+            : null,
+        services: (item.services || []).map((s) => ({
+            assignmentId: s.assignmentId,
+            mechanicId: s.mechanicId,
+            mechanicName: s.mechanicName,
+            serviceName: s.serviceName,
+            startAt: s.startAt,
+            endAt: s.endAt,
+            taskStatus: s.endAt ? "COMPLETED" : s.startAt ? "IN_PROGRESS" : "PENDING",
+        })),
     }));
 
     return {
-      data,
-      metadata: Pagination.generateMetadata(
-        Number(countResult[0].total),
-        query.page || 1,
-        limit
-      ),
+        data,
+        metadata: Pagination.generateMetadata(
+            Number(countResult[0].total),
+            query.page || 1,
+            limit
+        ),
     };
-  }
+}
 
   /**
    * Mencari task service yang belum ditugaskan (grouped by order)
@@ -259,77 +263,99 @@ class TaskRepository {
    * @returns {Promise<{data: Array, metadata: Object}>}
    * @complexity O(log n) - Database-level grouping with indexed WHERE
    */
+ 
+
   async findUnassignedServiceTasks(query = {}) {
     const limit = query.limit || 10;
     const skip = ((query.page || 1) - 1) * limit;
 
-    const where = {
-      product: { type: "SERVICE" },
-      assignments: { none: {} },
-      order: { status: "QUEUED", deletedAt: null },
-    };
+    const countQuery = `
+        SELECT COUNT(DISTINCT oi."id")::int as total
+        FROM "OrderItem" oi
+        INNER JOIN "Product" p ON oi."productId" = p."id"
+        INNER JOIN "Order" o ON oi."orderId" = o."id"
+        LEFT JOIN "MechanicAssignment" ma ON oi."id" = ma."orderItemId"
+        WHERE p."type" = 'SERVICE'
+          AND o."status" = 'QUEUED'
+          AND o."deletedAt" IS NULL
+          AND ma."id" IS NULL
+    `;
 
-    const [total, orderItems] = await Promise.all([
-      prisma.orderItem.count({ where }),
-      prisma.orderItem.findMany({
-        where,
-        skip,
-        take: limit,
-        select: {
-          id: true,
-          quantity: true,
-          productNameSnapshot: true,
-          product: { 
-            select: { 
-              id: true, 
-              name: true, 
-              description: true, 
-              price: true,
-              image: { select: { path: true } },
-            } 
-          },
-          order: {
-            select: {
-              id: true,
-              orderNumber: true,
-              status: true,
-              createdAt: true,
-              customer: { select: { name: true } },
-              vehicle: { select: { plateNumber: true, brand: true, model: true } },
-            },
-          },
-        },
-        orderBy: { orderId: "asc" },
-      }),
+    const dataQuery = `
+        SELECT 
+            oi."id",
+            oi."quantity",
+            oi."productNameSnapshot",
+            p."id" as "productId",
+            p."name" as "productName",
+            p."description" as "productDescription",
+            p."price" as "productPrice",
+            f."path" as "imagePath",
+            o."id" as "orderId",
+            o."orderNumber",
+            o."status" as "orderStatus",
+            o."createdAt" as "orderCreatedAt",
+            c."name" as "customerName",
+            v."plateNumber",
+            v."brand",
+            v."model"
+        FROM "OrderItem" oi
+        INNER JOIN "Product" p ON oi."productId" = p."id"
+        INNER JOIN "Order" o ON oi."orderId" = o."id"
+        LEFT JOIN "Customer" c ON o."customerId" = c."id"
+        LEFT JOIN "Vehicle" v ON o."vehicleId" = v."id"
+        LEFT JOIN "File" f ON p."imageId" = f."id"
+        LEFT JOIN "MechanicAssignment" ma ON oi."id" = ma."orderItemId"
+        WHERE p."type" = 'SERVICE'
+          AND o."status" = 'QUEUED'
+          AND o."deletedAt" IS NULL
+          AND ma."id" IS NULL
+        ORDER BY o."createdAt" DESC
+        LIMIT $1 OFFSET $2
+    `;
+
+    const [countResult, rawData] = await Promise.all([
+        prisma.$queryRawUnsafe(countQuery),
+        prisma.$queryRawUnsafe(dataQuery, limit, skip),
     ]);
 
     const groupedMap = new Map();
-    for (const item of orderItems) {
-      const orderId = item.order.id;
-      if (!groupedMap.has(orderId)) {
-        groupedMap.set(orderId, {
-          orderId,
-          orderNumber: item.order.orderNumber,
-          status: item.order.status,
-          createdAt: item.order.createdAt,
-          customer: item.order.customer,
-          vehicle: item.order.vehicle,
-          services: [],
+    for (const item of rawData) {
+        const orderId = item.orderId;
+        if (!groupedMap.has(orderId)) {
+            groupedMap.set(orderId, {
+                orderId,
+                orderNumber: item.orderNumber,
+                status: item.orderStatus,
+                createdAt: item.orderCreatedAt,
+                customer: { name: item.customerName },
+                vehicle: item.plateNumber ? {
+                    plateNumber: item.plateNumber,
+                    brand: item.brand,
+                    model: item.model,
+                } : null,
+                services: [],
+            });
+        }
+        groupedMap.get(orderId).services.push({
+            id: item.id,
+            name: item.productNameSnapshot || item.productName,
+            quantity: item.quantity,
+            price: item.productPrice,
+            image: item.imagePath || null,
         });
-      }
-      groupedMap.get(orderId).services.push({
-        name: item.productNameSnapshot || item.product?.name,
-        quantity: item.quantity,
-        price: item.product?.price,
-        image: item.product?.image?.path || null,
-      });
     }
 
     return {
-      data: Array.from(groupedMap.values()),
-      metadata: Pagination.generateMetadata(total, query.page || 1, limit),
+        data: Array.from(groupedMap.values()),
+        metadata: Pagination.generateMetadata(
+            Number(countResult[0].total), 
+            query.page || 1, 
+            limit
+        ),
     };
-  }
+}
+
 
   /**
    * Mencari task berdasarkan ID

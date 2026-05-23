@@ -97,7 +97,7 @@ const StockDeleteDialog = ({ open, movement, onClose }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight: 500,
         }}
       >
         Hapus Mutasi Stok

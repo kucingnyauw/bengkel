@@ -106,7 +106,7 @@ const StockAdjustmentDialog = ({ open, onClose }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight: 500,
         }}
       >
         Penyesuaian Stok

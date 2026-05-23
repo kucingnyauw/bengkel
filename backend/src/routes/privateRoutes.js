@@ -1542,6 +1542,9 @@ privateRouter.put(
   UserController.updateUser
 );
 
+
+
+
 /**
  * @route DELETE /api/{version}/users/:id
  * @description Menghapus user
@@ -1676,7 +1679,7 @@ privateRouter.put(
  */
 privateRouter.delete(
   `${prefix}/vehicles/:id`,
-  adminOnly,
+  adminAndCashier,
   authLimiter,
   VehicleController.deleteVehicle
 );

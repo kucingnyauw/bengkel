@@ -8,6 +8,8 @@
  * @param {string|number} props.customer.id - ID customer
  * @param {string} props.customer.name - Nama customer
  * @param {string} props.customer.phone - Telepon customer
+ * @param {Object} props.formState - Form state dari react-hook-form
+ * @param {boolean} props.formState.isDirty - Apakah form berubah
  * @param {Function} props.handleSubmit - Fungsi handleSubmit dari react-hook-form
  * @param {Function} props.onClose - Handler tutup dialog
  * @param {boolean} props.open - Status dialog terbuka
@@ -40,6 +42,7 @@ import { showNotification } from "@store/notifications/notificationsSlice.js";
 const CustomerUpdateDialog = ({
   control,
   customer,
+  formState,
   handleSubmit,
   onClose,
   open,
@@ -74,6 +77,7 @@ const CustomerUpdateDialog = ({
   });
 
   const isPending = updateMutation.isPending;
+  const isDirty = formState?.isDirty || false;
 
   const onSubmit = (formData) => {
     if (!customer) return;
@@ -100,7 +104,7 @@ const CustomerUpdateDialog = ({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight : 500
+          fontWeight: 500,
         }}
       >
         Update Pelanggan
@@ -175,7 +179,7 @@ const CustomerUpdateDialog = ({
         </Button>
         <Button
           variant="contained"
-          disabled={isPending}
+          disabled={isPending || !isDirty}
           type="submit"
           form="customer-update-form"
           startIcon={

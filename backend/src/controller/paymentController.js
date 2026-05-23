@@ -136,23 +136,26 @@ class PaymentController {
     });
   });
 
+
+
   /**
-   * Refund pembayaran dan batalkan pesanan
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   */
-  refundPayment = CatchAsync.run(async (req, res) => {
-    const { id } = validate(paymentIdParamSchema, req.params);
-    const payload = validate(refundPaymentSchema, req.body);
+ * Refund pembayaran dan batalkan pesanan
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+refundPayment = CatchAsync.run(async (req, res) => {
+  const { id } = validate(paymentIdParamSchema, req.params);
+  const payload = validate(refundPaymentSchema, req.body);
+  const userId = req.user.id;
 
-    const payment = await this.paymentService.refundPayment(id, payload);
+  const payment = await this.paymentService.refundPayment(id, payload, userId);
 
-    res.status(200).json({
-      success: true,
-      message: "Pembayaran berhasil direfund, pesanan dibatalkan",
-      data: new PaymentStatusDto(payment),
-    });
+  res.status(200).json({
+    success: true,
+    message: "Pembayaran berhasil direfund, pesanan dibatalkan",
+    data: new PaymentStatusDto(payment),
   });
+});
 }
 
 export default new PaymentController();

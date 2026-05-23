@@ -53,7 +53,7 @@ const TaskActionDialog = ({ dialog, isLoading, onClose, onConfirm }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight: 500,
         }}
       >
         {isStart ? "Mulai Tugas" : "Selesaikan Tugas"}

@@ -1,5 +1,5 @@
 /**
- * TaskFilterDialog - Dialog filter untuk tugas dengan filter ID order, status order, dan rentang tanggal.
+ * TaskFilterDialog - Dialog filter untuk tugas dengan filter ID order dan rentang tanggal.
  *
  * @component
  * @param {Object} props - Props komponen
@@ -10,7 +10,6 @@
  * @param {boolean} props.open - Status dialog terbuka
  * @param {Object} props.tempFilters - Nilai filter sementara
  * @param {string} [props.tempFilters.orderId] - Filter ID order
- * @param {string} [props.tempFilters.orderStatus] - Filter status order
  * @param {Date} [props.tempFilters.startDate] - Filter tanggal mulai
  * @param {Date} [props.tempFilters.endDate] - Filter tanggal akhir
  *
@@ -25,20 +24,13 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  FormControl,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
   Stack,
   TextField,
   useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { MobileDatePicker } from "@mui/x-date-pickers/MobileDatePicker";
-
-import { OrderStatus } from "@shared/constant";
-import { normalizeEnumText } from "@shared/utils";
 
 const TaskFilterDialog = ({
   open,
@@ -70,7 +62,7 @@ const TaskFilterDialog = ({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight: 500,
         }}
       >
         Filter Tugas
@@ -96,27 +88,6 @@ const TaskFilterDialog = ({
               inputLabel: { sx: { fontWeight: 400 } },
             }}
           />
-
-          <FormControl fullWidth>
-            <InputLabel sx={{ fontWeight: 400 }}>Status Order</InputLabel>
-            <Select
-              value={tempFilters.orderStatus || ""}
-              label="Status Order"
-              onChange={(e) =>
-                onFilterChange({ ...tempFilters, orderStatus: e.target.value })
-              }
-              sx={{ fontWeight: 400 }}
-            >
-              <MenuItem value="" sx={{ fontWeight: 400 }}>
-                Semua
-              </MenuItem>
-              {Object.entries(OrderStatus).map(([key, value]) => (
-                <MenuItem key={key} value={value} sx={{ fontWeight: 400 }}>
-                  {normalizeEnumText(value)}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
 
           <MobileDatePicker
             label="Dari Tanggal"

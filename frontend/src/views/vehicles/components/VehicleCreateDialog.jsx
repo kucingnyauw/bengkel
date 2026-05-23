@@ -31,13 +31,17 @@ import {
 import { getCustomers } from "@api/customerApi.js";
 import { AsyncAutocomplete } from "@components";
 import { useDebounce } from "@hooks";
-import { useVehicleForm, useCreateVehicleMutation } from "@views/vehicles/hooks";
+import {
+  useVehicleForm,
+  useCreateVehicleMutation,
+} from "@views/vehicles/hooks";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const VehicleCreateDialog = ({ open, onClose }) => {
   const dispatch = useDispatch();
   const { control, handleSubmit, reset } = useVehicleForm();
   const [customerSearch, setCustomerSearch] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
   const debouncedCustomerSearch = useDebounce(customerSearch);
 
   const createMutation = useCreateVehicleMutation({
@@ -52,6 +56,8 @@ const VehicleCreateDialog = ({ open, onClose }) => {
         })
       );
       reset();
+      setSelectedCustomer(null);
+      setCustomerSearch("");
       onClose?.();
     },
     onFailed: (error) => {
@@ -70,7 +76,11 @@ const VehicleCreateDialog = ({ open, onClose }) => {
   const isPending = createMutation.isPending;
 
   useEffect(() => {
-    if (open) reset();
+    if (open) {
+      reset();
+      setSelectedCustomer(null);
+      setCustomerSearch("");
+    }
   }, [open, reset]);
 
   /**
@@ -85,12 +95,18 @@ const VehicleCreateDialog = ({ open, onClose }) => {
   );
 
   return (
-    <Dialog fullWidth maxWidth="xs" onClose={isPending ? undefined : onClose} open={open}>
+    <Dialog
+      fullWidth
+      maxWidth="xs"
+      onClose={isPending ? undefined : onClose}
+      open={open}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 500,
         }}
       >
         Tambah Kendaraan
@@ -102,7 +118,11 @@ const VehicleCreateDialog = ({ open, onClose }) => {
       <Divider />
 
       <DialogContent>
-        <Box component="form" id="vehicle-create-form" onSubmit={handleSubmit(onSubmit)}>
+        <Box
+          component="form"
+          id="vehicle-create-form"
+          onSubmit={handleSubmit(onSubmit)}
+        >
           <Stack spacing={2.5}>
             <Controller
               name="customerId"
@@ -111,12 +131,11 @@ const VehicleCreateDialog = ({ open, onClose }) => {
               render={({ field, fieldState }) => (
                 <Box>
                   <AsyncAutocomplete
-                    value={null}
-                    inputValue={customerSearch}
+                    value={selectedCustomer}
                     onChange={(val) => {
+                      setSelectedCustomer(val);
                       field.onChange(val?.id || "");
                     }}
-                    onInputChange={(val) => setCustomerSearch(val)}
                     queryKey={["customers-vehicle", debouncedCustomerSearch]}
                     fetchOptions={async () => {
                       const res = await getCustomers({
@@ -127,14 +146,22 @@ const VehicleCreateDialog = ({ open, onClose }) => {
                       return res?.data || [];
                     }}
                     getOptionLabel={(o) => o?.name || ""}
+                    isOptionEqualToValue={(option, value) =>
+                      option?.id === value?.id
+                    }
                     placeholder="Cari pelanggan..."
                     renderOption={(props, option) => {
                       const { key, ...rest } = props;
                       return (
                         <Box key={key} component="li" {...rest}>
                           <Box>
-                            <Typography variant="body2">{option.name}</Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography variant="body2">
+                              {option.name}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               {option.phone}
                             </Typography>
                           </Box>
@@ -200,7 +227,12 @@ const VehicleCreateDialog = ({ open, onClose }) => {
       <Divider />
 
       <DialogActions>
-        <Button color="inherit" variant="outlined" disabled={isPending} onClick={onClose}>
+        <Button
+          color="inherit"
+          variant="outlined"
+          disabled={isPending}
+          onClick={onClose}
+        >
           Batal
         </Button>
         <Button

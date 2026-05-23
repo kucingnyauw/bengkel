@@ -1,7 +1,9 @@
 {
-  "name": "workshop",
+  "name": "g-speed-backend",
   "version": "1.0.0",
-  "description": "Backend service for workshop/pos system using Express and Prisma ORM",
+  "description": "Backend service for G-Speed - Bengkel Motor Spesialis Vespa. Melayani servis, sparepart, dan perawatan Vespa",
+  "author": "G-Speed",
+  "license": "UNLICENSED",
   "type": "module",
   "main": "src/main.js",
   "imports": {
@@ -22,16 +24,11 @@
   },
   "scripts": {
     "dev": "nodemon src/main.js",
-
     "build": "prisma generate",
-
     "start": "node src/main.js",
-
     "start:prod": "NODE_ENV=production node src/main.js",
-
     "test": "jest",
     "test:watch": "jest --watch",
-
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:pull": "prisma db pull",

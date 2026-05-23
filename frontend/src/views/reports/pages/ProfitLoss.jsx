@@ -225,7 +225,7 @@ const ProfitLoss = () => {
           >
             <Stack sx={{ gap: 2.5, alignItems: "center", textAlign: "center" }}>
               <Box>
-                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 500 }}>
                   Belum Ada Data
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
@@ -274,7 +274,7 @@ const ProfitLoss = () => {
               }}
             >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Tahapan Laba Rugi
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -330,7 +330,7 @@ const ProfitLoss = () => {
                               <stage.icon size={16} strokeWidth={1.5} />
                             </Box>
                             <Box sx={{ minWidth: 0 }}>
-                              <Typography variant="body2" sx={{ fontWeight: 400 }} noWrap>
+                              <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>
                                 {stage.label}
                               </Typography>
                               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
@@ -346,7 +346,7 @@ const ProfitLoss = () => {
                             <Typography
                               variant="body2"
                               sx={{
-                                fontWeight: 400,
+                                fontWeight: 500,
                                 whiteSpace: "nowrap",
                                 color: stage.isLoss ? theme.palette.error.main : "inherit",
                               }}
@@ -363,7 +363,7 @@ const ProfitLoss = () => {
                                 color: resolvedColor,
                                 borderColor: alpha(resolvedColor, 0.3),
                                 height: 24,
-                                fontWeight: 400,
+                                fontWeight: 500,
                                 fontSize: "0.6875rem",
                                 "& .MuiChip-label": { px: 1 },
                               }}
@@ -396,7 +396,7 @@ const ProfitLoss = () => {
               }}
             >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Distribusi Biaya
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -437,7 +437,7 @@ const ProfitLoss = () => {
                         borderRadius: `${theme.shape.borderRadius}px`,
                       }}
                     >
-                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
                         {item.label}
                       </Typography>
                       <Chip
@@ -446,7 +446,7 @@ const ProfitLoss = () => {
                         variant="outlined"
                         sx={{
                           height: 24,
-                          fontWeight: 400,
+                          fontWeight: 500,
                           "& .MuiChip-label": { px: 1, fontSize: "0.6875rem" },
                         }}
                       />
@@ -473,11 +473,11 @@ const ProfitLoss = () => {
                     variant="caption"
                     color="text.secondary"
                     textTransform="uppercase"
-                    sx={{ fontWeight: 400 }}
+                    sx={{ fontWeight: 500 }}
                   >
                     {isProfit ? "Profit" : "Loss"}
                   </Typography>
-                  <Typography variant="h5" sx={{ my: 0.5, fontWeight: 400 }}>
+                  <Typography variant="h5" sx={{ my: 0.5, fontWeight: 500 }}>
                     {formatToIdr(Math.abs(data.profitLoss.netProfit))}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>

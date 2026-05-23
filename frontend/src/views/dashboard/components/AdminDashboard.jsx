@@ -247,7 +247,7 @@ const AdminDashboard = ({ data, isLoading, refetch }) => {
                 gap: 2,
               }}
             >
-              <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
                 Semua Stok Terkendali
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>

@@ -115,7 +115,7 @@ const menuItems = {
       id: "operations-group",
       title: "Operasional",
       type: "group",
-      roles: [Role.ADMIN, Role.MECHANIC],
+      roles: [Role.ADMIN, Role.MECHANIC , Role.CASHIER],
       children: [
         {
           id: "operations-my-tasks",

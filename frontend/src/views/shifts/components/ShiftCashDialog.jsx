@@ -146,7 +146,7 @@ const ShiftCashDialog = ({ onClose, open, shiftId, type }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight: 500,
         }}
       >
         {isCashIn ? "Kas Masuk" : "Kas Keluar"}

@@ -199,7 +199,7 @@ const InventoryReport = () => {
           >
             <Stack sx={{ gap: 2.5, alignItems: "center", textAlign: "center" }}>
               <Box>
-                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 500 }}>
                   Belum Ada Data Inventori
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
@@ -256,7 +256,7 @@ const InventoryReport = () => {
               }}
             >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Aset Tertinggi
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -286,7 +286,7 @@ const InventoryReport = () => {
               }}
             >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Status Stok
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -312,7 +312,7 @@ const InventoryReport = () => {
               }}
             >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Peta Profitabilitas
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -339,7 +339,7 @@ const InventoryReport = () => {
               }}
             >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Rincian Inventori
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -367,7 +367,7 @@ const InventoryReport = () => {
                               variant="caption"
                               color="text.secondary"
                               sx={{
-                                fontWeight: 600,
+                                fontWeight: 500,
                                 textTransform: "uppercase",
                                 letterSpacing: "0.05em",
                               }}

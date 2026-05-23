@@ -46,7 +46,13 @@ import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
   const dispatch = useDispatch();
-  const { control, handleSubmit, reset } = useVehicleForm();
+  const {
+    control,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { isDirty },
+  } = useVehicleForm();
 
   const updateMutation = useUpdateVehicleMutation({
     onSuccess: () => {
@@ -77,6 +83,7 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
 
   const isPending = updateMutation.isPending;
   const vehicles = vehicle?.vehicles || [];
+  const selectedVehicleId = watch("selectedVehicleId");
 
   useEffect(() => {
     if (open && vehicle) {
@@ -89,6 +96,24 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
       });
     }
   }, [open, vehicle, reset]);
+
+  /**
+   * Handle perubahan kendaraan yang dipilih
+   */
+  const handleVehicleChange = (event, field) => {
+    const vehicleId = event.target.value;
+    field.onChange(vehicleId);
+    
+    const selected = vehicles.find((v) => v.id === vehicleId);
+    if (selected) {
+      reset({
+        plateNumber: selected.plateNumber || "",
+        brand: selected.brand || "",
+        model: selected.model || "",
+        selectedVehicleId: vehicleId,
+      });
+    }
+  };
 
   /**
    * Handle submit form
@@ -116,6 +141,7 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 500,
         }}
       >
         Update Kendaraan
@@ -128,7 +154,7 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
 
       <DialogContent>
         <Box component="form" id="vehicle-update-form" onSubmit={handleSubmit(onSubmit)}>
-          <Stack spacing={2.5}>
+          <Stack spacing={3.5}>
             {vehicles.length > 1 && (
               <Controller
                 name="selectedVehicleId"
@@ -136,7 +162,11 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
                 render={({ field }) => (
                   <FormControl disabled={isPending}>
                     <InputLabel>Pilih Kendaraan</InputLabel>
-                    <Select {...field} label="Pilih Kendaraan">
+                    <Select
+                      {...field}
+                      label="Pilih Kendaraan"
+                      onChange={(e) => handleVehicleChange(e, field)}
+                    >
                       {vehicles.map((v) => (
                         <MenuItem key={v.id} value={v.id}>
                           <Stack>
@@ -208,7 +238,7 @@ const VehicleUpdateDialog = ({ open, vehicle, onClose }) => {
         </Button>
         <Button
           variant="contained"
-          disabled={isPending}
+          disabled={isPending || !isDirty}
           type="submit"
           form="vehicle-update-form"
           startIcon={

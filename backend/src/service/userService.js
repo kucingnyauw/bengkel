@@ -17,7 +17,7 @@ class UserService {
   }
 
   /**
-   * Mengirim Magic Link ke email user
+   * Mengirim Magic Link ke email user (Untuk Login / Resend)
    * @param {string} email
    * @returns {Promise<void>}
    * @throws {ApiError}
@@ -129,6 +129,7 @@ class UserService {
 
   /**
    * Membuat user baru (hanya CASHIER & MECHANIC)
+   * Menggunakan Supabase Admin API agar ID Auth dan Public tersinkronisasi.
    * @param {Object} payload
    * @param {string} payload.fullName
    * @param {string} payload.email
@@ -141,13 +142,17 @@ class UserService {
 
     this.#validateCreatableRole(role);
 
-    if (email) {
-      const emailExists = await this.userRepo.isEmailExists(email);
-      if (emailExists) {
-        throw ApiError.conflict({
-          message: `Email ${email} sudah digunakan oleh user lain`,
-        });
-      }
+    if (!email) {
+      throw ApiError.badRequest({
+        message: "Email wajib diisi untuk membuat user baru.",
+      });
+    }
+
+    const emailExists = await this.userRepo.isEmailExists(email);
+    if (emailExists) {
+      throw ApiError.conflict({
+        message: `Email ${email} sudah digunakan oleh user lain`,
+      });
     }
 
     if (phone) {
@@ -159,39 +164,60 @@ class UserService {
       }
     }
 
-    const user = await this.userRepo.create({
-      fullName,
+    // 1. Buat user via Supabase Admin API (Ini otomatis mengirim email "Invite")
+    // Membutuhkan SUPABASE_SERVICE_ROLE_KEY di inisialisasi #lib/supabase.js
+    const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
       email,
-      phone,
-      role,
-      isAuthenticated: false,
-    });
-
-    if (email) {
-      try {
-        await this.#sendMagicLink(email);
-      } catch (err) {
-        logger.warn("Gagal mengirim Magic Link saat createUser, user tetap dibuat", {
-          userId: user.id,
-          email,
-          error: err.message,
-        });
+      {
+        data: {
+          fullName: fullName,
+          phone: phone,
+          role: role,
+        },
       }
+    );
+
+    if (authError) {
+      logger.error("Gagal membuat user di Supabase Auth", { error: authError.message });
+      throw ApiError.internal({
+        message: `Gagal membuat user. Supabase Error: ${authError.message}`,
+      });
+    }
+
+    const userId = authData.user.id;
+
+    // 2. Trigger di database akan otomatis memasukkan data ke public."User"
+    // Kita lakukan fallback fetching untuk mereturn response yang utuh ke client
+    let user = await this.userRepo.findById(userId);
+    
+    // Jika ada delay mikro-detik dari eksekusi trigger, kita construct manual balasan response-nya
+    if (!user) {
+      user = {
+        id: userId,
+        email: email,
+        fullName: fullName,
+        phone: phone,
+        role: role,
+        isActive: true,
+        isAuthenticated: false,
+      };
     }
 
     const roleLabel = role === "CASHIER" ? "Kasir" : "Mekanik";
 
     await this.#sendNotification(
-      user.id,
+      userId,
       "Selamat Datang!",
       `Halo ${fullName}, akun Anda telah berhasil dibuat sebagai ${roleLabel}. Selamat bergabung di Bengkel POS.`,
       "SUCCESS"
     );
 
-    logger.info(`User dibuat: ${user.fullName}`, {
-      userId: user.id,
-      role: user.role,
+    logger.info(`User dibuat: ${fullName}`, {
+      userId: userId,
+      role: role,
+      email: email,
     });
+
     return user;
   }
 
@@ -434,6 +460,7 @@ class UserService {
       });
     }
 
+   
     await this.userRepo.delete(userId);
 
     logger.info("User berhasil dihapus", {
@@ -524,6 +551,9 @@ class UserService {
         : `Nomor telepon '${phone}' sudah digunakan oleh user yang dinonaktifkan.`,
     };
   }
+
+
+  
 }
 
 export default UserService;

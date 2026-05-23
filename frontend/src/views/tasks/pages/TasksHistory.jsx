@@ -46,7 +46,6 @@ const TaskHistory = () => {
       page,
       search: debouncedSearch || undefined,
       orderId: activeFilters.orderId || undefined,
-      status: activeFilters.status || undefined,
       startDate: activeFilters.startDate
         ? activeFilters.startDate.toISOString()
         : undefined,
@@ -92,8 +91,6 @@ const TaskHistory = () => {
   const renderRow = useCallback(
     (row) => {
       const serviceNames = row.services?.map((s) => s.name).join(", ") || "—";
-      const completedCount =
-        row.services?.filter((s) => s.taskStatus === "COMPLETED").length || 0;
       const totalCount = row.services?.length || 0;
 
       return [
@@ -140,23 +137,6 @@ const TaskHistory = () => {
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
             {totalCount} layanan
-          </Typography>
-        </Box>,
-
-        <Box key={`progress-${row.orderId}`}>
-          <Chip
-            color={row.status === "COMPLETED" || row.status === "CLOSED" ? "success" : "secondary"}
-            label={
-              row.status === "COMPLETED" || row.status === "CLOSED"
-                ? "Selesai"
-                : "Menunggu"
-            }
-            size="small"
-            variant="outlined"
-            sx={{ fontWeight: 400 }}
-          />
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400, display: "block", mt: 0.3 }}>
-            {completedCount}/{totalCount} selesai
           </Typography>
         </Box>,
 
@@ -217,7 +197,6 @@ const TaskHistory = () => {
           "Customer",
           "Kendaraan",
           "Layanan",
-          "Progress",
           "Dimulai",
           "Selesai",
         ]}

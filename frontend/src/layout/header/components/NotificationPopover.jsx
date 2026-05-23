@@ -90,11 +90,10 @@ const NotificationPopover = ({
   const [prevLength, setPrevLength] = useState(0);
   const [newItemIds, setNewItemIds] = useState([]);
   const [selectedNotif, setSelectedNotif] = useState(null);
-  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [deletingIds, setDeletingIds] = useState([]);
 
   const allNotifications = notifications?.pages?.flatMap((page) => page.data) || [];
-  const isAnyDeleting = deletingIds.length > 0 || isDeletingAll;
+  const isAnyDeleting = deletingIds.length > 0;
 
   useEffect(() => {
     if (allNotifications.length > prevLength) {
@@ -105,6 +104,27 @@ const NotificationPopover = ({
     }
     setPrevLength(allNotifications.length);
   }, [allNotifications.length]);
+
+  useEffect(() => {
+    if (deletingIds.length > 0) {
+      const currentIds = allNotifications.map((n) => n.id);
+      const stillDeleting = deletingIds.some((id) => currentIds.includes(id));
+
+      if (!stillDeleting) {
+        setDeletingIds([]);
+      }
+    }
+  }, [allNotifications, deletingIds]);
+
+  useEffect(() => {
+    let timer;
+    if (deletingIds.length > 0) {
+      timer = setTimeout(() => {
+        setDeletingIds([]);
+      }, 3000);
+    }
+    return () => clearTimeout(timer);
+  }, [deletingIds]);
 
   useEffect(() => {
     if (!isFetchingNextPage && prevScrollHeight.current > 0 && scrollRef.current) {
@@ -143,15 +163,11 @@ const NotificationPopover = ({
     onDelete?.(id);
   };
 
-  const handleDeleteAll = async () => {
+  const handleDeleteAll = () => {
     if (isAnyDeleting) return;
-    setIsDeletingAll(true);
-    setDeletingIds(allNotifications.map((n) => n.id));
-    setTimeout(() => {
-      onDeleteAll?.();
-      setIsDeletingAll(false);
-      setDeletingIds([]);
-    }, 600);
+    const allIds = allNotifications.map((n) => n.id);
+    setDeletingIds(allIds);
+    onDeleteAll?.();
   };
 
   const handleCloseDetail = () => setSelectedNotif(null);
@@ -181,7 +197,6 @@ const NotificationPopover = ({
           },
         }}
       >
-        {/* Header */}
         <Box
           sx={{
             display: "flex",
@@ -249,13 +264,16 @@ const NotificationPopover = ({
                 </IconButton>
               </Tooltip>
             )}
-            <IconButton size="small" onClick={onClose} disabled={isAnyDeleting}>
+            <IconButton
+              size="small"
+              onClick={onClose}
+              disabled={isAnyDeleting}
+            >
               <X size={18} strokeWidth={1.5} />
             </IconButton>
           </Stack>
         </Box>
 
-        {/* Content */}
         <Box
           ref={scrollRef}
           onScroll={handleScroll}
@@ -266,7 +284,7 @@ const NotificationPopover = ({
             bgcolor: theme.palette.background.paper,
           }}
         >
-          {isLoading || isDeletingAll ? (
+          {isLoading ? (
             <NotificationSkeleton />
           ) : allNotifications.length === 0 ? (
             <Box sx={{ py: 10, textAlign: "center" }}>
@@ -308,16 +326,15 @@ const NotificationPopover = ({
                     transition: theme.transitions.create(["background-color", "opacity"]),
                     bgcolor: notif.isRead
                       ? "transparent"
-                      : alpha(theme.palette.secondary.main, 0.04),
-                    borderLeft: notif.isRead
-                      ? `3px solid transparent`
-                      : `3px solid ${theme.palette[notifColor]?.main || theme.palette.secondary.main}`,
+                      : alpha(theme.palette.secondary.main, 0.03),
                     borderBottom:
                       index < allNotifications.length - 1
                         ? `1px solid ${alpha(theme.palette.divider, 0.4)}`
                         : 0,
                     opacity: isDeleting ? 0.4 : 1,
-                    animation: newItemIds.includes(notif.id) ? `${fadeInUp} 0.35s ease-out` : "none",
+                    animation: newItemIds.includes(notif.id)
+                      ? `${fadeInUp} 0.35s ease-out`
+                      : "none",
                     "&:hover": {
                       bgcolor: isAnyDeleting
                         ? undefined
@@ -340,11 +357,18 @@ const NotificationPopover = ({
                     )}
 
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
+                      <Stack
+                        direction="row"
+                        sx={{
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          gap: 1,
+                        }}
+                      >
                         <Typography
                           variant="body2"
                           sx={{
-                            fontWeight: 400,
+                            fontWeight: !notif.isRead ? 500 : 400,
                             flex: 1,
                             minWidth: 0,
                             overflow: "hidden",
@@ -354,7 +378,11 @@ const NotificationPopover = ({
                         >
                           {notif.title}
                         </Typography>
-                        <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 400, flexShrink: 0, mt: 0.1 }}>
+                        <Typography
+                          variant="caption"
+                          color="text.disabled"
+                          sx={{ fontWeight: 400, flexShrink: 0, mt: 0.1 }}
+                        >
                           {formatRelativeTime(notif.createdAt)}
                         </Typography>
                       </Stack>
@@ -375,7 +403,14 @@ const NotificationPopover = ({
                         {notif.message}
                       </Typography>
 
-                      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mt: 1 }}>
+                      <Stack
+                        direction="row"
+                        sx={{
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          mt: 1,
+                        }}
+                      >
                         <Stack direction="row" sx={{ gap: 0.75 }}>
                           <Chip
                             label={notif.type}
@@ -430,8 +465,7 @@ const NotificationPopover = ({
           {isFetchingNextPage && <NotificationSkeleton />}
         </Box>
 
-        {/* Footer */}
-        {allNotifications.length > 0 && !isDeletingAll && (
+        {allNotifications.length > 0 && (
           <Box
             sx={{
               borderTop: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
@@ -456,7 +490,6 @@ const NotificationPopover = ({
         )}
       </Popover>
 
-      {/* Detail Dialog */}
       <Dialog
         open={!!selectedNotif}
         onClose={handleCloseDetail}
@@ -488,7 +521,11 @@ const NotificationPopover = ({
         </DialogTitle>
         <Divider />
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7, fontWeight: 400 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ lineHeight: 1.7, fontWeight: 400 }}
+          >
             {selectedNotif?.message}
           </Typography>
           {selectedNotif?.createdAt && (
@@ -508,7 +545,12 @@ const NotificationPopover = ({
         </DialogContent>
         <Divider />
         <DialogActions>
-          <Button color="inherit" variant="outlined" onClick={handleCloseDetail} sx={{ fontWeight: 400 }}>
+          <Button
+            color="inherit"
+            variant="outlined"
+            onClick={handleCloseDetail}
+            sx={{ fontWeight: 400 }}
+          >
             Tutup
           </Button>
         </DialogActions>

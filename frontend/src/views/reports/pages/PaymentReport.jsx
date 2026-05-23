@@ -216,7 +216,7 @@ const PaymentReport = () => {
           >
             <Stack sx={{ gap: 2.5, alignItems: "center", textAlign: "center" }}>
               <Box>
-                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 500 }}>
                   Belum Ada Data Pembayaran
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
@@ -277,7 +277,7 @@ const PaymentReport = () => {
               }}
             >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Metode Pembayaran
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -306,7 +306,7 @@ const PaymentReport = () => {
               }}
             >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Proporsi Metode
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -373,7 +373,7 @@ const PaymentReport = () => {
                             <config.icon size={16} strokeWidth={1.5} />
                           </Box>
                           <Box sx={{ minWidth: 0 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
                               {config.label}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
@@ -382,7 +382,7 @@ const PaymentReport = () => {
                           </Box>
                         </Stack>
                         <Stack direction="row" sx={{ gap: 1.5, alignItems: "center", flexShrink: 0 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 400 }} noWrap>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>
                             {formatToIdr(item.amount)}
                           </Typography>
                           <Chip
@@ -394,7 +394,7 @@ const PaymentReport = () => {
                               color: resolvedColor,
                               bgcolor: alpha(resolvedColor, 0.06),
                               height: 24,
-                              fontWeight: 400,
+                              fontWeight: 500,
                               "& .MuiChip-label": {
                                 px: 1,
                                 fontSize: "0.6875rem",

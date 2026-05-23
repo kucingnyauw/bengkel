@@ -73,17 +73,27 @@ class PaymentService {
    * @returns {Promise<Object>}
    * @throws {ApiError}
    */
-  async createPayment(payload) {
-    const { orderId, method, amountPaid } = payload;
 
-    if (method === "CASH") {
-      return this.createCashPayment(orderId, amountPaid);
-    } else if (method === "QRIS") {
-      return this.createQrisPayment(orderId);
-    } else {
-      throw ApiError.badRequest({
-        message: `Metode pembayaran '${method}' tidak didukung.`,
+  async createPayment(payload) {
+    try {
+      const { orderId, method, amountPaid } = payload;
+
+      if (method === "CASH") {
+        return this.createCashPayment(orderId, amountPaid);
+      } else if (method === "QRIS") {
+        return this.createQrisPayment(orderId);
+      } else {
+        throw ApiError.badRequest({
+          message: `Metode pembayaran '${method}' tidak didukung.`,
+        });
+      }
+    } catch (error) {
+      logger.error("CREATE PAYMENT ERROR:", {
+        message: error.message,
+        stack: error.stack,
+        statusCode: error.statusCode,
       });
+      throw error;
     }
   }
 
@@ -299,146 +309,169 @@ class PaymentService {
    * @returns {Promise<Object>}
    * @throws {ApiError}
    */
+
+  /**
+   * Memproses pembayaran QRIS via Midtrans
+   * @param {string} orderId
+   * @returns {Promise<Object>}
+   * @throws {ApiError}
+   */
   async createQrisPayment(orderId) {
-    const order = await this.orderRepo.findById(orderId);
-    if (!order) {
-      throw ApiError.notFound({
-        message: `Gagal membuat pembayaran QRIS. Pesanan dengan ID '${orderId}' tidak ditemukan.`,
-      });
-    }
+    try {
+      const order = await this.orderRepo.findById(orderId);
 
-    if (order.status === "COMPLETED" || order.status === "CLOSED") {
-      throw ApiError.conflict({
-        message: `Gagal membuat pembayaran QRIS. Pesanan '${order.orderNumber}' sudah selesai atau ditutup.`,
-      });
-    }
-
-    if (order.status === "CANCELLED") {
-      throw ApiError.conflict({
-        message: `Gagal membuat pembayaran QRIS. Pesanan '${order.orderNumber}' sudah dibatalkan.`,
-      });
-    }
-
-    if (order.status !== "DRAFT") {
-      throw ApiError.conflict({
-        message: `Gagal membuat pembayaran QRIS. Hanya pesanan dengan status DRAFT yang dapat dibayar. Status saat ini: ${order.status}`,
-      });
-    }
-
-    const existingPayment = await this.paymentRepo.findByOrderId(orderId);
-    if (existingPayment) {
-      throw ApiError.conflict({
-        message: `Gagal membuat pembayaran QRIS. Pesanan '${order.orderNumber}' sudah memiliki pembayaran.`,
-      });
-    }
-
-    const itemDetails = order.items.map((item) => ({
-      id: item.productId,
-      price: item.unitPrice,
-      quantity: item.quantity,
-      name: item.productNameSnapshot,
-      category: item.product?.type === "SERVICE" ? "Service" : "Sparepart",
-    }));
-
-    const itemsTotal = itemDetails.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
-
-    if (order.tax > 0) {
-      itemDetails.push({
-        id: "TAX",
-        price: order.tax,
-        quantity: 1,
-        name: "Pajak",
-        category: "Tax",
-      });
-    }
-
-    const totalAfterTax = itemsTotal + order.tax;
-
-    if (totalAfterTax !== order.total) {
-      const adjustment = order.total - totalAfterTax;
-      if (adjustment !== 0) {
-        itemDetails.push({
-          id: "ADJUSTMENT",
-          price: adjustment,
-          quantity: 1,
-          name: adjustment > 0 ? "Biaya Tambahan" : "Diskon",
-          category: "Adjustment",
+      if (!order) {
+        throw ApiError.notFound({
+          message: `Gagal membuat pembayaran QRIS. Pesanan dengan ID '${orderId}' tidak ditemukan.`,
         });
       }
-    }
 
-    const parameter = {
-      payment_type: "qris",
-      transaction_details: {
-        order_id: order.orderNumber,
-        gross_amount: order.total,
-      },
-      item_details: itemDetails,
-      customer_details: {
-        first_name: order.customer?.name || "Customer",
-        email: order.customer?.email || null,
-        phone: order.customer?.phone || null,
-      },
-    };
+      if (order.status === "COMPLETED" || order.status === "CLOSED") {
+        throw ApiError.conflict({
+          message: `Gagal membuat pembayaran QRIS. Pesanan '${order.orderNumber}' sudah selesai atau ditutup.`,
+        });
+      }
 
-    const transaction = await midtrans.charge(parameter);
+      if (order.status === "CANCELLED") {
+        throw ApiError.conflict({
+          message: `Gagal membuat pembayaran QRIS. Pesanan '${order.orderNumber}' sudah dibatalkan.`,
+        });
+      }
 
-    if (!transaction || !["200", "201"].includes(transaction.status_code)) {
-      logger.error("Midtrans charge gagal", {
+      if (order.status !== "DRAFT") {
+        throw ApiError.conflict({
+          message: `Gagal membuat pembayaran QRIS. Hanya pesanan dengan status DRAFT yang dapat dibayar. Status saat ini: ${order.status}`,
+        });
+      }
+
+      const existingPayment = await this.paymentRepo.findByOrderId(orderId);
+      if (existingPayment) {
+        throw ApiError.conflict({
+          message: `Gagal membuat pembayaran QRIS. Pesanan '${order.orderNumber}' sudah memiliki pembayaran.`,
+        });
+      }
+
+      const itemDetails = order.items.map((item) => ({
+        id: item.productId,
+        price: item.unitPrice,
+        quantity: item.quantity,
+        name: item.productNameSnapshot,
+        category: item.product?.type === "SERVICE" ? "Service" : "Sparepart",
+      }));
+
+      const itemsTotal = itemDetails.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+
+      if (order.tax > 0) {
+        itemDetails.push({
+          id: "TAX",
+          price: order.tax,
+          quantity: 1,
+          name: "Pajak",
+          category: "Tax",
+        });
+      }
+
+      const totalAfterTax = itemsTotal + order.tax;
+
+      if (totalAfterTax !== order.total) {
+        const adjustment = order.total - totalAfterTax;
+        if (adjustment !== 0) {
+          itemDetails.push({
+            id: "ADJUSTMENT",
+            price: adjustment,
+            quantity: 1,
+            name: adjustment > 0 ? "Biaya Tambahan" : "Diskon",
+            category: "Adjustment",
+          });
+        }
+      }
+
+      const parameter = {
+        payment_type: "qris",
+        transaction_details: {
+          order_id: order.orderNumber,
+          gross_amount: order.total,
+        },
+        item_details: itemDetails,
+        customer_details: {
+          first_name: order.customer?.name || "Customer",
+          email: order.customer?.email || null,
+          phone: order.customer?.phone || null,
+        },
+      };
+
+      const transaction = await midtrans.charge(parameter);
+
+      if (!transaction || !["200", "201"].includes(transaction.status_code)) {
+        logger.error("Midtrans charge gagal", {
+          orderId,
+          orderNumber: order.orderNumber,
+          statusCode: transaction?.status_code,
+          statusMessage: transaction?.status_message,
+        });
+        throw ApiError.internal({
+          message: "Gagal memproses transaksi QRIS. Silakan coba lagi.",
+        });
+      }
+
+      let qrCodeUrl = null;
+      if (transaction.actions) {
+        const qrAction = transaction.actions.find(
+          (action) => action.name === "generate-qr-code"
+        );
+        if (qrAction) {
+          qrCodeUrl = qrAction.url;
+        }
+      }
+
+      const payment = await this.paymentRepo.create({
+        orderId,
+        method: "QRIS",
+        amountPaid: 0,
+        change: 0,
+        status: "PENDING",
+      });
+
+      await this.#sendNotification(
+        order.cashierId,
+        "Pembayaran QRIS Menunggu",
+        `QRIS untuk pesanan #${order.orderNumber} telah dibuat.\n\n` +
+          `Total: ${Currency.toIDR(order.total)}\n` +
+          `Status: Menunggu Pembayaran\n\n` +
+          `Scan QR code untuk menyelesaikan pembayaran.`,
+        "INFO"
+      );
+
+      logger.info("Pembayaran QRIS berhasil dibuat", {
         orderId,
         orderNumber: order.orderNumber,
-        statusCode: transaction?.status_code,
-        statusMessage: transaction?.status_message,
+        transactionId: transaction.transaction_id,
+        amount: order.total,
       });
-      throw ApiError.internal({
-        message: "Gagal memproses transaksi QRIS. Silakan coba lagi.",
+
+      const result = {
+        orderId,
+        orderNumber: order.orderNumber,
+        transactionId: transaction.transaction_id,
+        qrCodeUrl,
+        amount: order.total,
+        status: "PENDING",
+      };
+
+      return result;
+    } catch (error) {
+      logger.error("CREATE QRIS PAYMENT ERROR:", {
+        message: error.message,
+        stack: error.stack,
+        statusCode: error.statusCode,
+        apiResponse: error.ApiResponse,
+        httpStatusCode: error.httpStatusCode,
       });
+      throw error;
     }
-
-    let qrCodeUrl = null;
-    if (transaction.actions) {
-      const qrAction = transaction.actions.find(
-        (action) => action.name === "generate-qr-code"
-      );
-      if (qrAction) qrCodeUrl = qrAction.url;
-    }
-
-    await this.paymentRepo.create({
-      orderId,
-      method: "QRIS",
-      amountPaid: 0,
-      change: 0,
-      status: "PENDING",
-    });
-
-    await this.#sendNotification(
-      order.cashierId,
-      "Pembayaran QRIS Menunggu",
-      `QRIS untuk pesanan #${order.orderNumber} telah dibuat.\n\n` +
-        `Total: ${Currency.toIDR(order.total)}\n` +
-        `Status: Menunggu Pembayaran\n\n` +
-        `Scan QR code untuk menyelesaikan pembayaran.`,
-      "INFO"
-    );
-
-    logger.info("Pembayaran QRIS berhasil dibuat", {
-      orderId,
-      orderNumber: order.orderNumber,
-      transactionId: transaction.transaction_id,
-      amount: order.total,
-    });
-
-    return {
-      orderId,
-      orderNumber: order.orderNumber,
-      transactionId: transaction.transaction_id,
-      qrCodeUrl,
-      amount: order.total,
-      status: "PENDING",
-    };
   }
 
   /**

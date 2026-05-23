@@ -44,6 +44,7 @@ import {
 } from "./hooks/useNotifications.js";
 
 import INFO from "@data/Info.js";
+import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const searchPages = [
   { label: "Dashboard", path: "/dashboard" },
@@ -115,10 +116,119 @@ const Header = () => {
     refetch,
   } = useNotifications({ enabled: notifOpen });
 
+  /** Inisialisasi mutation hooks */
   const markAsRead = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead();
   const deleteAll = useDeleteAllNotifications();
   const deleteOne = useDeleteNotification();
+
+  const handleMarkRead = (id) => {
+    markAsRead.mutate(id, {
+      onSuccess: () => {
+        dispatch(
+          showNotification({
+            message: "Notifikasi ditandai sudah dibaca",
+            type: "success",
+            title: "Berhasil",
+            variant: "snackbar",
+            autoHide: 2000,
+          })
+        );
+      },
+      onError: (error) => {
+        dispatch(
+          showNotification({
+            message: error.message || "Gagal menandai notifikasi",
+            type: "error",
+            title: "Error",
+            variant: "snackbar",
+            autoHide: 3000,
+          })
+        );
+      },
+    });
+  };
+
+  const handleDelete = (id) => {
+    deleteOne.mutate(id, {
+      onSuccess: () => {
+        dispatch(
+          showNotification({
+            message: "Notifikasi berhasil dihapus",
+            type: "success",
+            title: "Berhasil",
+            variant: "snackbar",
+            autoHide: 2000,
+          })
+        );
+      },
+      onError: (error) => {
+        dispatch(
+          showNotification({
+            message: error.message || "Gagal menghapus notifikasi",
+            type: "error",
+            title: "Error",
+            variant: "snackbar",
+            autoHide: 3000,
+          })
+        );
+      },
+    });
+  };
+
+  const handleDeleteAll = () => {
+    deleteAll.mutate(undefined, {
+      onSuccess: () => {
+        dispatch(
+          showNotification({
+            message: "Semua notifikasi berhasil dihapus",
+            type: "success",
+            title: "Berhasil",
+            variant: "snackbar",
+            autoHide: 2000,
+          })
+        );
+      },
+      onError: (error) => {
+        dispatch(
+          showNotification({
+            message: error.message || "Gagal menghapus semua notifikasi",
+            type: "error",
+            title: "Error",
+            variant: "snackbar",
+            autoHide: 3000,
+          })
+        );
+      },
+    });
+  };
+
+  const handleMarkAllRead = () => {
+    markAllAsRead.mutate(undefined, {
+      onSuccess: () => {
+        dispatch(
+          showNotification({
+            message: "Semua notifikasi ditandai sudah dibaca",
+            type: "success",
+            title: "Berhasil",
+            variant: "snackbar",
+            autoHide: 2000,
+          })
+        );
+      },
+      onError: (error) => {
+        dispatch(
+          showNotification({
+            message: error.message || "Gagal menandai semua notifikasi",
+            type: "error",
+            title: "Error",
+            variant: "snackbar",
+            autoHide: 3000,
+          })
+        );
+      },
+    });
+  };
 
   const handleToggleSidebar = () => dispatch(toggleSidebar());
 
@@ -144,9 +254,7 @@ const Header = () => {
     setNotifOpen(false);
   };
 
-  const handleMarkRead = (id) => markAsRead.mutate(id);
-
-  const handleDelete = (id) => deleteOne.mutate(id);
+  const handleRefresh = () => refetch();
 
   const iconBtnStyle = {
     border: "1px solid",
@@ -197,21 +305,19 @@ const Header = () => {
               pr: { xs: 0, md: isOpen ? 2 : 0 },
             }}
           >
-            <Typography
-              variant="h5"
-              sx={{
-                display: { xs: "none", md: isOpen ? "block" : "none" },
-                fontWeight: 500,
-                fontFamily: '"Oswald", sans-serif',
-                whiteSpace: "nowrap",
-                fontSize: "1.35rem",
-                letterSpacing: "0.03em",
-                color: "text.primary",
-                flex: 1,
-              }}
-            >
-              {INFO.name}
-            </Typography>
+           <Box
+  component="img"
+  src={INFO.logoUrl}
+  alt={INFO.name}
+  sx={{
+    display: { xs: "none", md: isOpen ? "block" : "none" },
+    height: 47,
+    width: "auto",
+    maxWidth: 120,
+    objectFit: "contain",
+    flexShrink: 0,
+  }}
+/>
 
             <IconButton
               onClick={handleToggleSidebar}
@@ -450,11 +556,11 @@ const Header = () => {
           hasNextPage={hasNextPage}
           onFetchNextPage={fetchNextPage}
           onMarkRead={handleMarkRead}
-          onMarkAllRead={() => markAllAsRead.mutate()}
-          onDeleteAll={() => deleteAll.mutate()}
+          onMarkAllRead={handleMarkAllRead}
+          onDeleteAll={handleDeleteAll}
           onDelete={handleDelete}
           unreadCount={unreadCount}
-          onRefresh={refetch}
+          onRefresh={handleRefresh}
         />
       )}
     </>

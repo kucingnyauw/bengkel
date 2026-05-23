@@ -1,8 +1,11 @@
 {
-  "name": "frontend",
+  "name": "g-speed-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "Bengkel Motor Spesialis Vespa - Melayani servis, sparepart, dan perawatan Vespa",
+  "author": "G-Speed",
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -34,7 +37,8 @@
     "react-hook-form": "^7.73.1",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.14.2",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "web-vitals": "^5.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -47,6 +51,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "terser": "^5.48.0",
     "vite": "^8.0.9"
   }
 }

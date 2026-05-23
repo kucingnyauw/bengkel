@@ -4,7 +4,7 @@
  * @component
  * @returns {JSX.Element|null} Rendered notification or null
  */
-import { X } from "lucide-react";
+import { RotateCcw, X } from "lucide-react";
 import {
   Snackbar,
   Alert,
@@ -15,6 +15,7 @@ import {
   DialogActions,
   Button,
   IconButton,
+  Stack,
   useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -42,6 +43,11 @@ const NotificationHandler = () => {
 
   const handleClose = () => dispatch(hideNotification());
 
+  const handleRefresh = () => {
+    handleClose();
+    window.location.reload();
+  };
+
   if (!open) return null;
 
   if (variant === "dialog") {
@@ -66,7 +72,7 @@ const NotificationHandler = () => {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              fontWeight: 400,
+              fontWeight: 500,
             }}
           >
             {title}
@@ -83,14 +89,25 @@ const NotificationHandler = () => {
         </DialogContent>
 
         <DialogActions>
-          <Button
-            color="inherit"
-            variant="outlined"
-            onClick={handleClose}
-            sx={{ fontWeight: 400 }}
-          >
-            Tutup
-          </Button>
+          <Stack direction="row" sx={{ gap: 1, width: "100%", justifyContent: "space-between" }}>
+            <Button
+              color="inherit"
+              variant="outlined"
+              onClick={handleRefresh}
+              startIcon={<RotateCcw size={14} strokeWidth={1.5} />}
+              sx={{ fontWeight: 400 }}
+            >
+              Refresh
+            </Button>
+            <Button
+              color="inherit"
+              variant="outlined"
+              onClick={handleClose}
+              sx={{ fontWeight: 400 }}
+            >
+              Tutup
+            </Button>
+          </Stack>
         </DialogActions>
       </Dialog>
     );

@@ -223,7 +223,7 @@ const SalesReport = () => {
           >
             <Stack sx={{ gap: 2.5, alignItems: "center", textAlign: "center" }}>
               <Box>
-                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 500 }}>
                   Belum Ada Data Penjualan
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
@@ -280,7 +280,7 @@ const SalesReport = () => {
               }}
             >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Penjualan Harian
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -309,7 +309,7 @@ const SalesReport = () => {
               }}
             >
               <Box sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Tren Pesanan
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -337,7 +337,7 @@ const SalesReport = () => {
               }}
             >
               <Box sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Tren Nilai Pesanan
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -372,16 +372,16 @@ const SalesReport = () => {
                     <Stack direction="row" sx={{ gap: 2.5, alignItems: "center" }}>
                       <ArrowUp size={18} strokeWidth={1.5} color={theme.palette.success.main} />
                       <Box>
-                        <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 400 }}>
+                        <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 500 }}>
                           Penjualan Tertinggi
                         </Typography>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
                           {formatDate(bestDay.date)}
                         </Typography>
                       </Box>
                     </Stack>
                     <Box sx={{ textAlign: "right" }}>
-                      <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 500 }}>
                         {formatToIdr(bestDay.totalSales)}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
@@ -404,16 +404,16 @@ const SalesReport = () => {
                     <Stack direction="row" sx={{ gap: 2.5, alignItems: "center" }}>
                       <ArrowDown size={18} strokeWidth={1.5} color={theme.palette.error.main} />
                       <Box>
-                        <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 400 }}>
+                        <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 500 }}>
                           Penjualan Terendah
                         </Typography>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
                           {formatDate(worstDay.date)}
                         </Typography>
                       </Box>
                     </Stack>
                     <Box sx={{ textAlign: "right" }}>
-                      <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 400 }}>
+                      <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
                         {formatToIdr(worstDay.totalSales)}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
@@ -434,7 +434,7 @@ const SalesReport = () => {
               }}
             >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Detail Harian
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -452,7 +452,7 @@ const SalesReport = () => {
                             variant="caption"
                             color="text.secondary"
                             sx={{
-                              fontWeight: 600,
+                              fontWeight: 500,
                               textTransform: "uppercase",
                               letterSpacing: "0.05em",
                             }}

@@ -230,7 +230,7 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
           <Box sx={{ px: 3, py: 2.5 }}>
             <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Informasi Shift
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -291,7 +291,7 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
           }}
         >
           <Box sx={{ px: 3, py: 2.5 }}>
-            <Typography variant="h6" sx={{ fontWeight: 400 }}>
+            <Typography variant="h6" sx={{ fontWeight: 500 }}>
               Progress Order
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -349,7 +349,7 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
           }}
         >
           <Box sx={{ px: 3, py: 2.5 }}>
-            <Typography variant="h6" sx={{ fontWeight: 400 }}>
+            <Typography variant="h6" sx={{ fontWeight: 500 }}>
               Pesanan Terbaru
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -417,7 +417,7 @@ const CashierDashboard = ({ data, isLoading, refetch }) => {
               </Stack>
             ) : (
               <Stack sx={{ alignItems: "center", justifyContent: "center", flex: 1, gap: 2 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
                   Belum Ada Pesanan
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>

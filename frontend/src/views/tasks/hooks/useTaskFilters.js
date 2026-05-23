@@ -5,7 +5,7 @@ import { useState, useCallback } from "react";
  */
 const initialFilters = {
   orderId: "",
-  orderStatus: "",
+
   startDate: null,
   endDate: null,
 };

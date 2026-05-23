@@ -227,7 +227,7 @@ const ProductFormDialog = ({ mode, onClose, open, selectedProduct }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight: 500,
         }}
       >
         {mode === "create" ? "Tambah Produk" : "Edit Produk"}

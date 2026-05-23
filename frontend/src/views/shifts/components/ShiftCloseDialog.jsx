@@ -119,7 +119,7 @@ const ShiftCloseDialog = ({ onClose, open, shiftId }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight: 500,
         }}
       >
         Tutup Shift

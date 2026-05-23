@@ -200,17 +200,17 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
           >
             <CardContent sx={{ py: 2.5, "&:last-child": { pb: 2.5 } }}>
               <Stack sx={{ gap: 0.5, mb: 2 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
                   Total Tagihan
                 </Typography>
-                <Typography variant="h5" color="secondary" sx={{ fontWeight: 400 }}>
+                <Typography variant="h5" color="secondary" sx={{ fontWeight: 500 }}>
                   {formatToIdr(data?.total || 0)}
                 </Typography>
               </Stack>
               <Divider sx={{ my: 1.5 }} />
               <Stack sx={{ gap: 1 }}>
                 <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
                     No. Order
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 400 }}>
@@ -218,7 +218,7 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
                   </Typography>
                 </Stack>
                 <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
                     Pelanggan
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 400 }}>
@@ -230,7 +230,7 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
           </Card>
 
           <Box>
-            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 400 }}>
+            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 500 }}>
               Metode Pembayaran
             </Typography>
             <Controller
@@ -307,7 +307,7 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
                         <QrCode size={24} strokeWidth={1.5} />
                       </Box>
                       <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
                           QRIS
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
@@ -380,7 +380,7 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
                         <Banknote size={24} strokeWidth={1.5} />
                       </Box>
                       <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
                           Tunai
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
@@ -427,7 +427,7 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
                         sx: { fontWeight: 400 },
                       },
                       inputLabel: {
-                        sx: { fontWeight: 400 },
+                        sx: { fontWeight: 500 },
                       },
                       formHelperText: {
                         sx: { fontWeight: 400 },
@@ -454,13 +454,13 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
                 >
                   <CardContent sx={{ py: 2, "&:last-child": { pb: 2 } }}>
                     <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                      <Typography variant="body2" sx={{ fontWeight: 400 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
                         Kembalian
                       </Typography>
                       <Typography
                         variant="body2"
                         color={changeAmount >= 0 ? "success.main" : "error.main"}
-                        sx={{ fontWeight: 400 }}
+                        sx={{ fontWeight: 500 }}
                       >
                         {formatToIdr(changeAmount)}
                       </Typography>
@@ -568,7 +568,7 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
               <Chip
                 label={`Total: ${formatToIdr(qrisData?.amount || data?.total || 0)}`}
                 variant="outlined"
-                sx={{ fontWeight: 400 }}
+                sx={{ fontWeight: 500 }}
               />
             </>
           )}
@@ -628,7 +628,7 @@ const OrderPaymentDialog = ({ data, onClose, open }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight: 500,
         }}
       >
         {step === "qris" ? "Pembayaran QRIS" : "Pembayaran"}

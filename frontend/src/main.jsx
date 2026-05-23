@@ -34,6 +34,10 @@ import { STALE_TIME } from "@shared/constant/constant.js";
  */
 import { setupInterceptors } from "@lib/setupInterceptors.js";
 
+import reportWebVitals from "./reportWebVitals.js";
+import { register as registerServiceWorker } from "./serviceWorkerRegistration.js";
+
+
 /**
  * Fonts — Open Sans
  */
@@ -50,6 +54,7 @@ import "@fontsource/open-sans/400.css";
 import "@fontsource/open-sans/500.css";
 import "@fontsource/open-sans/600.css";
 import "@fontsource/open-sans/700.css";
+
 
 
 
@@ -74,6 +79,9 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+
+
 
 /**
  * ------------------------------------------------------------
@@ -107,3 +115,19 @@ root.render(
     </Provider>
   </QueryClientProvider>
 );
+
+
+
+// =========================
+// SERVICE WORKER
+// =========================
+registerServiceWorker({
+  onSuccess: (registration) =>
+    console.log("[SW] Registration successful", registration),
+  onUpdate: (registration) =>
+    console.log("[SW] Update available", registration),
+});
+
+
+
+reportWebVitals()

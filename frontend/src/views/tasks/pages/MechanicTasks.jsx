@@ -16,6 +16,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import { useDispatch } from "react-redux";
 
 import { AppTable } from "@components";
 import { useDebounce } from "@hooks";
@@ -33,8 +34,10 @@ import {
   useTaskDialog,
   useTaskFilters,
 } from "@views/tasks/hooks";
+import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const MechanicTasks = () => {
+  const dispatch = useDispatch();
   const theme = useTheme();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -63,8 +66,58 @@ const MechanicTasks = () => {
     tempFilters,
   } = useTaskFilters();
 
-  const startMutation = useStartTaskMutation();
-  const endMutation = useCompleteTaskMutation();
+  const startMutation = useStartTaskMutation({
+    onSuccess: () => {
+      dispatch(
+        showNotification({
+          message: "Tugas berhasil dimulai",
+          type: "success",
+          title: "Berhasil",
+          variant: "snackbar",
+          autoHide: 3000,
+        })
+      );
+      closeDialog();
+    },
+    onError: (error) => {
+      dispatch(
+        showNotification({
+          message: error?.message || "Gagal memulai tugas",
+          type: "error",
+          title: "Error",
+          variant: "snackbar",
+          autoHide: 5000,
+        })
+      );
+    },
+  });
+
+  const endMutation = useCompleteTaskMutation({
+    onSuccess: () => {
+      dispatch(
+        showNotification({
+          message: "Tugas berhasil diselesaikan",
+          type: "success",
+          title: "Berhasil",
+          variant: "snackbar",
+          autoHide: 3000,
+        })
+      );
+      closeDialog();
+    },
+    onError: (error) => {
+      dispatch(
+        showNotification({
+          message: error?.message || "Gagal menyelesaikan tugas",
+          type: "error",
+          title: "Error",
+          variant: "snackbar",
+          autoHide: 5000,
+        })
+      );
+    },
+  });
+
   const isSubmitting = startMutation.isPending || endMutation.isPending;
 
   const queryParams = useMemo(
@@ -88,47 +141,32 @@ const MechanicTasks = () => {
   const tableData = data?.data || [];
   const metadata = data?.metadata || {};
 
-  /**
-   * Terapkan filter dan reset ke halaman pertama
-   */
   const handleApplyFilter = useCallback(() => {
     applyFilter();
     setPage(1);
   }, [applyFilter]);
 
-  /**
-   * Reset filter dan kembali ke halaman pertama
-   */
   const handleResetFilter = useCallback(() => {
     resetFilter();
     setPage(1);
   }, [resetFilter]);
 
-  /**
-   * Handler konfirmasi aksi (mulai/selesai)
-   */
   const handleConfirmAction = useCallback(
     (task) => {
       if (dialog.type === "start") {
-        startMutation.mutate(task.orderId, { onSuccess: () => closeDialog() });
+        startMutation.mutate(task.orderId);
       } else if (dialog.type === "end") {
-        endMutation.mutate(task.orderId, { onSuccess: () => closeDialog() });
+        endMutation.mutate(task.orderId);
       }
     },
-    [dialog.type, startMutation, endMutation, closeDialog]
+    [dialog.type, startMutation, endMutation]
   );
 
-  /**
-   * Handler klik ganda baris
-   */
   const handleRowDoubleClick = useCallback(
     (row) => openDetailDialog(row.orderId),
     [openDetailDialog]
   );
 
-  /**
-   * Handler klik tombol mulai
-   */
   const handleStartClick = useCallback(
     (e, row) => {
       e.stopPropagation();
@@ -137,9 +175,6 @@ const MechanicTasks = () => {
     [openStartDialog]
   );
 
-  /**
-   * Handler klik tombol selesai
-   */
   const handleEndClick = useCallback(
     (e, row) => {
       e.stopPropagation();
@@ -148,17 +183,11 @@ const MechanicTasks = () => {
     [openEndDialog]
   );
 
-  /**
-   * Render baris kustom
-   */
   const renderRow = useCallback(
     (row) => {
       const serviceNames = row.services?.map((s) => s.name).join(", ") || "—";
       const canStart = row.status === "QUEUED";
       const canEnd = row.status === "IN_PROGRESS";
-
-      const completedCount =
-        row.services?.filter((s) => s.taskStatus === "COMPLETED").length || 0;
       const totalCount = row.services?.length || 0;
 
       return [
@@ -205,25 +234,6 @@ const MechanicTasks = () => {
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
             {totalCount} layanan
-          </Typography>
-        </Box>,
-
-        <Box key={`progress-${row.orderId}`}>
-          <Chip
-            color={row.status === "COMPLETED" || row.status === "CLOSED" ? "success" : row.status === "IN_PROGRESS" ? "secondary" : "warning"}
-            label={
-              row.status === "COMPLETED" || row.status === "CLOSED"
-                ? "Selesai"
-                : row.status === "IN_PROGRESS"
-                  ? "Dikerjakan"
-                  : "Menunggu"
-            }
-            size="small"
-            variant="outlined"
-            sx={{ fontWeight: 400 }}
-          />
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400, display: "block", mt: 0.3 }}>
-            {completedCount}/{totalCount} selesai
           </Typography>
         </Box>,
 
@@ -297,9 +307,6 @@ const MechanicTasks = () => {
     [handleStartClick, handleEndClick, theme]
   );
 
-  /**
-   * Konfigurasi tombol aksi tabel
-   */
   const tableActions = useMemo(
     () => [
       { icon: ListFilter, label: "Filter", onClick: openFilter },
@@ -308,22 +315,12 @@ const MechanicTasks = () => {
     [openFilter, refetch]
   );
 
-  /**
-   * Handler perubahan halaman
-   */
   const handlePageChange = useCallback((event, newPage) => setPage(newPage), []);
-
-  /**
-   * Handler perubahan jumlah baris per halaman
-   */
   const handleRowsPerPageChange = useCallback((newLimit) => {
     setLimit(newLimit);
     setPage(1);
   }, []);
 
-  /**
-   * Handler perubahan input pencarian
-   */
   const onSearchChange = useCallback((e) => {
     setSearch(e.target.value);
     setPage(1);
@@ -336,16 +333,7 @@ const MechanicTasks = () => {
         count={metadata.totalPages || 0}
         data={tableData}
         emptyStateMessage="Tidak ada tugas ditemukan"
-        headers={[
-          "No. Order",
-          "Status",
-          "Customer",
-          "Kendaraan",
-          "Layanan",
-          "Progress",
-          "Dibuat",
-          "Aksi",
-        ]}
+        headers={["No. Order", "Status", "Customer", "Kendaraan", "Layanan", "Dibuat", "Aksi"]}
         isLoading={isLoading}
         onChange={handlePageChange}
         onRowDoubleClick={handleRowDoubleClick}

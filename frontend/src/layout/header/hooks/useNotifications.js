@@ -1,4 +1,3 @@
-// hooks/useNotifications.js
 import {
   useInfiniteQuery,
   useMutation,
@@ -17,7 +16,9 @@ import {
 import { STALE_TIME } from "@shared/constant";
 
 export const useNotifications = (options = {}) => {
-  return useInfiniteQuery({
+  const queryClient = useQueryClient();
+
+  const query = useInfiniteQuery({
     queryKey: ["notifications"],
     queryFn: ({ pageParam = 1 }) =>
       getMyNotifications({ page: pageParam, limit: 10 }),
@@ -29,6 +30,11 @@ export const useNotifications = (options = {}) => {
     staleTime: STALE_TIME,
     ...options,
   });
+
+  return {
+    ...query,
+    refresh: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  };
 };
 
 export const useUnreadCount = (options = {}) => {
@@ -70,22 +76,30 @@ export const useMarkAllAsRead = () => {
   });
 };
 
-export const useDeleteNotification = () => {
+export const useDeleteNotification = ({ onSuccess, onFailed } = {}) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteNotification,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      onSuccess?.(data);
+    },
+    onError: (error) => {
+      onFailed?.(error);
     },
   });
 };
 
-export const useDeleteAllNotifications = () => {
+export const useDeleteAllNotifications = ({ onSuccess, onFailed } = {}) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteAllNotifications,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      onSuccess?.(data);
+    },
+    onError: (error) => {
+      onFailed?.(error);
     },
   });
 };

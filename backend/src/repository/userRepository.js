@@ -398,6 +398,34 @@ class UserRepository {
       orderBy: { fullName: "asc" },
     });
   }
+
+
+ 
+  /**
+ * Update status autentikasi user menjadi true jika sebelumnya false.
+ * Jika status saat ini sudah true, tidak akan melakukan update.
+ * @param {string} id - ID user
+ * @returns {Promise<Object|void>} User yang sudah diupdate, atau void jika status sudah true
+ */
+async updateAuthStatus(id) {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { isAuthenticated: true },
+  });
+
+  if (!user) return;
+
+  if (user.isAuthenticated === true) return;
+
+  return prisma.user.update({
+    where: { id },
+    data: { isAuthenticated: true },
+    select: this.#userSelect,
+  });
+}
+
+
+
 }
 
 export default UserRepository;

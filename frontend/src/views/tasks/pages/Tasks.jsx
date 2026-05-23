@@ -46,7 +46,6 @@ const Tasks = () => {
       page,
       search: debouncedSearch,
       orderId: activeFilters.orderId || undefined,
-      orderStatus: activeFilters.orderStatus || undefined,
       mechanicId: activeFilters.mechanicId || undefined,
       startDate: activeFilters.startDate
         ? activeFilters.startDate.toISOString()
@@ -101,21 +100,7 @@ const Tasks = () => {
           ),
         ].join(", ") || "—";
 
-      const completedCount =
-        row.services?.filter((s) => s.taskStatus === "COMPLETED").length || 0;
       const totalCount = row.services?.length || 0;
-
-      const getProgressColor = () => {
-        if (row.status === "COMPLETED" || row.status === "CLOSED") return "success";
-        if (row.status === "IN_PROGRESS") return "secondary";
-        return "warning";
-      };
-
-      const getProgressLabel = () => {
-        if (row.status === "COMPLETED" || row.status === "CLOSED") return "Selesai";
-        if (row.status === "IN_PROGRESS") return "Dikerjakan";
-        return "Menunggu";
-      };
 
       return [
         <Typography key={`order-${row.orderId}`} variant="body2" sx={{ fontWeight: 400 }}>
@@ -169,19 +154,6 @@ const Tasks = () => {
         <Typography key={`mechanic-${row.orderId}`} variant="body2" sx={{ fontWeight: 400 }}>
           {mechanicNames}
         </Typography>,
-
-        <Box key={`progress-${row.orderId}`}>
-          <Chip
-            color={getProgressColor()}
-            label={getProgressLabel()}
-            size="small"
-            variant="outlined"
-            sx={{ fontWeight: 400 }}
-          />
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400, display: "block", mt: 0.3 }}>
-            {completedCount}/{totalCount} selesai
-          </Typography>
-        </Box>,
 
         <Typography key={`created-${row.orderId}`} variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
           {row.createdAt ? formatDateTime(row.createdAt) : "—"}
@@ -237,7 +209,6 @@ const Tasks = () => {
           "Kendaraan",
           "Layanan",
           "Mekanik",
-          "Progress",
           "Dibuat",
         ]}
         isLoading={isLoading}

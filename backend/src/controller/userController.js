@@ -286,6 +286,8 @@ class UserController {
       data: new UserDto(user),
     });
   });
+
+  
 }
 
 export default new UserController();

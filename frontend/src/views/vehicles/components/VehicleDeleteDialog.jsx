@@ -1,9 +1,6 @@
 /**
  * VehicleDeleteDialog - Dialog konfirmasi untuk menghapus kendaraan customer.
  *
- * Jika customer memiliki lebih dari 1 kendaraan, akan muncul dropdown untuk memilih
- * kendaraan mana yang akan dihapus.
- *
  * @component
  * @param {Object} props - Props komponen
  * @param {boolean} props.open - Status dialog terbuka
@@ -28,7 +25,6 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
   Divider,
   FormControl,
@@ -38,12 +34,15 @@ import {
   Select,
   Stack,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 import { useDeleteVehicleMutation } from "@views/vehicles/hooks";
 import { showNotification } from "@store/notifications/notificationsSlice.js";
 
 const VehicleDeleteDialog = ({ open, vehicle, onClose }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
 
   const deleteMutation = useDeleteVehicleMutation({
@@ -59,10 +58,10 @@ const VehicleDeleteDialog = ({ open, vehicle, onClose }) => {
       );
       onClose?.();
     },
-    onFailed: (error) => {
+    onError: (error) => {
       dispatch(
         showNotification({
-          message: error.message || "Gagal menghapus kendaraan",
+          message: error?.message || "Gagal menghapus kendaraan",
           type: "error",
           title: "Error",
           variant: "snackbar",
@@ -78,50 +77,62 @@ const VehicleDeleteDialog = ({ open, vehicle, onClose }) => {
     vehicles.length === 1 ? vehicles[0]?.id : ""
   );
 
-  /**
-   * Handle konfirmasi hapus
-   */
   const handleConfirm = useCallback(() => {
     if (selectedId) deleteMutation.mutate(selectedId);
   }, [selectedId, deleteMutation]);
 
   return (
-    <Dialog fullWidth maxWidth="xs" onClose={isPending ? undefined : onClose} open={open}>
+    <Dialog
+      fullWidth
+      maxWidth="xs"
+      onClose={isPending ? undefined : onClose}
+      open={open}
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: `${theme.shape.borderRadius}px`,
+            border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontWeight: 500,
         }}
       >
         Hapus Kendaraan
         <IconButton onClick={onClose} disabled={isPending} size="small">
-          <X size={20} />
+          <X size={18} strokeWidth={1.5} />
         </IconButton>
       </DialogTitle>
 
       <Divider />
 
       <DialogContent>
-        <DialogContentText sx={{ mb: 2.5 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3.5, fontWeight: 400 }}>
           Pilih kendaraan milik <strong>{vehicle?.name || "pelanggan"}</strong>{" "}
           yang akan dihapus.
-        </DialogContentText>
+        </Typography>
 
-        <FormControl disabled={isPending}>
-          <InputLabel>Pilih Kendaraan</InputLabel>
+        <FormControl fullWidth disabled={isPending}>
+          <InputLabel sx={{ fontWeight: 400 }}>Pilih Kendaraan</InputLabel>
           <Select
             value={selectedId}
             label="Pilih Kendaraan"
             onChange={(e) => setSelectedId(e.target.value)}
+            sx={{ fontWeight: 400 }}
           >
             {vehicles.map((v) => (
-              <MenuItem key={v.id} value={v.id}>
+              <MenuItem key={v.id} value={v.id} sx={{ fontWeight: 400 }}>
                 <Stack>
-                  <Typography variant="body2" fontWeight={500}>
+                  <Typography variant="body2" sx={{ fontWeight: 400 }}>
                     {v.plateNumber}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
                     {v.brand} {v.model}
                   </Typography>
                 </Stack>
@@ -134,16 +145,24 @@ const VehicleDeleteDialog = ({ open, vehicle, onClose }) => {
       <Divider />
 
       <DialogActions>
-        <Button color="inherit" variant="outlined" disabled={isPending} onClick={onClose}>
+        <Button
+          color="inherit"
+          variant="outlined"
+          disabled={isPending}
+          onClick={onClose}
+          sx={{ fontWeight: 400 }}
+        >
           Batal
         </Button>
         <Button
           variant="contained"
+          color="error"
           disabled={isPending || !selectedId}
           onClick={handleConfirm}
           startIcon={
             isPending ? <CircularProgress size={14} color="inherit" /> : null
           }
+          sx={{ fontWeight: 400 }}
         >
           {isPending ? "Menghapus..." : "Hapus"}
         </Button>

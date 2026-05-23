@@ -74,7 +74,7 @@ const StockFilterDialog = ({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight: 500,
         }}
       >
         Filter Mutasi Stok

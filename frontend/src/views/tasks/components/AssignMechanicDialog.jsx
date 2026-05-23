@@ -131,7 +131,7 @@ const AssignMechanicDialog = ({
           },
         }}
       >
-        <DialogTitle sx={{ fontWeight: 400 }}>
+        <DialogTitle sx={{ fontWeight: 500 }}>
           Assign Mekanik
         </DialogTitle>
 

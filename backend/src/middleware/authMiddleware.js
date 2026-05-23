@@ -8,14 +8,6 @@ const userRepo = new UserRepository();
 
 const userCache = new CacheManager("auth:user");
 
-/**
- * Memverifikasi user Supabase menggunakan access token
- * Mengembalikan data user Supabase jika token valid
- *
- * @param {string} token - Supabase access token
- * @returns {Promise<Object>} Data user Supabase
- * @throws {ApiError} Jika token tidak valid, sesi berakhir, atau layanan terganggu
- */
 const getSupabaseUser = async (token) => {
   try {
     logger.info({
@@ -80,13 +72,6 @@ const getSupabaseUser = async (token) => {
   }
 };
 
-/**
- * Mendapatkan data user dari database berdasarkan email
- * Menggunakan cache untuk mengurangi query database
- *
- * @param {string} email - Email user
- * @returns {Promise<Object|null>} Data user atau null jika tidak ditemukan
- */
 const getUserByEmail = async (email) => {
   const cacheKey = `email:${email}`;
 
@@ -120,15 +105,6 @@ const getUserByEmail = async (email) => {
   return user;
 };
 
-/**
- * Middleware autentikasi JWT Supabase
- * Memverifikasi token, memuat data user, dan melampirkannya ke request
- *
- * @param {import("express").Request} req - Express request object
- * @param {import("express").Response} res - Express response object
- * @param {import("express").NextFunction} next - Express next function
- * @returns {Promise<void>}
- */
 const authMiddleware = async (req, res, next) => {
   try {
     logger.info({
@@ -185,6 +161,18 @@ const authMiddleware = async (req, res, next) => {
       throw ApiError.forbidden({
         code: "ACCOUNT_INACTIVE",
         message: "Akun Anda sedang tidak aktif. Silakan hubungi administrator untuk informasi lebih lanjut.",
+      });
+    }
+
+    if (!user.isAuthenticated) {
+      await userRepo.updateAuthStatus(user.id);
+
+      user.isAuthenticated = true;
+
+      logger.info({
+        message: "[AUTH] User Auth Status Updated",
+        userId: user.id,
+        email: user.email,
       });
     }
 

@@ -69,21 +69,14 @@ const Customers = () => {
     control: updateControl,
     handleSubmit: handleUpdateSubmit,
     reset: resetUpdate,
+    formState: updateFormState,
   } = useCustomerUpdateForm();
 
-  /**
-   * Konfigurasi header tabel
-   * @type {string[]}
-   */
   const headers = useMemo(
     () => ["Nama", "Telepon", "Total Kendaraan", "Total Order", "Tanggal Daftar", "Aksi"],
     []
   );
 
-  /**
-   * Parameter query untuk customer
-   * @type {Object}
-   */
   const params = useMemo(
     () => ({ page, limit, search: debouncedSearch }),
     [page, limit, debouncedSearch]
@@ -94,26 +87,16 @@ const Customers = () => {
   const tableData = data?.data || [];
   const metadata = data?.metadata || {};
 
-  /**
-   * Buka dialog tambah customer
-   */
   const handleOpenCreate = useCallback(() => {
     resetCreate();
     openCreateDialog();
   }, [resetCreate, openCreateDialog]);
 
-  /**
-   * Tutup dialog tambah customer
-   */
   const handleCloseCreate = useCallback(() => {
     closeCreateDialog();
     resetCreate();
   }, [closeCreateDialog, resetCreate]);
 
-  /**
-   * Buka dialog edit customer
-   * @param {Object} row - Data baris customer
-   */
   const handleOpenUpdate = useCallback(
     (row) => {
       resetUpdate({ name: row.name || "", phone: row.phone || "" });
@@ -122,11 +105,6 @@ const Customers = () => {
     [resetUpdate, openUpdateDialog]
   );
 
-  /**
-   * Handler klik tombol edit
-   * @param {Event} e - Event klik
-   * @param {Object} row - Data baris customer
-   */
   const handleEditClick = useCallback(
     (e, row) => {
       e.stopPropagation();
@@ -135,18 +113,11 @@ const Customers = () => {
     [handleOpenUpdate]
   );
 
-  /**
-   * Tutup dialog edit customer
-   */
   const handleCloseUpdate = useCallback(() => {
     closeUpdateDialog();
     resetUpdate();
   }, [closeUpdateDialog, resetUpdate]);
 
-  /**
-   * Handler klik ganda baris untuk membuka dialog detail
-   * @param {Object} row - Data baris customer
-   */
   const handleRowDoubleClick = useCallback(
     (row) => {
       openDetailDialog(row.id);
@@ -154,11 +125,6 @@ const Customers = () => {
     [openDetailDialog]
   );
 
-  /**
-   * Handler klik tombol hapus
-   * @param {Event} e - Event klik
-   * @param {Object} row - Data baris customer
-   */
   const handleDeleteClick = useCallback(
     (e, row) => {
       e.stopPropagation();
@@ -167,11 +133,6 @@ const Customers = () => {
     [openDeleteDialog]
   );
 
-  /**
-   * Render baris kustom untuk tabel customer
-   * @param {Object} row - Data customer
-   * @returns {JSX.Element[]} Array komponen sel
-   */
   const renderRow = useCallback(
     (row) => [
       <Typography key={`name-${row.id}`} fontWeight={500} variant="body2">
@@ -243,10 +204,6 @@ const Customers = () => {
     [handleEditClick, handleDeleteClick, theme]
   );
 
-  /**
-   * Konfigurasi tombol aksi tabel
-   * @type {Object[]}
-   */
   const tableActions = useMemo(
     () => [
       { icon: Plus, label: "Tambah Pelanggan", onClick: handleOpenCreate },
@@ -255,28 +212,15 @@ const Customers = () => {
     [handleOpenCreate, refetch]
   );
 
-  /**
-   * Handler perubahan halaman
-   * @param {Event} event - Event perubahan
-   * @param {number} newPage - Nomor halaman baru
-   */
   const handlePageChange = useCallback((event, newPage) => {
     setPage(newPage);
   }, []);
 
-  /**
-   * Handler perubahan jumlah baris per halaman
-   * @param {number} newLimit - Nilai jumlah baris per halaman baru
-   */
   const handleRowsPerPageChange = useCallback((newLimit) => {
     setLimit(newLimit);
     setPage(1);
   }, []);
 
-  /**
-   * Handler perubahan input pencarian
-   * @param {Event} e - Event perubahan input
-   */
   const onSearchChange = useCallback((e) => {
     setSearch(e.target.value);
     setPage(1);
@@ -320,6 +264,7 @@ const Customers = () => {
       <CustomerUpdateDialog
         control={updateControl}
         customer={updateDialog.customer}
+        formState={updateFormState}
         handleSubmit={handleUpdateSubmit}
         onClose={handleCloseUpdate}
         open={updateDialog.open}

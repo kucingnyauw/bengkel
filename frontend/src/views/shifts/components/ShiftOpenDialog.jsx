@@ -117,7 +117,7 @@ const ShiftOpenDialog = ({ onClose, open }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontWeight: 400,
+          fontWeight: 500,
         }}
       >
         Buka Shift Baru

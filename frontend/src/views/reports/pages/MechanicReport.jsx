@@ -226,7 +226,7 @@ const MechanicReport = () => {
           >
             <Stack sx={{ gap: 2.5, alignItems: "center", textAlign: "center" }}>
               <Box>
-                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 500 }}>
                   Belum Ada Data Mekanik
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
@@ -312,11 +312,11 @@ const MechanicReport = () => {
                       <Typography
                         variant="overline"
                         color="text.secondary"
-                        sx={{ fontWeight: 400, letterSpacing: "0.05em" }}
+                        sx={{ fontWeight: 500, letterSpacing: "0.05em" }}
                       >
                         Performa Terbaik
                       </Typography>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 400 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
                         {topMechanic.mechanicName}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
@@ -327,7 +327,7 @@ const MechanicReport = () => {
                   </Stack>
                   <Stack direction="row" sx={{ gap: 3, alignItems: "center" }}>
                     <Box sx={{ textAlign: "center" }}>
-                      <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 500 }}>
                         {topMechanic.completionRate.toFixed(1)}%
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
@@ -336,7 +336,7 @@ const MechanicReport = () => {
                     </Box>
                     <Divider orientation="vertical" flexItem />
                     <Box sx={{ textAlign: "center" }}>
-                      <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 500 }}>
                         {formatToIdr(topMechanic.averagePerTask)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400 }}>
@@ -357,7 +357,7 @@ const MechanicReport = () => {
               }}
             >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Distribusi Tugas
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -385,7 +385,7 @@ const MechanicReport = () => {
               }}
             >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Pendapatan Mekanik
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -413,7 +413,7 @@ const MechanicReport = () => {
               }}
             >
               <Box sx={{ px: 3, py: 2.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 400 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
                   Rincian Performa
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
@@ -439,7 +439,7 @@ const MechanicReport = () => {
                               variant="caption"
                               color="text.secondary"
                               sx={{
-                                fontWeight: 600,
+                                fontWeight: 500,
                                 textTransform: "uppercase",
                                 letterSpacing: "0.05em",
                               }}

@@ -14,7 +14,6 @@
  * @param {Function} props.onNext - Handler lanjut ke step berikutnya
  * @param {boolean} props.open - Status dialog terbuka
  * @param {Function} props.trigger - Fungsi trigger validasi dari react-hook-form
- * @param {Object} props.formState - State form dari react-hook-form
  *
  * @returns {JSX.Element} Dialog multi-step customer baru
  */
@@ -51,7 +50,6 @@ const CustomerCreateDialog = ({
   onNext,
   open,
   trigger,
-  formState,
 }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
@@ -81,8 +79,6 @@ const CustomerCreateDialog = ({
       );
     },
   });
-
-  const isDirty = formState?.isDirty;
 
   const onSubmit = useCallback(
     (formData) => createCustomerAndVehicle(formData),
@@ -275,7 +271,7 @@ const CustomerCreateDialog = ({
             variant="contained"
             type="submit"
             form="customer-form"
-            disabled={isPending || !isDirty}
+            disabled={isPending}
             startIcon={
               isPending ? <CircularProgress size={14} color="inherit" /> : null
             }

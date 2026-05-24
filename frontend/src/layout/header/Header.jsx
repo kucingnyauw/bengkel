@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
@@ -9,12 +9,13 @@ import {
   Divider,
   IconButton,
   Toolbar,
+  Tooltip,
   Typography,
   useTheme,
   TextField,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { Bell, Menu, Moon, ShoppingCart, Sun, Search } from "lucide-react";
+import { Bell, Menu, Moon, ShoppingCart, Sun, Search, Maximize, Minimize } from "lucide-react";
 
 import { selectSidebarIsOpen } from "@store/sidebar/sidebarSelector.js";
 import { toggleSidebar } from "@store/sidebar/sidebarSlices.js";
@@ -62,10 +63,7 @@ const Header = () => {
   const [notifOpen, setNotifOpen] = useState(false);
   const [searchVal, setSearchVal] = useState("");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
-
-  const sidebarWidth = isOpen
-    ? SIDEBAR.EXPANDED_WIDTH
-    : SIDEBAR.COLLAPSED_WIDTH;
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const searchPages = useMemo(() => getSearchPages(user?.role), [user?.role]);
 
@@ -91,6 +89,29 @@ const Header = () => {
   const markAllAsRead = useMarkAllAsRead();
   const deleteAll = useDeleteAllNotifications();
   const deleteOne = useDeleteNotification();
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
 
   const handleMarkRead = (id) => markAsRead.mutate(id);
   const handleMarkAllRead = () => markAllAsRead.mutate();
@@ -185,7 +206,7 @@ const Header = () => {
           height: isMobile ? HEADER.MOBILE_HEIGHT : HEADER.DESKTOP_HEIGHT,
           justifyContent: "center",
           bgcolor: "background.paper",
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          border : "none",
           zIndex: theme.zIndex.appBar,
         }}
       >
@@ -205,15 +226,11 @@ const Header = () => {
             sx={{
               display: showMobileSearch ? "none" : "flex",
               alignItems: "center",
-              gap: 1,
-              width: { xs: "auto", md: `${sidebarWidth}px` },
-              transition: "width 0.3s ease, padding 0.3s ease",
-              justifyContent: {
-                xs: "flex-start",
-                md: isOpen ? "flex-start" : "center",
-              },
-              pl: { xs: 0, md: isOpen ? 3 : 0 },
-              pr: { xs: 0, md: isOpen ? 2 : 0 },
+              gap: 1.5,
+              width: { xs: "auto", md: `${SIDEBAR.EXPANDED_WIDTH}px` },
+              justifyContent: "flex-start",
+              pl: { xs: 0, md: 3 },
+              pr: { xs: 0, md: 2 },
               flexShrink: 0,
             }}
           >
@@ -222,7 +239,7 @@ const Header = () => {
               src={INFO.logoUrl}
               alt={INFO.name}
               sx={{
-                display: { xs: "none", md: isOpen ? "block" : "none" },
+                display: { xs: "none", md: "block" },
                 height: 40,
                 width: "auto",
                 maxWidth: 120,
@@ -230,17 +247,19 @@ const Header = () => {
                 flexShrink: 0,
               }}
             />
-            <IconButton
-              onClick={handleToggleSidebar}
-              size="small"
-              sx={{
-                ...iconBtnStyle,
-                ml: { xs: 0, md: isOpen ? "auto" : 0 },
-                flexShrink: 0,
-              }}
-            >
-              <Menu size={18} strokeWidth={1.5} />
-            </IconButton>
+            <Tooltip title="Toggle Sidebar">
+              <IconButton
+                onClick={handleToggleSidebar}
+                size="small"
+                sx={{
+                  ...iconBtnStyle,
+                  ml: { xs: 0, md: "auto" },
+                  flexShrink: 0,
+                }}
+              >
+                <Menu size={18} strokeWidth={1.5} />
+              </IconButton>
+            </Tooltip>
           </Box>
 
           {/* CENTER BOX (Search Bar) */}
@@ -339,7 +358,7 @@ const Header = () => {
             )}
           </Box>
 
-          {/* SPACER: Berfungsi mendorong ikon ke kanan saat layar kecil & search tertutup */}
+          {/* SPACER */}
           <Box
             sx={{
               flexGrow: 1,
@@ -353,60 +372,64 @@ const Header = () => {
               display: "flex",
               alignItems: "center",
               justifyContent: "flex-end",
-              gap: { xs: 0.5, sm: 1.5 },
+              gap: "10px", // Memberikan gap statis 10px antar setiap elemen
               flexShrink: 0,
             }}
           >
-            <IconButton
-              onClick={() => setShowMobileSearch(!showMobileSearch)}
-              sx={{
-                ...iconBtnStyle,
-                display: { xs: "inline-flex", md: "none" },
-              }}
-            >
-              <Search size={18} strokeWidth={1.5} />
-            </IconButton>
-            <IconButton
-              onClick={handleToggleTheme}
-              sx={{
-                ...iconBtnStyle,
-                display: { xs: "none", sm: "inline-flex" },
-              }}
-            >
-              {mode === "dark" ? (
-                <Sun size={18} strokeWidth={1.5} />
-              ) : (
-                <Moon size={18} strokeWidth={1.5} />
-              )}
-            </IconButton>
-            <IconButton onClick={handleNotifOpen} sx={iconBtnStyle}>
-              <Badge
-                badgeContent={unreadCount}
-                color="error"
-                invisible={unreadCount === 0}
+            {/* Search Tooltip (hanya muncul di mobile jika search disembunyikan) */}
+            <Tooltip title="Pencarian">
+              <IconButton
+                onClick={() => setShowMobileSearch(!showMobileSearch)}
                 sx={{
-                  "& .MuiBadge-badge": {
-                    fontSize: "0.625rem",
-                    height: 16,
-                    minWidth: 16,
-                  },
+                  ...iconBtnStyle,
+                  display: { xs: "inline-flex", md: "none" },
                 }}
               >
-                <Bell size={18} strokeWidth={1.5} />
-              </Badge>
-            </IconButton>
-            {isCashier && (
+                <Search size={18} strokeWidth={1.5} />
+              </IconButton>
+            </Tooltip>
+
+            {/* Fullscreen Tooltip */}
+            <Tooltip title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}>
               <IconButton
-                onClick={handleToggleCart}
+                onClick={handleToggleFullscreen}
                 sx={{
                   ...iconBtnStyle,
                   display: { xs: "none", sm: "inline-flex" },
                 }}
               >
+                {isFullscreen ? (
+                  <Minimize size={18} strokeWidth={1.5} />
+                ) : (
+                  <Maximize size={18} strokeWidth={1.5} />
+                )}
+              </IconButton>
+            </Tooltip>
+
+            {/* Theme Tooltip */}
+            <Tooltip title={mode === "dark" ? "Mode Terang" : "Mode Gelap"}>
+              <IconButton
+                onClick={handleToggleTheme}
+                sx={{
+                  ...iconBtnStyle,
+                  display: { xs: "none", sm: "inline-flex" },
+                }}
+              >
+                {mode === "dark" ? (
+                  <Sun size={18} strokeWidth={1.5} />
+                ) : (
+                  <Moon size={18} strokeWidth={1.5} />
+                )}
+              </IconButton>
+            </Tooltip>
+
+            {/* Notifikasi Tooltip */}
+            <Tooltip title="Notifikasi">
+              <IconButton onClick={handleNotifOpen} sx={iconBtnStyle}>
                 <Badge
-                  badgeContent={items.length}
+                  badgeContent={unreadCount}
                   color="error"
-                  invisible={items.length === 0}
+                  invisible={unreadCount === 0}
                   sx={{
                     "& .MuiBadge-badge": {
                       fontSize: "0.625rem",
@@ -415,31 +438,64 @@ const Header = () => {
                     },
                   }}
                 >
-                  <ShoppingCart size={18} strokeWidth={1.5} />
+                  <Bell size={18} strokeWidth={1.5} />
                 </Badge>
               </IconButton>
+            </Tooltip>
+
+            {/* Keranjang Tooltip (Hanya untuk Cashier) */}
+            {isCashier && (
+              <Tooltip title="Keranjang">
+                <IconButton
+                  onClick={handleToggleCart}
+                  sx={{
+                    ...iconBtnStyle,
+                    display: { xs: "none", sm: "inline-flex" },
+                  }}
+                >
+                  <Badge
+                    badgeContent={items.length}
+                    color="error"
+                    invisible={items.length === 0}
+                    sx={{
+                      "& .MuiBadge-badge": {
+                        fontSize: "0.625rem",
+                        height: 16,
+                        minWidth: 16,
+                      },
+                    }}
+                  >
+                    <ShoppingCart size={18} strokeWidth={1.5} />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
             )}
+
             <Divider
               orientation="vertical"
               flexItem
-              sx={{ height: 24, alignSelf: "center", mx: { xs: 0.5, sm: 0.5 } }}
+              sx={{ height: 24, alignSelf: "center", mx: "2px" }}
             />
-            <Avatar
-              onClick={handleProfileOpen}
-              src={getAvatarUrl(user?.fullName)}
-              sx={{
-                width: { xs: 30, sm: 36 },
-                height: { xs: 30, sm: 36 },
-                cursor: "pointer",
-                border: "1px solid",
-                borderRadius: "50%",
-                borderColor: alpha(theme.palette.divider, 0.8),
-                flexShrink: 0,
-                "&:hover": {
-                  borderColor: alpha(theme.palette.secondary.main, 0.4),
-                },
-              }}
-            />
+
+            {/* Profil Avatar Tooltip */}
+            <Tooltip title="Profil Pengguna">
+              <Avatar
+                onClick={handleProfileOpen}
+                src={getAvatarUrl(user?.fullName)}
+                sx={{
+                  width: { xs: 30, sm: 36 },
+                  height: { xs: 30, sm: 36 },
+                  cursor: "pointer",
+                  border: "1px solid",
+                  borderRadius: "50%",
+                  borderColor: alpha(theme.palette.divider, 0.8),
+                  flexShrink: 0,
+                  "&:hover": {
+                    borderColor: alpha(theme.palette.secondary.main, 0.4),
+                  },
+                }}
+              />
+            </Tooltip>
           </Box>
         </Toolbar>
       </AppBar>

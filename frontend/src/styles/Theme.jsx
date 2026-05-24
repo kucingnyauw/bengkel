@@ -11,7 +11,7 @@ const componentsOverride = (theme) => ({
   MuiCssBaseline: {
     styleOverrides: {
       body: {
-        backgroundColor: theme.palette.background.default,
+        backgroundColor: theme.palette.background.paper,
         color: theme.palette.text.primary,
         transition: "background-color 0.2s ease, color 0.2s ease",
         fontFeatureSettings: '"cv02", "cv03", "cv04", "cv11", "ss03", "ss04"',
@@ -66,23 +66,6 @@ const componentsOverride = (theme) => ({
         transition: "all 0.3s ease",
         position: "relative",
         overflow: "hidden",
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          top: 0,
-          left: "-100%",
-          width: "100%",
-          height: "100%",
-          background: `linear-gradient(90deg, transparent, ${alpha(
-            theme.palette.common.white,
-            0.15
-          )}, transparent)`,
-          opacity: 0,
-          transition: "opacity 0.5s ease",
-        },
-        "&:hover::after": {
-          opacity: 1,
-        },
         "&:active": {
           transform: "scale(0.98)",
         },
@@ -100,7 +83,7 @@ const componentsOverride = (theme) => ({
         border: "1px solid transparent",
         "&:hover": {
           backgroundColor: alpha(theme.palette.text.primary, 0.88),
-          boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.3)}`,
+          boxShadow: "none",
           backgroundImage: "none",
         },
         "&:disabled": {
@@ -117,7 +100,7 @@ const componentsOverride = (theme) => ({
         "&:hover": {
           backgroundColor: theme.palette.action.hover,
           borderColor: theme.palette.secondary.main,
-          boxShadow: `0 0 0 1px ${alpha(theme.palette.secondary.main, 0.2)}`,
+          boxShadow: "none",
         },
       },
       text: {
@@ -136,11 +119,11 @@ const componentsOverride = (theme) => ({
         fontSize: "0.9375rem",
       },
       containedSecondary: {
-        background: `linear-gradient(135deg, ${theme.palette.secondary.main}, ${theme.palette.secondary.dark})`,
+        backgroundColor: theme.palette.secondary.main,
         color: theme.palette.secondary.contrastText,
         "&:hover": {
-          background: `linear-gradient(135deg, ${theme.palette.secondary.light}, ${theme.palette.secondary.main})`,
-          boxShadow: `0 4px 14px 0 ${alpha(theme.palette.secondary.main, 0.4)}`,
+          backgroundColor: theme.palette.secondary.dark,
+          boxShadow: "none",
         },
       },
     },
@@ -197,9 +180,7 @@ const componentsOverride = (theme) => ({
         borderRadius: `${theme.shape.borderRadius}px`,
         border: `1px solid ${theme.palette.divider}`,
         transition: "box-shadow 0.2s ease, border-color 0.2s ease",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        backgroundColor: alpha(theme.palette.background.paper, 0.8),
+        backgroundColor: theme.palette.background.paper,
       },
       elevation1: { boxShadow: theme.shadows[1] },
       elevation2: { boxShadow: theme.shadows[2] },
@@ -220,11 +201,7 @@ const componentsOverride = (theme) => ({
         boxShadow: theme.shadows[1],
         transition: "box-shadow 0.2s ease, border-color 0.2s ease",
         "&:hover": {
-          borderColor: alpha(theme.palette.secondary.main, 0.4),
-          boxShadow: `0 4px 20px -2px ${alpha(
-            theme.palette.secondary.main,
-            0.15
-          )}, 0 0 0 1px ${alpha(theme.palette.secondary.main, 0.15)}`,
+          borderColor: theme.palette.secondary.main,
         },
       },
     },
@@ -270,10 +247,8 @@ const componentsOverride = (theme) => ({
         borderRadius: 0,
         boxShadow: "none",
         borderBottom: `1px solid ${theme.palette.divider}`,
-        backgroundColor: alpha(theme.palette.background.paper, 0.7),
+        backgroundColor: theme.palette.background.paper,
         color: theme.palette.text.primary,
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
       },
     },
   },
@@ -352,20 +327,20 @@ const componentsOverride = (theme) => ({
         "& fieldset": {
           borderWidth: "1px",
           borderColor: theme.palette.divider,
-          transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+          transition: "border-color 0.15s ease",
         },
         "&:hover fieldset": { borderColor: theme.palette.secondary.main },
         "&.Mui-focused fieldset": {
           borderColor: theme.palette.secondary.main,
           borderWidth: "1px",
-          boxShadow: `0 0 0 1px ${theme.palette.secondary.main}`,
+          boxShadow: "none",
         },
         "&.Mui-error fieldset": {
           borderColor: theme.palette.error.main,
           borderWidth: "1px",
         },
         "&.Mui-error.Mui-focused fieldset": {
-          boxShadow: `0 0 0 1px ${theme.palette.error.main}`,
+          boxShadow: "none",
         },
       },
       input: {
@@ -445,7 +420,6 @@ const componentsOverride = (theme) => ({
         marginTop: 4,
         padding: 4,
         backgroundColor: theme.palette.background.paper,
-        backdropFilter: "blur(12px)",
       },
     },
   },
@@ -658,7 +632,6 @@ const componentsOverride = (theme) => ({
         fontSize: "0.875rem",
         alignItems: "center",
         border: "1px solid",
-        backdropFilter: "none",
         backgroundColor: theme.palette.background.paper,
         fontWeight: 400,
       },
@@ -729,8 +702,7 @@ const componentsOverride = (theme) => ({
       },
       bar: {
         borderRadius: `${theme.shape.borderRadius}px`,
-        backgroundImage: `linear-gradient(90deg, ${theme.palette.secondary.main}, ${theme.palette.secondary.light})`,
-        backgroundColor: "transparent",
+        backgroundColor: theme.palette.secondary.main,
       },
     },
   },
@@ -817,8 +789,6 @@ const componentsOverride = (theme) => ({
   MuiBackdrop: {
     styleOverrides: {
       root: {
-        backdropFilter: "blur(4px)",
-        WebkitBackdropFilter: "blur(4px)",
         backgroundColor: alpha(theme.palette.common.black, 0.5),
       },
     },
@@ -920,11 +890,9 @@ const componentsOverride = (theme) => ({
     styleOverrides: {
       root: {
         borderRadius: 0,
-        backgroundColor: alpha(theme.palette.background.paper, 0.8),
+        backgroundColor: theme.palette.background.paper,
         borderTop: `1px solid ${theme.palette.divider}`,
         height: 64,
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
       },
     },
   },

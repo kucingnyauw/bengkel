@@ -33,6 +33,8 @@ const MainContentStyled = styled("main", {
     backgroundColor: theme.palette.background.default,
     borderRadius: `${theme.shape.borderRadius}px`,
     border: "none",
+  
+
 
     transition: theme.transitions.create(["margin-left", "width"], {
       easing: theme.transitions.easing.sharp,

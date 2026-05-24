@@ -12,15 +12,14 @@ import axios from "axios";
 import crypto from "crypto";
 import { getIO } from "#app/io.js";
 
-
 /**
  * Service untuk mengelola logika bisnis pembayaran
  *
  * Alur SERVICE:
- *   DRAFT → (payment) → QUEUED → (start task) → IN_PROGRESS → (complete all tasks) → COMPLETED → (close) → CLOSED
+ *   DRAFT -> (payment) -> QUEUED -> (start task) -> IN_PROGRESS -> (complete all tasks) -> COMPLETED -> (close) -> CLOSED
  *
  * Alur SPAREPART ONLY:
- *   DRAFT → (payment) → COMPLETED → (close) → CLOSED
+ *   DRAFT -> (payment) -> COMPLETED -> (close) -> CLOSED
  *
  * @class PaymentService
  */
@@ -65,6 +64,33 @@ class PaymentService {
   }
 
   /**
+   * Format detail item untuk ditampilkan di notifikasi
+   * @param {Array} items
+   * @returns {string}
+   * @private
+   */
+  #formatItemDetails(items) {
+    if (!items || items.length === 0) return "";
+    return items
+      .map((item, index) => {
+        const qty = item.quantity > 1 ? ` (x${item.quantity})` : "";
+        return `  ${index + 1}. ${item.productNameSnapshot}${qty} = ${Currency.toIDR(item.subtotal)}`;
+      })
+      .join("\n");
+  }
+
+  /**
+   * Format info kendaraan
+   * @param {Object} vehicle
+   * @returns {string}
+   * @private
+   */
+  #formatVehicleInfo(vehicle) {
+    if (!vehicle) return "Tidak ada kendaraan";
+    return `${vehicle.plateNumber} - ${vehicle.brand || ""} ${vehicle.model || ""}`.trim();
+  }
+
+  /**
    * Membuat pembayaran
    * @param {Object} payload
    * @param {string} payload.orderId
@@ -73,32 +99,19 @@ class PaymentService {
    * @returns {Promise<Object>}
    * @throws {ApiError}
    */
-
   async createPayment(payload) {
-    try {
-      const { orderId, method, amountPaid } = payload;
-  
-      console.log("createPayment called with:", { orderId, method, amountPaid });
-  
-      if (method === "CASH") {
-        return this.createCashPayment(orderId, amountPaid);
-      } else if (method === "QRIS") {
-        return this.createQrisPayment(orderId);
-      } else {
-        throw ApiError.badRequest({
-          message: `Metode pembayaran '${method}' tidak didukung.`,
-        });
-      }
-    } catch (error) {
-      console.error("CREATE PAYMENT ERROR:", {
-        message: error.message,
-        stack: error.stack,
-        statusCode: error.statusCode,
+    const { orderId, method, amountPaid } = payload;
+
+    if (method === "CASH") {
+      return this.createCashPayment(orderId, amountPaid);
+    } else if (method === "QRIS") {
+      return this.createQrisPayment(orderId);
+    } else {
+      throw ApiError.badRequest({
+        message: `Metode pembayaran '${method}' tidak didukung.`,
       });
-      throw error;
     }
   }
-
 
   /**
    * Cek apakah order memiliki item SERVICE
@@ -164,9 +177,7 @@ class PaymentService {
 
     if (amountPaid < order.total) {
       throw ApiError.badRequest({
-        message: `Gagal membuat pembayaran. Jumlah pembayaran (${Currency.toIDR(
-          amountPaid
-        )}) kurang dari total tagihan (${Currency.toIDR(order.total)}).`,
+        message: `Gagal membuat pembayaran. Jumlah pembayaran (${Currency.toIDR(amountPaid)}) kurang dari total tagihan (${Currency.toIDR(order.total)}).`,
       });
     }
 
@@ -189,7 +200,7 @@ class PaymentService {
             orderId,
             status: newStatus,
             changedById: order.cashierId,
-            note: "Pembayaran tunai lunas. Pesanan masuk antrian menunggu pengerjaan.",
+            note: "Pembayaran tunai berhasil. Pesanan masuk antrian dan siap dikerjakan oleh mekanik.",
           },
         });
       }
@@ -258,37 +269,64 @@ class PaymentService {
     await this.#invalidateOrderHistoryCache(order.orderNumber);
 
     const customerName = order.customer?.name || "Pelanggan";
-    const vehiclePlate = order.vehicle?.plateNumber || "-";
+    const vehicleInfo = this.#formatVehicleInfo(order.vehicle);
+    const itemDetails = this.#formatItemDetails(order.items);
+
+    const notificationMessage = [
+      `Pembayaran Tunai Berhasil`,
+      ``,
+      `Pesanan       : #${order.orderNumber}`,
+      `Pelanggan     : ${customerName}`,
+      `Kendaraan     : ${vehicleInfo}`,
+      ``,
+      `Rincian Pesanan:`,
+      `${itemDetails}`,
+      ``,
+      `Total Tagihan  : ${Currency.toIDR(order.total)}`,
+      `Jumlah Dibayar : ${Currency.toIDR(amountPaid)}`,
+      `Kembalian      : ${Currency.toIDR(change)}`,
+      ``,
+      `Status Pesanan : ${newStatus}`,
+      hasService
+        ? `Pesanan masuk antrian dan menunggu pengerjaan mekanik.`
+        : `Pesanan sparepart langsung selesai.`,
+    ].join("\n");
 
     await this.#sendNotification(
       order.cashierId,
-      "Pembayaran Tunai Berhasil",
-      `Pembayaran untuk pesanan #${order.orderNumber} berhasil.\n\n` +
-        `Pelanggan: ${customerName}\n` +
-        `Kendaraan: ${vehiclePlate}\n` +
-        `Total: ${Currency.toIDR(order.total)}\n` +
-        `Dibayar: ${Currency.toIDR(amountPaid)}\n` +
-        `Kembalian: ${Currency.toIDR(change)}\n` +
-        `Status Pesanan: ${newStatus}`,
+      `Pembayaran Tunai - #${order.orderNumber}`,
+      notificationMessage,
       "SUCCESS"
     );
 
     if (hasService) {
       const mechanics = await prisma.user.findMany({
         where: { role: "MECHANIC", isActive: true },
-        select: { id: true },
+        select: { id: true, fullName: true },
       });
 
+      const serviceItems = order.items.filter(
+        (i) => i.product?.type === "SERVICE"
+      );
+
       for (const mechanic of mechanics) {
+        const mechanicMessage = [
+          `Pesanan Baru Siap Dikerjakan`,
+          ``,
+          `Pesanan       : #${order.orderNumber}`,
+          `Pelanggan     : ${customerName}`,
+          `Kendaraan     : ${vehicleInfo}`,
+          ``,
+          `Item Service (${serviceItems.length}):`,
+          `${this.#formatItemDetails(serviceItems)}`,
+          ``,
+          `Silakan ambil task dan mulai pengerjaan.`,
+        ].join("\n");
+
         await this.#sendNotification(
           mechanic.id,
-          "Pesanan Baru Menunggu",
-          `Pesanan #${order.orderNumber} siap dikerjakan.\n\n` +
-            `Pelanggan: ${customerName}\n` +
-            `Kendaraan: ${vehiclePlate}\n` +
-            `Item Service: ${
-              order.items.filter((i) => i.product?.type === "SERVICE").length
-            } item`,
+          `Task Baru - #${order.orderNumber}`,
+          mechanicMessage,
           "INFO"
         );
       }
@@ -312,28 +350,9 @@ class PaymentService {
    * @returns {Promise<Object>}
    * @throws {ApiError}
    */
-
-  /**
- * Memproses pembayaran QRIS via Midtrans
- * @param {string} orderId
- * @returns {Promise<Object>}
- * @throws {ApiError}
- */
-async createQrisPayment(orderId) {
-  try {
-    console.log("createQrisPayment called with orderId:", orderId);
-    
+  async createQrisPayment(orderId) {
     const order = await this.orderRepo.findById(orderId);
-    
-    console.log("Order found:", {
-      id: order?.id,
-      orderNumber: order?.orderNumber,
-      status: order?.status,
-      total: order?.total,
-      itemsCount: order?.items?.length,
-      customer: order?.customer,
-    });
-    
+
     if (!order) {
       throw ApiError.notFound({
         message: `Gagal membuat pembayaran QRIS. Pesanan dengan ID '${orderId}' tidak ditemukan.`,
@@ -372,8 +391,6 @@ async createQrisPayment(orderId) {
       name: item.productNameSnapshot,
       category: item.product?.type === "SERVICE" ? "Service" : "Sparepart",
     }));
-
-    console.log("Item details:", itemDetails);
 
     const itemsTotal = itemDetails.reduce(
       (sum, item) => sum + item.price * item.quantity,
@@ -419,15 +436,7 @@ async createQrisPayment(orderId) {
       },
     };
 
-    console.log("Midtrans parameter:", JSON.stringify(parameter, null, 2));
-
     const transaction = await midtrans.charge(parameter);
-    
-    console.log("Midtrans response:", {
-      statusCode: transaction?.status_code,
-      statusMessage: transaction?.status_message,
-      transactionId: transaction?.transaction_id,
-    });
 
     if (!transaction || !["200", "201"].includes(transaction.status_code)) {
       logger.error("Midtrans charge gagal", {
@@ -443,19 +452,15 @@ async createQrisPayment(orderId) {
 
     let qrCodeUrl = null;
     if (transaction.actions) {
-      console.log("Transaction actions:", JSON.stringify(transaction.actions, null, 2));
       const qrAction = transaction.actions.find(
         (action) => action.name === "generate-qr-code"
       );
       if (qrAction) {
         qrCodeUrl = qrAction.url;
-        console.log("QR Code URL:", qrCodeUrl);
       }
     }
 
-    console.log("Creating payment record in database...");
-
-    const payment = await this.paymentRepo.create({
+    await this.paymentRepo.create({
       orderId,
       method: "QRIS",
       amountPaid: 0,
@@ -463,21 +468,27 @@ async createQrisPayment(orderId) {
       status: "PENDING",
     });
 
-    console.log("Payment record created:", payment);
+    const customerName = order.customer?.name || "Pelanggan";
 
-    console.log("Sending notification...");
+    const notificationMessage = [
+      `Pembayaran QRIS Menunggu`,
+      ``,
+      `Pesanan       : #${order.orderNumber}`,
+      `Pelanggan     : ${customerName}`,
+      `Total         : ${Currency.toIDR(order.total)}`,
+      ``,
+      `Status        : Menunggu Pembayaran`,
+      ``,
+      `Silakan scan QR Code untuk menyelesaikan pembayaran.`,
+      `Pastikan nominal sesuai dengan total tagihan.`,
+    ].join("\n");
 
     await this.#sendNotification(
       order.cashierId,
-      "Pembayaran QRIS Menunggu",
-      `QRIS untuk pesanan #${order.orderNumber} telah dibuat.\n\n` +
-        `Total: ${Currency.toIDR(order.total)}\n` +
-        `Status: Menunggu Pembayaran\n\n` +
-        `Scan QR code untuk menyelesaikan pembayaran.`,
+      `QRIS Pending - #${order.orderNumber}`,
+      notificationMessage,
       "INFO"
     );
-
-    console.log("Notification sent");
 
     logger.info("Pembayaran QRIS berhasil dibuat", {
       orderId,
@@ -486,7 +497,7 @@ async createQrisPayment(orderId) {
       amount: order.total,
     });
 
-    const result = {
+    return {
       orderId,
       orderNumber: order.orderNumber,
       transactionId: transaction.transaction_id,
@@ -494,21 +505,7 @@ async createQrisPayment(orderId) {
       amount: order.total,
       status: "PENDING",
     };
-
-    console.log("Returning result:", result);
-
-    return result;
-  } catch (error) {
-    console.error("CREATE QRIS PAYMENT ERROR:", {
-      message: error.message,
-      stack: error.stack,
-      statusCode: error.statusCode,
-      apiResponse: error.ApiResponse,
-      httpStatusCode: error.httpStatusCode,
-    });
-    throw error;
   }
-}
 
   /**
    * Mendapatkan detail pembayaran berdasarkan ID
@@ -530,8 +527,6 @@ async createQrisPayment(orderId) {
    * @param {Object} [query={}]
    * @returns {Promise<{data: Array, metadata: Object}>}
    */
-
-  // Di PaymentService.getPayments()
   async getPayments(query = {}) {
     const result = await this.paymentRepo.findMany(query);
 
@@ -743,7 +738,13 @@ async createQrisPayment(orderId) {
 
     const order = await prisma.order.findFirst({
       where: { orderNumber, deletedAt: null },
-      include: { items: { include: { product: { select: { type: true } } } } },
+      include: {
+        items: {
+          include: { product: { select: { type: true } } },
+        },
+        customer: { select: { name: true } },
+        vehicle: { select: { plateNumber: true, brand: true, model: true } },
+      },
     });
 
     if (!order) {
@@ -791,6 +792,8 @@ async createQrisPayment(orderId) {
       transactionStatus === "failure";
 
     const hasServiceItem = this.#hasServiceItem(order);
+    const customerName = order.customer?.name || "Pelanggan";
+    const vehicleInfo = this.#formatVehicleInfo(order.vehicle);
 
     if (isSuccess) {
       const newStatus = this.#getStatusAfterPayment(order);
@@ -819,7 +822,7 @@ async createQrisPayment(orderId) {
               orderId: order.id,
               status: newStatus,
               changedById: order.cashierId,
-              note: `Pembayaran QRIS berhasil via ${paymentType}. Pesanan masuk antrian menunggu pengerjaan.`,
+              note: `Pembayaran QRIS berhasil (${paymentType}). Pesanan masuk antrian dan siap dikerjakan oleh mekanik.`,
             },
           });
         }
@@ -827,34 +830,63 @@ async createQrisPayment(orderId) {
 
       await this.#invalidateOrderHistoryCache(orderNumber);
 
-      const customerName = order.customer?.name || "Pelanggan";
+      const itemDetails = this.#formatItemDetails(order.items);
+
+      const notificationMessage = [
+        `Pembayaran QRIS Berhasil`,
+        ``,
+        `Pesanan         : #${orderNumber}`,
+        `Pelanggan       : ${customerName}`,
+        `Kendaraan       : ${vehicleInfo}`,
+        ``,
+        `Rincian Pesanan:`,
+        `${itemDetails}`,
+        ``,
+        `Total           : ${Currency.toIDR(grossAmount)}`,
+        `Transaksi       : ${transactionId}`,
+        `Metode          : ${paymentType}`,
+        ``,
+        `Status Pesanan  : ${newStatus}`,
+        hasServiceItem
+          ? `Pesanan masuk antrian dan menunggu pengerjaan mekanik.`
+          : `Pesanan sparepart langsung selesai.`,
+      ].join("\n");
 
       await this.#sendNotification(
         order.cashierId,
-        "Pembayaran QRIS Berhasil",
-        `Pembayaran QRIS untuk pesanan #${orderNumber} berhasil.\n\n` +
-          `Pelanggan: ${customerName}\n` +
-          `Total: ${Currency.toIDR(grossAmount)}\n` +
-          `Status Pesanan: ${newStatus}\n` +
-          `Transaksi: ${transactionId}`,
+        `QRIS Berhasil - #${orderNumber}`,
+        notificationMessage,
         "SUCCESS"
       );
 
       if (hasServiceItem) {
         const mechanics = await prisma.user.findMany({
           where: { role: "MECHANIC", isActive: true },
-          select: { id: true },
+          select: { id: true, fullName: true },
         });
 
+        const serviceItems = order.items.filter(
+          (i) => i.product?.type === "SERVICE"
+        );
+
         for (const mechanic of mechanics) {
+          const mechanicMessage = [
+            `Pesanan Baru Siap Dikerjakan`,
+            ``,
+            `Pesanan       : #${orderNumber}`,
+            `Pelanggan     : ${customerName}`,
+            `Kendaraan     : ${vehicleInfo}`,
+            ``,
+            `Item Service (${serviceItems.length}):`,
+            `${this.#formatItemDetails(serviceItems)}`,
+            ``,
+            `Silakan ambil task dan mulai pengerjaan.`,
+          ].join("\n");
+
           await this.#sendNotification(
             mechanic.id,
-            "Pesanan Baru Menunggu",
-            `Pesanan #${orderNumber} siap dikerjakan.\n\n` +
-              `Pelanggan: ${customerName}\n` +
-              `Item Service: ${
-                order.items.filter((i) => i.product?.type === "SERVICE").length
-              } item`,
+            `Task Baru - #${orderNumber}`,
+            mechanicMessage,
             "INFO"
           );
         }
@@ -894,7 +926,7 @@ async createQrisPayment(orderId) {
               orderId: order.id,
               status: "DRAFT",
               changedById: order.cashierId,
-              note: `Pembayaran QRIS gagal (${transactionStatus}). Pesanan tetap sebagai draft.`,
+              note: `Pembayaran QRIS gagal (${transactionStatus}). Pesanan tetap sebagai draft dan dapat dicoba kembali.`,
             },
           });
         }
@@ -902,13 +934,23 @@ async createQrisPayment(orderId) {
 
       await this.#invalidateOrderHistoryCache(orderNumber);
 
+      const notificationMessage = [
+        `Pembayaran QRIS Gagal`,
+        ``,
+        `Pesanan         : #${orderNumber}`,
+        `Pelanggan       : ${customerName}`,
+        `Total           : ${Currency.toIDR(grossAmount)}`,
+        `Transaksi       : ${transactionId}`,
+        ``,
+        `Status          : ${transactionStatus}`,
+        ``,
+        `Pesanan tetap sebagai draft. Silakan coba lakukan pembayaran kembali.`,
+      ].join("\n");
+
       await this.#sendNotification(
         order.cashierId,
-        "Pembayaran QRIS Gagal",
-        `Pembayaran QRIS untuk pesanan #${orderNumber} gagal.\n\n` +
-          `Status: ${transactionStatus}\n` +
-          `Transaksi: ${transactionId}\n\n` +
-          `Pesanan tetap sebagai draft. Silakan coba lagi.`,
+        `QRIS Gagal - #${orderNumber}`,
+        notificationMessage,
         "ERROR"
       );
 
@@ -995,7 +1037,7 @@ async createQrisPayment(orderId) {
             orderId: payment.order.id,
             status: "CANCELLED",
             changedById,
-            note: `Refund pembayaran. Alasan: ${reason}`,
+            note: `Pembayaran direfund. Alasan: ${reason}. Pesanan dibatalkan.`,
           },
         });
       }
@@ -1005,13 +1047,22 @@ async createQrisPayment(orderId) {
 
     await this.#invalidateOrderHistoryCache(payment.order.orderNumber);
 
+    const notificationMessage = [
+      `Pembayaran Direfund`,
+      ``,
+      `Pesanan         : #${payment.order.orderNumber}`,
+      `Jumlah          : ${Currency.toIDR(payment.amountPaid)}`,
+      `Alasan          : ${reason}`,
+      ``,
+      `Status Pesanan  : CANCELLED`,
+      ``,
+      `Pesanan telah dibatalkan.`,
+    ].join("\n");
+
     await this.#sendNotification(
       payment.order.cashierId || changedById,
-      "Pembayaran Direfund",
-      `Refund pembayaran untuk pesanan #${payment.order.orderNumber}.\n\n` +
-        `Jumlah: ${Currency.toIDR(payment.amountPaid)}\n` +
-        `Alasan: ${reason}\n` +
-        `Status Pesanan: CANCELLED`,
+      `Refund - #${payment.order.orderNumber}`,
+      notificationMessage,
       "WARNING"
     );
 

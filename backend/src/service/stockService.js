@@ -2,6 +2,8 @@ import StockRepository from "#repository/stockRepository.js";
 import ProductRepository from "#repository/productRepository.js";
 import NotificationRepository from "#repository/notificationRepository.js";
 import SettingRepository from "#repository/settingRepository.js";
+import Currency from "#shared/utils/currency.js";
+import DateTime from "#shared/utils/datetime.js";
 import ApiError from "#shared/utils/error.js";
 import prisma from "#app/database.js";
 import logger from "#app/logger.js";
@@ -29,6 +31,22 @@ class StockService {
   }
 
   /**
+   * Format info produk untuk notifikasi
+   * @param {Object} product
+   * @returns {string}
+   * @private
+   */
+  #formatProductInfo(product) {
+    return [
+      `Nama Produk    : ${product.name}`,
+      `SKU            : ${product.sku}`,
+      `Stok Saat Ini  : ${product.stock} unit`,
+      `Harga Jual     : ${Currency.toIDR(product.price)}`,
+      `Harga Beli     : ${Currency.toIDR(product.cost)}`,
+    ].join("\n");
+  }
+
+  /**
    * Mengirim notifikasi stok rendah ke admin
    * @param {Object} product - Data produk
    * @returns {Promise<void>}
@@ -44,24 +62,41 @@ class StockService {
           select: { id: true },
         });
 
+        if (admins.length === 0) return;
+
+        const isOutOfStock = product.stock === 0;
+        const notificationType = isOutOfStock ? "ERROR" : "WARNING";
+        const statusLabel = isOutOfStock ? "STOK HABIS" : "Stok Rendah";
+
+        const notificationMessage = [
+          `Peringatan ${statusLabel}`,
+          ``,
+          this.#formatProductInfo(product),
+          ``,
+          isOutOfStock
+            ? `Stok produk ini sudah habis. Segera lakukan pembelian untuk menghindari terhambatnya penjualan.`
+            : `Stok produk ini tinggal ${product.stock} unit, berada di bawah batas minimum ${threshold} unit. Segera lakukan pembelian ulang.`,
+          ``,
+          `Waktu Peringatan: ${DateTime.toFullID(new Date())}`,
+        ].join("\n");
+
         const notifications = admins.map((admin) => ({
-          title: "Peringatan Stok Rendah",
-          message: product.stock === 0
-            ? `Stok '${product.name}' (SKU: ${product.sku}) HABIS! Segera lakukan pembelian.`
-            : `Stok '${product.name}' (SKU: ${product.sku}) tinggal ${product.stock} unit (batas minimum: ${threshold}).`,
-          type: product.stock === 0 ? "ERROR" : "WARNING",
+          title: isOutOfStock
+            ? `Stok Habis - ${product.name}`
+            : `Stok Rendah - ${product.name}`,
+          message: notificationMessage,
+          type: notificationType,
           userId: admin.id,
         }));
 
-        if (notifications.length > 0) {
-          await Promise.all(notifications.map((n) => this.notifRepo.create(n)));
-          logger.info(`Notifikasi stok rendah dikirim untuk ${product.name}`, {
-            productId: product.id,
-            stock: product.stock,
-            threshold,
-            notifiedAdmins: admins.length,
-          });
-        }
+        await Promise.all(notifications.map((n) => this.notifRepo.create(n)));
+
+        logger.info(`Notifikasi stok rendah dikirim untuk ${product.name}`, {
+          productId: product.id,
+          stock: product.stock,
+          threshold,
+          notifiedAdmins: admins.length,
+        });
       }
     } catch (err) {
       logger.warn("Gagal mengirim notifikasi stok rendah", {
@@ -88,16 +123,38 @@ class StockService {
           select: { id: true },
         });
 
+        if (admins.length === 0) return;
+
+        const addedStock = product.stock - previousStock;
+
+        const notificationMessage = [
+          `Stok Kembali Normal`,
+          ``,
+          this.#formatProductInfo(product),
+          ``,
+          `Stok sebelumnya : ${previousStock} unit`,
+          `Stok bertambah  : ${addedStock} unit`,
+          ``,
+          `Stok produk ini sudah kembali di atas batas minimum (${threshold} unit) dan aman untuk penjualan.`,
+          ``,
+          `Waktu Pemulihan : ${DateTime.toFullID(new Date())}`,
+        ].join("\n");
+
         const notifications = admins.map((admin) => ({
-          title: "Stok Kembali Normal",
-          message: `Stok '${product.name}' (SKU: ${product.sku}) sudah kembali normal: ${product.stock} unit.`,
+          title: `Stok Normal - ${product.name}`,
+          message: notificationMessage,
           type: "SUCCESS",
           userId: admin.id,
         }));
 
-        if (notifications.length > 0) {
-          await Promise.all(notifications.map((n) => this.notifRepo.create(n)));
-        }
+        await Promise.all(notifications.map((n) => this.notifRepo.create(n)));
+
+        logger.info(`Notifikasi stok normal dikirim untuk ${product.name}`, {
+          productId: product.id,
+          previousStock,
+          currentStock: product.stock,
+          threshold,
+        });
       }
     } catch (err) {
       logger.warn("Gagal mengirim notifikasi stok normal", {
@@ -105,6 +162,39 @@ class StockService {
         error: err.message,
       });
     }
+  }
+
+  /**
+   * Format ringkasan mutasi stok untuk notifikasi
+   * @param {Object} data
+   * @returns {string}
+   * @private
+   */
+  #formatMovementSummary(data) {
+    const lines = [
+      `Produk         : ${data.productName}`,
+      `SKU            : ${data.productSku}`,
+      `Tipe Mutasi    : ${data.typeLabel}`,
+      `Jumlah         : ${data.quantity} unit`,
+    ];
+
+    if (data.previousStock !== undefined) {
+      lines.push(`Stok Sebelumnya : ${data.previousStock} unit`);
+    }
+
+    lines.push(`Stok Saat Ini   : ${data.currentStock} unit`);
+
+    if (data.note) {
+      lines.push(`Catatan        : ${data.note}`);
+    }
+
+    lines.push(
+      ``,
+      `Dicatat Oleh   : ${data.recordedByName}`,
+      `Waktu          : ${DateTime.toFullID(new Date())}`
+    );
+
+    return lines.join("\n");
   }
 
   /**
@@ -117,7 +207,13 @@ class StockService {
    * @returns {Promise<Object>}
    * @throws {ApiError}
    */
-  async recordStockIn(productId, quantity, recordedById, note = null, sourceType = "MANUAL") {
+  async recordStockIn(
+    productId,
+    quantity,
+    recordedById,
+    note = null,
+    sourceType = "MANUAL"
+  ) {
     const product = await this.productRepo.findById(productId);
     if (!product) {
       throw ApiError.notFound({
@@ -152,6 +248,29 @@ class StockService {
       };
     });
 
+    const recordedBy = await prisma.user.findUnique({
+      where: { id: recordedById },
+      select: { fullName: true },
+    });
+
+    const typeLabel =
+      sourceType === "PURCHASE"
+        ? "Pembelian"
+        : sourceType === "RETURN"
+        ? "Retur"
+        : "Stok Masuk";
+
+    const notificationMessage = this.#formatMovementSummary({
+      productName: product.name,
+      productSku: product.sku,
+      typeLabel,
+      quantity,
+      previousStock,
+      currentStock: result.updatedProduct.stock,
+      note,
+      recordedByName: recordedBy?.fullName || "-",
+    });
+
     await this.#notifyStockRestored(result.updatedProduct, previousStock);
 
     logger.info("Stok masuk berhasil dicatat", {
@@ -177,7 +296,14 @@ class StockService {
    * @returns {Promise<Object>}
    * @throws {ApiError}
    */
-  async recordStockOut(productId, quantity, recordedById, orderItemId = null, note = null, sourceType = "MANUAL") {
+  async recordStockOut(
+    productId,
+    quantity,
+    recordedById,
+    orderItemId = null,
+    note = null,
+    sourceType = "MANUAL"
+  ) {
     const product = await this.productRepo.findById(productId);
     if (!product) {
       throw ApiError.notFound({
@@ -196,6 +322,8 @@ class StockService {
         message: `Gagal mencatat stok keluar. Stok produk '${product.name}' tidak mencukupi. Stok saat ini: ${product.stock}, Diminta: ${quantity}.`,
       });
     }
+
+    const previousStock = product.stock;
 
     const result = await prisma.$transaction(async (tx) => {
       const updatedProduct = await tx.product.update({
@@ -216,6 +344,8 @@ class StockService {
         }),
       };
     });
+
+    const typeLabel = sourceType === "SALE" ? "Penjualan" : "Stok Keluar";
 
     await this.#notifyLowStock(result.updatedProduct);
 
@@ -241,7 +371,14 @@ class StockService {
    * @returns {Promise<Object>}
    */
   async recordSaleOut(productId, quantity, recordedById, orderItemId) {
-    return this.recordStockOut(productId, quantity, recordedById, orderItemId, null, "SALE");
+    return this.recordStockOut(
+      productId,
+      quantity,
+      recordedById,
+      orderItemId,
+      null,
+      "SALE"
+    );
   }
 
   /**
@@ -253,7 +390,13 @@ class StockService {
    * @returns {Promise<Object>}
    */
   async recordReturnIn(productId, quantity, recordedById, note = null) {
-    return this.recordStockIn(productId, quantity, recordedById, note || "Retur barang", "RETURN");
+    return this.recordStockIn(
+      productId,
+      quantity,
+      recordedById,
+      note || "Retur barang dari pelanggan",
+      "RETURN"
+    );
   }
 
   /**
@@ -291,9 +434,10 @@ class StockService {
       const updatedProduct = await tx.product.update({
         where: { id: productId },
         data: {
-          stock: quantity > 0
-            ? { increment: quantity }
-            : { decrement: Math.abs(quantity) },
+          stock:
+            quantity > 0
+              ? { increment: quantity }
+              : { decrement: Math.abs(quantity) },
         },
       });
 

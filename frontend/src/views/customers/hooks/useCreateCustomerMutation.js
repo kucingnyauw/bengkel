@@ -56,9 +56,9 @@ export const useCreateCustomerMutation = ({ onSuccess, onFailed } = {}) => {
 
   const vehicleMutation = useMutation({
     mutationFn: registerVehicle,
-    onSuccess: (...args) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
-      onSuccess?.(...args);
+      onSuccess?.(data);
     },
     onError: (error) => {
       onFailed?.(error);

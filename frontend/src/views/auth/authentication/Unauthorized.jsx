@@ -9,40 +9,22 @@ import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Stack,
   Typography,
   useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import AuthWrapper from "@views/auth/authWrapper/AuthWrapper.jsx";
+import AuthCardWrapper from "@views/auth/authWrapper/AuthCardWrapper.jsx";
 
 const Unauthorized = () => {
   const theme = useTheme();
   const navigate = useNavigate();
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        p: 4,
-        bgcolor: theme.palette.background.default,
-      }}
-    >
-      <Card
-        sx={{
-          maxWidth: 480,
-          width: "100%",
-          textAlign: "center",
-          borderRadius: `${theme.shape.borderRadius}px`,
-          border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-          boxShadow: "none",
-        }}
-      >
-        <CardContent sx={{ p: 5 }}>
+    <AuthWrapper>
+      <AuthCardWrapper>
+        <Stack spacing={3} alignItems="center" textAlign="center">
           <Box
             sx={{
               width: 80,
@@ -53,40 +35,32 @@ const Unauthorized = () => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              mx: "auto",
-              mb: 3,
             }}
           >
             <ShieldOff size={36} strokeWidth={1.5} />
           </Box>
 
-          <Typography variant="h5" sx={{ mb: 1, fontWeight: 400 }}>
-            Akses Dibatasi
-          </Typography>
+          <Stack spacing={1}>
+            <Typography variant="h5" sx={{ fontWeight: 500 }}>
+              Akses Dibatasi
+            </Typography>
 
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 4, fontWeight: 400 }}>
-            Maaf, Anda tidak memiliki izin untuk mengakses halaman ini. Silakan hubungi administrator jika Anda merasa ini adalah kesalahan.
-          </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Maaf, Anda tidak memiliki izin untuk mengakses halaman ini. Silakan hubungi administrator jika Anda merasa ini adalah kesalahan.
+            </Typography>
+          </Stack>
 
-          <Stack direction="row" sx={{ gap: 1.5, justifyContent: "center" }}>
-            <Button
-              variant="outlined"
-              onClick={() => navigate(-1)}
-              sx={{ fontWeight: 400 }}
-            >
+          <Stack direction="row" spacing={1.5}>
+            <Button variant="outlined" onClick={() => navigate(-1)}>
               Kembali
             </Button>
-            <Button
-              variant="contained"
-              onClick={() => navigate("/dashboard")}
-              sx={{ fontWeight: 400 }}
-            >
+            <Button variant="contained" onClick={() => navigate("/dashboard")}>
               Ke Dashboard
             </Button>
           </Stack>
-        </CardContent>
-      </Card>
-    </Box>
+        </Stack>
+      </AuthCardWrapper>
+    </AuthWrapper>
   );
 };
 

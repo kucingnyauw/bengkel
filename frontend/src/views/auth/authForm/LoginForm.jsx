@@ -8,10 +8,18 @@ import {
   Divider,
   useTheme,
 } from "@mui/material";
+
 import { Controller, useForm } from "react-hook-form";
 
 import INFO from "@data/Info.js";
 
+/**
+ * Form component for email-based passwordless login.
+ *
+ * @param {Object} props
+ * @param {function} props.onEmailSubmit - Callback fired with the submitted email.
+ * @param {boolean} props.isLoading - Whether the form is in a loading/submitting state.
+ */
 const LoginForm = ({ onEmailSubmit, isLoading }) => {
   const theme = useTheme();
 
@@ -25,6 +33,7 @@ const LoginForm = ({ onEmailSubmit, isLoading }) => {
   });
 
   const submit = (data) => {
+    if (isLoading) return;
     onEmailSubmit?.(data.email);
   };
 
@@ -37,9 +46,11 @@ const LoginForm = ({ onEmailSubmit, isLoading }) => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        pointerEvents: isLoading ? "none" : "auto",
+        opacity: isLoading ? 0.7 : 1,
+        transition: "opacity 0.2s ease",
       }}
     >
-      {/* Logo */}
       <Box
         component="img"
         src={INFO.logoUrl}
@@ -49,22 +60,20 @@ const LoginForm = ({ onEmailSubmit, isLoading }) => {
           width: "auto",
           maxWidth: 140,
           objectFit: "contain",
-          mb: theme.spacing(4),
+          mb: 4,
         }}
       />
 
-      {/* Title & Subtitle */}
-      <Stack sx={{ gap: 1, textAlign: "center", mb: theme.spacing(4) }}>
+      <Stack sx={{ gap: 1, textAlign: "center", mb: 4 }}>
         <Typography variant="h5" sx={{ fontWeight: 600, letterSpacing: "-0.01em" }}>
           Selamat Datang
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+        <Typography variant="body2" color="text.secondary">
           Masukkan email Anda untuk masuk ke akun
         </Typography>
       </Stack>
 
-      {/* Input */}
-      <Box sx={{ width: "100%", mb: theme.spacing(3) }}>
+      <Box sx={{ width: "100%", mb: 3 }}>
         <Controller
           name="email"
           control={control}
@@ -91,14 +100,13 @@ const LoginForm = ({ onEmailSubmit, isLoading }) => {
         />
       </Box>
 
-      {/* Action */}
       <Button
         type="submit"
         variant="contained"
         fullWidth
         disabled={!isValid || isLoading}
         size="large"
-        sx={{ mb: theme.spacing(4) }}
+        sx={{ mb: 4 }}
       >
         {isLoading ? (
           <CircularProgress size={20} color="inherit" />
@@ -107,28 +115,20 @@ const LoginForm = ({ onEmailSubmit, isLoading }) => {
         )}
       </Button>
 
-      {/* Divider */}
-      <Divider sx={{ width: "100%", mb: theme.spacing(4) }}>
+      <Divider sx={{ width: "100%", mb: 4 }}>
         <Typography variant="caption" color="text.disabled" sx={{ px: 1.5 }}>
           INFO
         </Typography>
       </Divider>
 
-      {/* Instruksi */}
       <Typography
         variant="caption"
         color="text.secondary"
-        sx={{ textAlign: "center", fontWeight: 400, mb: theme.spacing(6), lineHeight: 1.8 }}
+        sx={{ textAlign: "center", mb: 6, lineHeight: 1.8 }}
       >
-        Kami akan mengirimkan{" "}
-        <Box component="span" sx={{ color: "secondary.main", fontWeight: 500 }}>
-          tautan login
-        </Box>{" "}
-        ke email Anda.
+        Kami akan mengirimkan tautan login ke email Anda.
         <br />
-        <Box component="span" sx={{ color: "success.main", fontWeight: 500 }}>
-          Tidak perlu password!
-        </Box>
+        Tidak perlu password!
       </Typography>
     </Box>
   );

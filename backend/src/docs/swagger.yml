@@ -40,6 +40,8 @@ tags:
     description: Manajemen notifikasi
   - name: Settings
     description: Pengaturan aplikasi
+  - name: Health
+    description: Pemeriksaan kesehatan sistem
 
 components:
   securitySchemes:
@@ -61,6 +63,15 @@ components:
           type: string
       required: [success, message]
 
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+
     PaginationMeta:
       type: object
       properties:
@@ -73,10 +84,761 @@ components:
         totalPages:
           type: integer
 
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, CASHIER, MECHANIC]
+        isActive:
+          type: boolean
+        isAuthenticated:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CustomerResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        vehicles:
+          type: array
+          items:
+            $ref: "#/components/schemas/VehicleSimple"
+        orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderSimple"
+        _count:
+          type: object
+          properties:
+            vehicles:
+              type: integer
+            orders:
+              type: integer
+
+    VehicleSimple:
+      type: object
+      properties:
+        id:
+          type: string
+        plateNumber:
+          type: string
+        brand:
+          type: string
+        model:
+          type: string
+
+    VehicleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        plateNumber:
+          type: string
+        brand:
+          type: string
+        model:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        customer:
+          $ref: "#/components/schemas/CustomerSimple"
+        orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderSimple"
+        _count:
+          type: object
+          properties:
+            orders:
+              type: integer
+
+    CustomerSimple:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+
+    ProductResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        sku:
+          type: string
+        type:
+          type: string
+          enum: [SPAREPART, SERVICE]
+        description:
+          type: string
+        price:
+          type: integer
+        cost:
+          type: integer
+        stock:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        image:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            fileName:
+              type: string
+            path:
+              type: string
+        priceHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/PriceHistory"
+
+    PriceHistory:
+      type: object
+      properties:
+        id:
+          type: string
+        price:
+          type: integer
+        cost:
+          type: integer
+        effectiveFrom:
+          type: string
+          format: date-time
+
+    OrderResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        orderNumber:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, QUEUED, IN_PROGRESS, COMPLETED, CLOSED, CANCELLED]
+        subtotal:
+          type: integer
+        tax:
+          type: integer
+        total:
+          type: integer
+        diagnosedAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        cashier:
+          $ref: "#/components/schemas/UserSimple"
+        customer:
+          $ref: "#/components/schemas/CustomerSimple"
+        vehicle:
+          $ref: "#/components/schemas/VehicleSimple"
+        payment:
+          $ref: "#/components/schemas/PaymentSimple"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItemResponse"
+        histories:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderHistoryResponse"
+
+    OrderSimple:
+      type: object
+      properties:
+        id:
+          type: string
+        orderNumber:
+          type: string
+        status:
+          type: string
+        total:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    OrderItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: integer
+        subtotal:
+          type: integer
+        productNameSnapshot:
+          type: string
+        product:
+          $ref: "#/components/schemas/ProductSimple"
+        assignments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssignmentSimple"
+
+    OrderHistoryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        note:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        changedBy:
+          $ref: "#/components/schemas/UserSimple"
+
+    ProductSimple:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        sku:
+          type: string
+        type:
+          type: string
+
+    AssignmentSimple:
+      type: object
+      properties:
+        id:
+          type: string
+        mechanicId:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        mechanic:
+          $ref: "#/components/schemas/UserSimple"
+
+    UserSimple:
+      type: object
+      properties:
+        id:
+          type: string
+        fullName:
+          type: string
+
+    PaymentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        method:
+          type: string
+          enum: [CASH, QRIS]
+        amountPaid:
+          type: integer
+        change:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, PAID, REFUNDED]
+        paidAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        order:
+          $ref: "#/components/schemas/OrderSimple"
+
+    PaymentSimple:
+      type: object
+      properties:
+        id:
+          type: string
+        method:
+          type: string
+        amountPaid:
+          type: integer
+        status:
+          type: string
+        paidAt:
+          type: string
+          format: date-time
+
+    ExpenseResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        amount:
+          type: integer
+        category:
+          type: string
+          enum: [SUPPLIES, MAINTENANCE, UTILITIES, RENT, OTHER]
+        date:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        shift:
+          $ref: "#/components/schemas/ShiftSimple"
+        recordedBy:
+          $ref: "#/components/schemas/UserSimple"
+        receipt:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            fileName:
+              type: string
+            path:
+              type: string
+
+    ShiftResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [OPEN, CLOSED]
+        startingCash:
+          type: integer
+        endingCash:
+          type: integer
+        expectedCash:
+          type: integer
+        cashSales:
+          type: integer
+        cashIn:
+          type: integer
+        cashOut:
+          type: integer
+        discrepancy:
+          type: integer
+        openedAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+        cashier:
+          $ref: "#/components/schemas/UserSimple"
+        orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderSimple"
+        expenses:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExpenseSimple"
+        _count:
+          type: object
+          properties:
+            orders:
+              type: integer
+
+    ShiftSimple:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        openedAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+        cashier:
+          $ref: "#/components/schemas/UserSimple"
+
+    ExpenseSimple:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        amount:
+          type: integer
+        category:
+          type: string
+        date:
+          type: string
+          format: date
+
+    StockMovementResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [IN, OUT, ADJUSTMENT]
+        sourceType:
+          type: string
+          enum: [MANUAL, PURCHASE, SALE, RETURN, ADJUSTMENT]
+        quantity:
+          type: integer
+        note:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        product:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            sku:
+              type: string
+            stock:
+              type: integer
+        recordedBy:
+          $ref: "#/components/schemas/UserSimple"
+        orderItem:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            productNameSnapshot:
+              type: string
+            order:
+              $ref: "#/components/schemas/OrderSimple"
+
+    TaskDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        mechanic:
+          type: object
+          properties:
+            id:
+              type: string
+            fullName:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+        orderItem:
+          type: object
+          properties:
+            id:
+              type: string
+            quantity:
+              type: integer
+            unitPrice:
+              type: integer
+            subtotal:
+              type: integer
+            productNameSnapshot:
+              type: string
+            product:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                type:
+                  type: string
+                description:
+                  type: string
+                image:
+                  type: object
+                  nullable: true
+            order:
+              type: object
+              properties:
+                id:
+                  type: string
+                orderNumber:
+                  type: string
+                status:
+                  type: string
+                total:
+                  type: integer
+                createdAt:
+                  type: string
+                  format: date-time
+                customer:
+                  $ref: "#/components/schemas/CustomerSimple"
+                vehicle:
+                  $ref: "#/components/schemas/VehicleSimple"
+
+    NotificationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+          enum: [INFO, WARNING, SUCCESS, ERROR]
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    SettingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        value:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "ok"
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: number
+        services:
+          type: object
+          properties:
+            database:
+              type: string
+            redis:
+              type: string
+            supabase:
+              type: string
+
+    DashboardResponse:
+      type: object
+      properties:
+        today:
+          type: object
+          properties:
+            date:
+              type: string
+            orders:
+              type: integer
+            revenue:
+              type: integer
+            averageOrderValue:
+              type: number
+        thisMonth:
+          type: object
+          properties:
+            orders:
+              type: integer
+            revenue:
+              type: integer
+        pending:
+          type: object
+          properties:
+            orders:
+              type: integer
+        activeShift:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            cashier:
+              type: string
+            openedAt:
+              type: string
+              format: date-time
+            startingCash:
+              type: integer
+            currentCashSales:
+              type: integer
+            orderCount:
+              type: integer
+        inventory:
+          type: object
+          properties:
+            totalProducts:
+              type: integer
+            activeProducts:
+              type: integer
+            lowStockCount:
+              type: integer
+            totalStockValue:
+              type: integer
+            lowStockProducts:
+              type: array
+              items:
+                type: object
+
+    SalesReportResponse:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            startDate:
+              type: string
+              nullable: true
+            endDate:
+              type: string
+              nullable: true
+        summary:
+          type: object
+          properties:
+            totalOrders:
+              type: integer
+            totalSales:
+              type: integer
+            totalSubtotal:
+              type: integer
+            totalTax:
+              type: integer
+        dailyBreakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              orderCount:
+                type: integer
+              totalSales:
+                type: integer
+              averageOrderValue:
+                type: number
+
+    ProfitLossResponse:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            startDate:
+              type: string
+              nullable: true
+            endDate:
+              type: string
+              nullable: true
+        grossRevenue:
+          type: integer
+        totalCogs:
+          type: integer
+        grossProfit:
+          type: integer
+        grossMargin:
+          type: number
+        totalOperatingExpenses:
+          type: integer
+        netProfit:
+          type: integer
+        netMargin:
+          type: number
+
 security:
   - BearerAuth: []
 
 paths:
+  # ==================== HEALTH ====================
+  /health:
+    get:
+      tags: [Health]
+      summary: Periksa kesehatan sistem
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
   # ==================== AUTH ====================
   /auth/validate/email:
     post:
@@ -99,19 +861,8 @@ paths:
       responses:
         "200":
           description: Magic link terkirim
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: { type: boolean, example: true }
-                  message: { type: string }
         "400":
           description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
 
   # ==================== USERS ====================
   /users:
@@ -126,74 +877,65 @@ paths:
               type: object
               required: [email, fullName]
               properties:
-                email: { type: string, format: email }
-                fullName: { type: string }
-                phone: { type: string }
+                email:
+                  type: string
+                  format: email
+                fullName:
+                  type: string
+                phone:
+                  type: string
                 role:
-                  {
-                    type: string,
-                    enum: [SUPERADMIN, ADMIN, CASHIER, MECHANIC],
-                    default: CASHIER,
-                  }
+                  type: string
+                  enum: [ADMIN, CASHIER, MECHANIC]
+                  default: CASHIER
       responses:
-        "201": { description: Created }
-        "400": { description: Bad Request }
-        "409": { description: Conflict - Email/phone sudah terdaftar }
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+        "409":
+          description: Conflict
     get:
       tags: [Users]
       summary: Daftar user
       parameters:
         - in: query
           name: page
-          schema: { type: integer, minimum: 1, default: 1 }
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
         - in: query
           name: search
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: role
-          schema: { type: string, enum: [SUPERADMIN, ADMIN, CASHIER, MECHANIC] }
+          schema:
+            type: string
+            enum: [ADMIN, CASHIER, MECHANIC]
         - in: query
           name: isActive
-          schema: { type: boolean }
+          schema:
+            type: boolean
       responses:
         "200":
           description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: { type: boolean }
-                  data:
-                    {
-                      type: array,
-                      items: { $ref: "#/components/schemas/UserResponse" },
-                    }
-                  metadata: { $ref: "#/components/schemas/PaginationMeta" }
-
-    UserResponse:
-      type: object
-      properties:
-        id: { type: string }
-        email: { type: string }
-        fullName: { type: string }
-        phone: { type: string }
-        role: { type: string }
-        isActive: { type: boolean }
-        isAuthenticated: { type: boolean }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
 
   /users/me:
     get:
       tags: [Users]
       summary: Profil pengguna yang sedang login
       responses:
-        "200": { description: OK }
-        "401": { description: Unauthorized }
+        "200":
+          description: OK
 
   /users/employees:
     get:
@@ -202,28 +944,38 @@ paths:
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
         - in: query
           name: search
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: role
-          schema: { type: string, enum: [CASHIER, MECHANIC] }
+          schema:
+            type: string
+            enum: [CASHIER, MECHANIC]
         - in: query
           name: isActive
-          schema: { type: boolean }
+          schema:
+            type: boolean
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /users/admins:
     get:
       tags: [Users]
-      summary: Daftar admin (SUPERADMIN & ADMIN)
+      summary: Daftar admin
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /users/check/email:
     get:
@@ -233,12 +985,16 @@ paths:
         - in: query
           name: email
           required: true
-          schema: { type: string, format: email }
+          schema:
+            type: string
+            format: email
         - in: query
           name: excludeId
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /users/check/phone:
     get:
@@ -248,12 +1004,15 @@ paths:
         - in: query
           name: phone
           required: true
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: excludeId
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /users/role/{role}:
     get:
@@ -263,9 +1022,12 @@ paths:
         - in: path
           name: role
           required: true
-          schema: { type: string, enum: [SUPERADMIN, ADMIN, CASHIER, MECHANIC] }
+          schema:
+            type: string
+            enum: [ADMIN, CASHIER, MECHANIC]
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /users/email/{email}:
     get:
@@ -275,10 +1037,13 @@ paths:
         - in: path
           name: email
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /users/phone/{phone}:
     get:
@@ -288,10 +1053,13 @@ paths:
         - in: path
           name: phone
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /users/{id}:
     get:
@@ -301,10 +1069,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
     put:
       tags: [Users]
       summary: Update user
@@ -312,7 +1083,8 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -321,14 +1093,20 @@ paths:
               type: object
               minProperties: 1
               properties:
-                fullName: { type: string }
-                phone: { type: string }
+                fullName:
+                  type: string
+                phone:
+                  type: string
                 role:
-                  { type: string, enum: [SUPERADMIN, ADMIN, CASHIER, MECHANIC] }
-                isActive: { type: boolean }
+                  type: string
+                  enum: [ADMIN, CASHIER, MECHANIC]
+                isActive:
+                  type: boolean
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
     delete:
       tags: [Users]
       summary: Hapus user
@@ -336,10 +1114,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /users/{id}/resend-magic-link:
     post:
@@ -349,10 +1130,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   # ==================== CUSTOMERS ====================
   /customers:
@@ -365,28 +1149,38 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name, phone]
+              required: [name]
               properties:
-                name: { type: string }
-                phone: { type: string }
+                name:
+                  type: string
+                phone:
+                  type: string
       responses:
-        "201": { description: Created }
-        "409": { description: Conflict - Phone sudah terdaftar }
+        "201":
+          description: Created
+        "409":
+          description: Conflict
     get:
       tags: [Customers]
       summary: Daftar pelanggan
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
         - in: query
           name: search
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /customers/upsert:
     put:
@@ -400,10 +1194,13 @@ paths:
               type: object
               required: [name, phone]
               properties:
-                name: { type: string }
-                phone: { type: string }
+                name:
+                  type: string
+                phone:
+                  type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /customers/phone/check:
     get:
@@ -413,12 +1210,15 @@ paths:
         - in: query
           name: phone
           required: true
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: excludeId
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /customers/phone/{phone}:
     get:
@@ -428,10 +1228,13 @@ paths:
         - in: path
           name: phone
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /customers/{id}:
     get:
@@ -441,10 +1244,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
     put:
       tags: [Customers]
       summary: Update pelanggan
@@ -452,7 +1258,8 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -461,11 +1268,15 @@ paths:
               type: object
               minProperties: 1
               properties:
-                name: { type: string }
-                phone: { type: string }
+                name:
+                  type: string
+                phone:
+                  type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
     delete:
       tags: [Customers]
       summary: Hapus pelanggan
@@ -473,10 +1284,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   # ==================== VEHICLES ====================
   /vehicles:
@@ -491,31 +1305,44 @@ paths:
               type: object
               required: [plateNumber, customerId]
               properties:
-                plateNumber: { type: string }
-                customerId: { type: string }
-                brand: { type: string }
-                model: { type: string }
+                plateNumber:
+                  type: string
+                customerId:
+                  type: string
+                brand:
+                  type: string
+                model:
+                  type: string
       responses:
-        "201": { description: Created }
-        "409": { description: Conflict - Plat nomor sudah terdaftar }
+        "201":
+          description: Created
+        "409":
+          description: Conflict
     get:
       tags: [Vehicles]
       summary: Daftar kendaraan
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
         - in: query
           name: search
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: customerId
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /vehicles/check/plate:
     get:
@@ -525,12 +1352,15 @@ paths:
         - in: query
           name: plateNumber
           required: true
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: excludeId
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /vehicles/search/plate:
     get:
@@ -540,9 +1370,11 @@ paths:
         - in: query
           name: plateNumber
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /vehicles/plate/{plateNumber}:
     get:
@@ -552,10 +1384,13 @@ paths:
         - in: path
           name: plateNumber
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /vehicles/customer/{customerId}:
     get:
@@ -565,9 +1400,11 @@ paths:
         - in: path
           name: customerId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /vehicles/{id}:
     get:
@@ -577,10 +1414,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
     put:
       tags: [Vehicles]
       summary: Update kendaraan
@@ -588,7 +1428,8 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -597,12 +1438,17 @@ paths:
               type: object
               minProperties: 1
               properties:
-                plateNumber: { type: string }
-                brand: { type: string }
-                model: { type: string }
+                plateNumber:
+                  type: string
+                brand:
+                  type: string
+                model:
+                  type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
     delete:
       tags: [Vehicles]
       summary: Hapus kendaraan
@@ -610,10 +1456,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   # ==================== PRODUCTS ====================
   /products:
@@ -627,48 +1476,72 @@ paths:
               type: object
               required: [name, price]
               properties:
-                name: { type: string }
+                name:
+                  type: string
                 type:
-                  {
-                    type: string,
-                    enum: [SPAREPART, SERVICE],
-                    default: SPAREPART,
-                  }
-                description: { type: string }
-                price: { type: integer, minimum: 0 }
-                cost: { type: integer, minimum: 0 }
-                stock: { type: integer, minimum: 0 }
-                image: { type: string, format: binary }
+                  type: string
+                  enum: [SPAREPART, SERVICE]
+                  default: SPAREPART
+                description:
+                  type: string
+                price:
+                  type: integer
+                  minimum: 0
+                cost:
+                  type: integer
+                  minimum: 0
+                stock:
+                  type: integer
+                  minimum: 0
+                image:
+                  type: string
+                  format: binary
       responses:
-        "201": { description: Created }
-        "400": { description: Bad Request }
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
     get:
       tags: [Products]
       summary: Daftar produk
+      security: []
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
         - in: query
           name: search
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: type
-          schema: { type: string, enum: [SPAREPART, SERVICE] }
+          schema:
+            type: string
+            enum: [SPAREPART, SERVICE]
         - in: query
           name: isActive
-          schema: { type: boolean }
+          schema:
+            type: boolean
         - in: query
           name: sortBy
-          schema: { type: string, enum: [name, price, stock, createdAt] }
+          schema:
+            type: string
+            enum: [name, price, stock, createdAt]
         - in: query
           name: sortOrder
-          schema: { type: string, enum: [asc, desc] }
+          schema:
+            type: string
+            enum: [asc, desc]
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /products/services:
     get:
@@ -676,7 +1549,8 @@ paths:
       summary: Daftar produk service
       security: []
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /products/spareparts:
     get:
@@ -684,7 +1558,8 @@ paths:
       summary: Daftar produk sparepart
       security: []
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /products/low-stock:
     get:
@@ -693,9 +1568,13 @@ paths:
       parameters:
         - in: query
           name: threshold
-          schema: { type: integer, minimum: 1, default: 5 }
+          schema:
+            type: integer
+            minimum: 1
+            default: 5
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /products/check/sku:
     get:
@@ -705,38 +1584,49 @@ paths:
         - in: query
           name: sku
           required: true
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: excludeId
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /products/sku/{sku}:
     get:
       tags: [Products]
       summary: Detail produk berdasarkan SKU
+      security: []
       parameters:
         - in: path
           name: sku
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /products/{id}:
     get:
       tags: [Products]
       summary: Detail produk
+      security: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
     put:
       tags: [Products]
       summary: Update produk
@@ -744,24 +1634,37 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       requestBody:
         content:
           multipart/form-data:
             schema:
               type: object
               properties:
-                name: { type: string }
-                type: { type: string, enum: [SPAREPART, SERVICE] }
-                description: { type: string }
-                price: { type: integer }
-                cost: { type: integer }
-                stock: { type: integer }
-                isActive: { type: boolean }
-                image: { type: string, format: binary }
+                name:
+                  type: string
+                type:
+                  type: string
+                  enum: [SPAREPART, SERVICE]
+                description:
+                  type: string
+                price:
+                  type: integer
+                cost:
+                  type: integer
+                stock:
+                  type: integer
+                isActive:
+                  type: boolean
+                image:
+                  type: string
+                  format: binary
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /products/{id}/status:
     patch:
@@ -771,10 +1674,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   # ==================== ORDERS ====================
   /orders:
@@ -789,8 +1695,10 @@ paths:
               type: object
               required: [items]
               properties:
-                customerId: { type: string }
-                vehicleId: { type: string }
+                customerId:
+                  type: string
+                vehicleId:
+                  type: string
                 items:
                   type: array
                   minItems: 1
@@ -798,48 +1706,64 @@ paths:
                     type: object
                     required: [productId, quantity]
                     properties:
-                      productId: { type: string }
-                      quantity: { type: integer, minimum: 1 }
+                      productId:
+                        type: string
+                      quantity:
+                        type: integer
+                        minimum: 1
       responses:
-        "201": { description: Created }
-        "400": { description: Bad Request }
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
     get:
       tags: [Orders]
       summary: Daftar pesanan
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
         - in: query
           name: search
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: status
           schema:
-            {
-              type: string,
-              enum: [DRAFT, QUEUED, IN_PROGRESS, COMPLETED, CLOSED, CANCELLED],
-            }
+            type: string
+            enum: [DRAFT, QUEUED, IN_PROGRESS, COMPLETED, CLOSED, CANCELLED]
         - in: query
           name: cashierId
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: customerId
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: vehicleId
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: startDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: endDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /orders/calculate:
     post:
@@ -860,10 +1784,14 @@ paths:
                     type: object
                     required: [productId, quantity]
                     properties:
-                      productId: { type: string }
-                      quantity: { type: integer, minimum: 1 }
+                      productId:
+                        type: string
+                      quantity:
+                        type: integer
+                        minimum: 1
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /orders/active:
     get:
@@ -872,15 +1800,21 @@ paths:
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
         - in: query
           name: search
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /orders/{identifier}:
     get:
@@ -890,10 +1824,13 @@ paths:
         - in: path
           name: identifier
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /orders/{id}/status:
     patch:
@@ -903,7 +1840,8 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -913,28 +1851,33 @@ paths:
               required: [status]
               properties:
                 status:
-                  {
-                    type: string,
-                    enum: [QUEUED, IN_PROGRESS, COMPLETED, CLOSED, CANCELLED],
-                  }
+                  type: string
+                  enum: [QUEUED, IN_PROGRESS, COMPLETED, CLOSED, CANCELLED]
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
-        "409": { description: Conflict }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "409":
+          description: Conflict
 
   /orders/{id}/close:
     patch:
       tags: [Orders]
-      summary: Tutup pesanan (COMPLETED → CLOSED)
+      summary: Tutup pesanan (COMPLETED ke CLOSED)
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
-        "409": { description: Conflict }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "409":
+          description: Conflict
 
   /orders/{id}/cancel:
     post:
@@ -944,7 +1887,8 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -953,11 +1897,15 @@ paths:
               type: object
               required: [reason]
               properties:
-                reason: { type: string }
+                reason:
+                  type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
-        "409": { description: Conflict }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "409":
+          description: Conflict
 
   /orders/{id}:
     delete:
@@ -967,10 +1915,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /orders/{id}/restore:
     post:
@@ -980,10 +1931,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /orders/{orderNumber}/history:
     get:
@@ -994,10 +1948,13 @@ paths:
         - in: path
           name: orderNumber
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   # ==================== PAYMENTS ====================
   /payments:
@@ -1010,42 +1967,64 @@ paths:
           application/json:
             schema:
               type: object
-              required: [orderId, method, amountPaid]
+              required: [orderId, method]
               properties:
-                orderId: { type: string }
-                method: { type: string, enum: [CASH, QRIS] }
-                amountPaid: { type: integer, minimum: 0 }
+                orderId:
+                  type: string
+                method:
+                  type: string
+                  enum: [CASH, QRIS]
+                amountPaid:
+                  type: integer
+                  minimum: 0
       responses:
-        "201": { description: Created }
-        "404": { description: Order not found }
-        "409": { description: Conflict }
+        "201":
+          description: Created
+        "404":
+          description: Order not found
+        "409":
+          description: Conflict
     get:
       tags: [Payments]
       summary: Daftar pembayaran
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
         - in: query
           name: orderId
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: status
-          schema: { type: string, enum: [PENDING, PAID, REFUNDED] }
+          schema:
+            type: string
+            enum: [PENDING, PAID, REFUNDED]
         - in: query
           name: method
-          schema: { type: string, enum: [CASH, QRIS] }
+          schema:
+            type: string
+            enum: [CASH, QRIS]
         - in: query
           name: startDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: endDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /payments/webhook:
     post:
@@ -1056,9 +2035,11 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object }
+            schema:
+              type: object
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /payments/order/{orderId}:
     get:
@@ -1068,10 +2049,13 @@ paths:
         - in: path
           name: orderId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /payments/order/{orderId}/status:
     get:
@@ -1081,10 +2065,13 @@ paths:
         - in: path
           name: orderId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /payments/{id}:
     get:
@@ -1094,10 +2081,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /payments/{id}/refund:
     post:
@@ -1107,18 +2097,23 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
             schema:
               type: object
               properties:
-                reason: { type: string }
+                reason:
+                  type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
-        "409": { description: Conflict }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "409":
+          description: Conflict
 
   # ==================== EXPENSES ====================
   /expenses:
@@ -1132,58 +2127,76 @@ paths:
               type: object
               required: [title, amount]
               properties:
-                title: { type: string }
-                description: { type: string }
-                amount: { type: integer, minimum: 1 }
+                title:
+                  type: string
+                description:
+                  type: string
+                amount:
+                  type: integer
+                  minimum: 1
                 category:
-                  {
-                    type: string,
-                    enum: [SUPPLIES, MAINTENANCE, UTILITIES, RENT, OTHER],
-                    default: OTHER,
-                  }
-                date: { type: string, format: date }
-                receipt: { type: string, format: binary }
+                  type: string
+                  enum: [SUPPLIES, MAINTENANCE, UTILITIES, RENT, OTHER]
+                  default: OTHER
+                date:
+                  type: string
+                  format: date
+                receipt:
+                  type: string
+                  format: binary
       responses:
-        "201": { description: Created }
-        "400": { description: Bad Request }
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
     get:
       tags: [Expenses]
       summary: Daftar pengeluaran
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
         - in: query
           name: category
           schema:
-            {
-              type: string,
-              enum: [SUPPLIES, MAINTENANCE, UTILITIES, RENT, OTHER],
-            }
+            type: string
+            enum: [SUPPLIES, MAINTENANCE, UTILITIES, RENT, OTHER]
         - in: query
           name: shiftId
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: startDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: endDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: search
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /expenses/cashier:
     get:
       tags: [Expenses]
       summary: Daftar pengeluaran kasir yang login
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /expenses/shift/{shiftId}:
     get:
@@ -1193,9 +2206,11 @@ paths:
         - in: path
           name: shiftId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /expenses/{id}:
     get:
@@ -1205,10 +2220,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
     put:
       tags: [Expenses]
       summary: Update pengeluaran
@@ -1216,26 +2234,34 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       requestBody:
         content:
           multipart/form-data:
             schema:
               type: object
               properties:
-                title: { type: string }
-                description: { type: string }
-                amount: { type: integer }
+                title:
+                  type: string
+                description:
+                  type: string
+                amount:
+                  type: integer
                 category:
-                  {
-                    type: string,
-                    enum: [SUPPLIES, MAINTENANCE, UTILITIES, RENT, OTHER],
-                  }
-                date: { type: string, format: date }
-                receipt: { type: string, format: binary }
+                  type: string
+                  enum: [SUPPLIES, MAINTENANCE, UTILITIES, RENT, OTHER]
+                date:
+                  type: string
+                  format: date
+                receipt:
+                  type: string
+                  format: binary
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
     delete:
       tags: [Expenses]
       summary: Hapus pengeluaran
@@ -1243,10 +2269,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   # ==================== SHIFTS ====================
   /shifts/open:
@@ -1261,10 +2290,14 @@ paths:
               type: object
               required: [startingCash]
               properties:
-                startingCash: { type: integer, minimum: 0 }
+                startingCash:
+                  type: integer
+                  minimum: 0
       responses:
-        "201": { description: Created }
-        "409": { description: Conflict - Sudah memiliki shift aktif }
+        "201":
+          description: Created
+        "409":
+          description: Conflict
 
   /shifts:
     get:
@@ -1273,39 +2306,54 @@ paths:
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
         - in: query
           name: status
-          schema: { type: string, enum: [OPEN, CLOSED] }
+          schema:
+            type: string
+            enum: [OPEN, CLOSED]
         - in: query
           name: cashierId
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: startDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: endDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /shifts/active:
     get:
       tags: [Shifts]
       summary: Shift aktif kasir yang login
       responses:
-        "200": { description: OK }
-        "404": { description: Tidak memiliki shift aktif }
+        "200":
+          description: OK
+        "404":
+          description: Tidak memiliki shift aktif
 
   /shifts/active/check:
     get:
       tags: [Shifts]
       summary: Cek apakah memiliki shift aktif
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /shifts/cashiers:
     get:
@@ -1314,19 +2362,25 @@ paths:
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /shifts/starting-cash-suggestion:
     get:
       tags: [Shifts]
       summary: Saran starting cash
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /shifts/{id}:
     get:
@@ -1336,10 +2390,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /shifts/{id}/expected-cash:
     get:
@@ -1349,10 +2406,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /shifts/{id}/close:
     post:
@@ -1362,7 +2422,8 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -1371,11 +2432,16 @@ paths:
               type: object
               required: [endingCash]
               properties:
-                endingCash: { type: integer, minimum: 0 }
+                endingCash:
+                  type: integer
+                  minimum: 0
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
-        "409": { description: Conflict }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "409":
+          description: Conflict
 
   /shifts/{id}/cash-in:
     post:
@@ -1385,7 +2451,8 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -1394,11 +2461,16 @@ paths:
               type: object
               required: [amount]
               properties:
-                amount: { type: integer, minimum: 1 }
-                note: { type: string }
+                amount:
+                  type: integer
+                  minimum: 1
+                note:
+                  type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /shifts/{id}/cash-out:
     post:
@@ -1408,7 +2480,8 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -1417,11 +2490,16 @@ paths:
               type: object
               required: [amount]
               properties:
-                amount: { type: integer, minimum: 1 }
-                note: { type: string }
+                amount:
+                  type: integer
+                  minimum: 1
+                note:
+                  type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   # ==================== STOCK ====================
   /stock/in:
@@ -1436,11 +2514,16 @@ paths:
               type: object
               required: [productId, quantity]
               properties:
-                productId: { type: string }
-                quantity: { type: integer, minimum: 1 }
-                note: { type: string }
+                productId:
+                  type: string
+                quantity:
+                  type: integer
+                  minimum: 1
+                note:
+                  type: string
       responses:
-        "201": { description: Created }
+        "201":
+          description: Created
 
   /stock/out:
     post:
@@ -1454,11 +2537,62 @@ paths:
               type: object
               required: [productId, quantity]
               properties:
-                productId: { type: string }
-                quantity: { type: integer, minimum: 1 }
-                note: { type: string }
+                productId:
+                  type: string
+                quantity:
+                  type: integer
+                  minimum: 1
+                note:
+                  type: string
       responses:
-        "201": { description: Created }
+        "201":
+          description: Created
+
+  /stock/sale:
+    post:
+      tags: [Stock]
+      summary: Catat stok keluar karena penjualan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId, quantity, orderItemId]
+              properties:
+                productId:
+                  type: string
+                quantity:
+                  type: integer
+                  minimum: 1
+                orderItemId:
+                  type: string
+      responses:
+        "201":
+          description: Created
+
+  /stock/return:
+    post:
+      tags: [Stock]
+      summary: Catat stok masuk karena retur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId, quantity]
+              properties:
+                productId:
+                  type: string
+                quantity:
+                  type: integer
+                  minimum: 1
+                note:
+                  type: string
+      responses:
+        "201":
+          description: Created
 
   /stock/adjust:
     post:
@@ -1472,11 +2606,15 @@ paths:
               type: object
               required: [productId, quantity]
               properties:
-                productId: { type: string }
-                quantity: { type: integer }
-                note: { type: string }
+                productId:
+                  type: string
+                quantity:
+                  type: integer
+                note:
+                  type: string
       responses:
-        "201": { description: Created }
+        "201":
+          description: Created
 
   /stock/movements:
     get:
@@ -1485,24 +2623,36 @@ paths:
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
         - in: query
           name: productId
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: type
-          schema: { type: string, enum: [IN, OUT, ADJUSTMENT] }
+          schema:
+            type: string
+            enum: [IN, OUT, ADJUSTMENT]
         - in: query
           name: startDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: endDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /stock/movements/{id}:
     get:
@@ -1512,10 +2662,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
     delete:
       tags: [Stock]
       summary: Hapus pergerakan stok
@@ -1523,10 +2676,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /stock/products/{productId}/movements:
     get:
@@ -1536,9 +2692,11 @@ paths:
         - in: path
           name: productId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /stock/orders/{orderId}/movements:
     get:
@@ -1548,9 +2706,11 @@ paths:
         - in: path
           name: orderId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   # ==================== TASKS ====================
   /tasks/assign:
@@ -1565,11 +2725,15 @@ paths:
               type: object
               required: [orderId, mechanicId]
               properties:
-                orderId: { type: string }
-                mechanicId: { type: string }
+                orderId:
+                  type: string
+                mechanicId:
+                  type: string
       responses:
-        "201": { description: Created }
-        "400": { description: Bad Request }
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
 
   /tasks/bulk-assign:
     post:
@@ -1589,10 +2753,13 @@ paths:
                     type: object
                     required: [orderId, mechanicId]
                     properties:
-                      orderId: { type: string }
-                      mechanicId: { type: string }
+                      orderId:
+                        type: string
+                      mechanicId:
+                        type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /tasks:
     get:
@@ -1601,24 +2768,33 @@ paths:
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
         - in: query
           name: mechanicId
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: orderId
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: orderStatus
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: search
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /tasks/me:
     get:
@@ -1627,15 +2803,21 @@ paths:
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
         - in: query
           name: search
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /tasks/me/history:
     get:
@@ -1644,21 +2826,31 @@ paths:
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
         - in: query
           name: search
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: startDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: endDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /tasks/unassigned:
     get:
@@ -1667,12 +2859,17 @@ paths:
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /tasks/mechanics/available:
     get:
@@ -1681,15 +2878,21 @@ paths:
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
         - in: query
           name: search
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /tasks/mechanic/{mechanicId}:
     get:
@@ -1699,9 +2902,25 @@ paths:
         - in: path
           name: mechanicId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
+
+  /tasks/order/{orderId}:
+    get:
+      tags: [Tasks]
+      summary: Semua task dalam satu order
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
 
   /tasks/order-item/{orderItemId}:
     get:
@@ -1711,9 +2930,11 @@ paths:
         - in: path
           name: orderItemId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /tasks/order-item/{orderItemId}/check:
     get:
@@ -1723,9 +2944,11 @@ paths:
         - in: path
           name: orderItemId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /tasks/{id}:
     get:
@@ -1735,10 +2958,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /tasks/order/{orderId}/unassign:
     post:
@@ -1748,10 +2974,13 @@ paths:
         - in: path
           name: orderId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /tasks/order/{orderId}/start:
     post:
@@ -1761,11 +2990,15 @@ paths:
         - in: path
           name: orderId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
-        "409": { description: Conflict }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "409":
+          description: Conflict
 
   /tasks/order/{orderId}/complete:
     post:
@@ -1775,11 +3008,15 @@ paths:
         - in: path
           name: orderId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
-        "409": { description: Conflict }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "409":
+          description: Conflict
 
   # ==================== REPORTS ====================
   /reports/dashboard:
@@ -1787,7 +3024,8 @@ paths:
       tags: [Reports]
       summary: Ringkasan dashboard
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /reports/sales:
     get:
@@ -1796,12 +3034,17 @@ paths:
       parameters:
         - in: query
           name: startDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: endDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /reports/profit-loss:
     get:
@@ -1810,19 +3053,25 @@ paths:
       parameters:
         - in: query
           name: startDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: endDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /reports/inventory:
     get:
       tags: [Reports]
       summary: Laporan inventaris
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /reports/expenses:
     get:
@@ -1831,15 +3080,21 @@ paths:
       parameters:
         - in: query
           name: startDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: endDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: category
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /reports/payments:
     get:
@@ -1848,15 +3103,22 @@ paths:
       parameters:
         - in: query
           name: startDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: endDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: method
-          schema: { type: string, enum: [CASH, QRIS] }
+          schema:
+            type: string
+            enum: [CASH, QRIS]
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /reports/products/top:
     get:
@@ -1865,15 +3127,22 @@ paths:
       parameters:
         - in: query
           name: startDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: endDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: limit
-          schema: { type: integer, default: 10 }
+          schema:
+            type: integer
+            default: 10
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /reports/mechanics/performance:
     get:
@@ -1882,12 +3151,17 @@ paths:
       parameters:
         - in: query
           name: startDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: endDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /reports/mechanics/{mechanicId}/tasks:
     get:
@@ -1897,9 +3171,11 @@ paths:
         - in: path
           name: mechanicId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /reports/mechanics/{mechanicId}/earnings:
     get:
@@ -1909,15 +3185,21 @@ paths:
         - in: path
           name: mechanicId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: startDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: endDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /reports/shift/{shiftId}:
     get:
@@ -1927,9 +3209,11 @@ paths:
         - in: path
           name: shiftId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /reports/stock/{productId}/movements:
     get:
@@ -1939,15 +3223,21 @@ paths:
         - in: path
           name: productId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: startDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
         - in: query
           name: endDate
-          schema: { type: string, format: date }
+          schema:
+            type: string
+            format: date
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /reports/orders/{orderId}/tasks:
     get:
@@ -1957,9 +3247,11 @@ paths:
         - in: path
           name: orderId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   # ==================== NOTIFICATIONS ====================
   /notifications:
@@ -1974,17 +3266,19 @@ paths:
               type: object
               required: [title, message, userId]
               properties:
-                title: { type: string }
-                message: { type: string }
+                title:
+                  type: string
+                message:
+                  type: string
                 type:
-                  {
-                    type: string,
-                    enum: [INFO, WARNING, SUCCESS, ERROR],
-                    default: INFO,
-                  }
-                userId: { type: string }
+                  type: string
+                  enum: [INFO, WARNING, SUCCESS, ERROR]
+                  default: INFO
+                userId:
+                  type: string
       responses:
-        "201": { description: Created }
+        "201":
+          description: Created
 
   /notifications/bulk:
     post:
@@ -1998,20 +3292,21 @@ paths:
               type: object
               required: [title, message, userIds]
               properties:
-                title: { type: string }
-                message: { type: string }
+                title:
+                  type: string
+                message:
+                  type: string
                 type:
-                  {
-                    type: string,
-                    enum: [INFO, WARNING, SUCCESS, ERROR],
-                    default: INFO,
-                  }
+                  type: string
+                  enum: [INFO, WARNING, SUCCESS, ERROR]
+                  default: INFO
                 userIds:
                   type: array
                   items:
                     type: string
       responses:
-        "201": { description: Created }
+        "201":
+          description: Created
 
   /notifications/me:
     get:
@@ -2020,39 +3315,50 @@ paths:
       parameters:
         - in: query
           name: page
-          schema: { type: integer, default: 1 }
+          schema:
+            type: integer
+            default: 1
         - in: query
           name: limit
-          schema: { type: integer, default: 20 }
+          schema:
+            type: integer
+            default: 20
         - in: query
           name: isRead
-          schema: { type: boolean }
+          schema:
+            type: boolean
         - in: query
           name: type
-          schema: { type: string, enum: [INFO, WARNING, SUCCESS, ERROR] }
+          schema:
+            type: string
+            enum: [INFO, WARNING, SUCCESS, ERROR]
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /notifications/unread-count:
     get:
       tags: [Notifications]
       summary: Jumlah notifikasi belum dibaca
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /notifications/total-count:
     get:
       tags: [Notifications]
       summary: Jumlah total notifikasi
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /notifications/read-all:
     patch:
       tags: [Notifications]
       summary: Tandai semua sudah dibaca
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /notifications/{id}:
     get:
@@ -2062,10 +3368,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
     delete:
       tags: [Notifications]
       summary: Hapus notifikasi
@@ -2073,10 +3382,13 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /notifications/{id}/read:
     patch:
@@ -2086,17 +3398,21 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
 
   /notifications/delete-all:
     delete:
       tags: [Notifications]
       summary: Hapus semua notifikasi
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   # ==================== SETTINGS ====================
   /settings:
@@ -2104,7 +3420,8 @@ paths:
       tags: [Settings]
       summary: Daftar semua settings
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
     put:
       tags: [Settings]
       summary: Bulk update settings
@@ -2117,7 +3434,8 @@ paths:
               additionalProperties:
                 type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
 
   /settings/{key}:
     get:
@@ -2127,10 +3445,13 @@ paths:
         - in: path
           name: key
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: OK }
-        "404": { description: Not Found }
+        "200":
+          description: OK
+        "404":
+          description: Not Found
     put:
       tags: [Settings]
       summary: Update setting
@@ -2138,7 +3459,8 @@ paths:
         - in: path
           name: key
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -2147,240 +3469,10 @@ paths:
               type: object
               required: [value]
               properties:
-                value: { type: string }
+                value:
+                  type: string
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
         "404":
-          { description: Not Found }
-          # ==================== TASK SCHEMAS ====================
-    TaskDetailResponse:
-      type: object
-      properties:
-        id: { type: string }
-        startAt: { type: string, format: date-time }
-        endAt: { type: string, format: date-time }
-        createdAt: { type: string, format: date-time }
-        taskStatus: { type: string, enum: [PENDING, IN_PROGRESS, COMPLETED] }
-        taskStatusLabel: { type: string }
-        mechanic:
-          type: object
-          properties:
-            id: { type: string }
-            fullName: { type: string }
-            email: { type: string }
-            phone: { type: string }
-        orderItem:
-          type: object
-          properties:
-            id: { type: string }
-            quantity: { type: integer }
-            unitPrice: { type: integer }
-            subtotal: { type: integer }
-            productName: { type: string }
-            product:
-              type: object
-              properties:
-                id: { type: string }
-                name: { type: string }
-                type: { type: string }
-                description: { type: string }
-            order:
-              type: object
-              properties:
-                id: { type: string }
-                orderNumber: { type: string }
-                status: { type: string }
-                total: { type: integer }
-                createdAt: { type: string, format: date-time }
-                customer: { type: object }
-                vehicle: { type: object }
-
-    TaskListResponse:
-      type: object
-      properties:
-        id: { type: string }
-        startAt: { type: string, format: date-time }
-        endAt: { type: string, format: date-time }
-        createdAt: { type: string, format: date-time }
-        taskStatus: { type: string, enum: [PENDING, IN_PROGRESS, COMPLETED] }
-        taskStatusLabel: { type: string }
-        mechanic:
-          type: object
-          properties:
-            id: { type: string }
-            fullName: { type: string }
-        orderItem:
-          type: object
-          properties:
-            id: { type: string }
-            quantity: { type: integer }
-            productName: { type: string }
-            product:
-              type: object
-              properties:
-                id: { type: string }
-                name: { type: string }
-                type: { type: string }
-            order:
-              type: object
-              properties:
-                id: { type: string }
-                orderNumber: { type: string }
-                status: { type: string }
-                createdAt: { type: string, format: date-time }
-                customer:
-                  type: object
-                  properties:
-                    name: { type: string }
-                vehicle:
-                  type: object
-                  properties:
-                    plateNumber: { type: string }
-
-    TaskTimeUpdatedResponse:
-      type: object
-      properties:
-        id: { type: string }
-        startAt: { type: string, format: date-time }
-        endAt: { type: string, format: date-time }
-        taskStatus: { type: string, enum: [PENDING, IN_PROGRESS, COMPLETED] }
-        taskStatusLabel: { type: string }
-
-    MyTaskResponse:
-      type: object
-      properties:
-        orderId: { type: string }
-        orderNumber: { type: string }
-        status: { type: string }
-        createdAt: { type: string, format: date-time }
-        customer:
-          type: object
-          properties:
-            name: { type: string }
-        vehicle:
-          type: object
-          nullable: true
-          properties:
-            plateNumber: { type: string }
-            brand: { type: string }
-            model: { type: string }
-        services:
-          type: array
-          items:
-            type: object
-            properties:
-              assignmentId: { type: string }
-              name: { type: string }
-              startAt: { type: string, format: date-time }
-              endAt: { type: string, format: date-time }
-              taskStatus:
-                { type: string, enum: [PENDING, IN_PROGRESS, COMPLETED] }
-        totalTasks: { type: integer }
-        completedTasks: { type: integer }
-        progress: { type: integer }
-
-    MyTaskHistoryResponse:
-      type: object
-      properties:
-        orderId: { type: string }
-        orderNumber: { type: string }
-        status: { type: string }
-        orderCreatedAt: { type: string, format: date-time }
-        customer:
-          type: object
-          properties:
-            name: { type: string }
-        vehicle:
-          type: object
-          nullable: true
-          properties:
-            plateNumber: { type: string }
-            brand: { type: string }
-            model: { type: string }
-        startedAt: { type: string, format: date-time }
-        completedAt: { type: string, format: date-time }
-        duration: { type: string }
-        totalTasks: { type: integer }
-        totalEarnings: { type: integer }
-        services:
-          type: array
-          items:
-            type: object
-            properties:
-              assignmentId: { type: string }
-              name: { type: string }
-              startAt: { type: string, format: date-time }
-              endAt: { type: string, format: date-time }
-
-    UnassignedTaskResponse:
-      type: object
-      properties:
-        orderId: { type: string }
-        orderNumber: { type: string }
-        status: { type: string }
-        createdAt: { type: string, format: date-time }
-        customer:
-          type: object
-          nullable: true
-          properties:
-            name: { type: string }
-        vehicle:
-          type: object
-          nullable: true
-          properties:
-            plateNumber: { type: string }
-            brand: { type: string }
-            model: { type: string }
-        services:
-          type: array
-          items:
-            type: object
-            properties:
-              name: { type: string }
-              quantity: { type: integer }
-              price: { type: integer }
-
-    AvailableMechanicResponse:
-      type: object
-      properties:
-        id: { type: string }
-        fullName: { type: string }
-        email: { type: string }
-        phone: { type: string }
-        activeTaskCount: { type: integer }
-        isAvailable: { type: boolean }
-
-    # ==================== STOCK SCHEMAS ====================
-    StockMovementResponse:
-      type: object
-      properties:
-        id: { type: string }
-        type: { type: string, enum: [IN, OUT, ADJUSTMENT] }
-        sourceType:
-          { type: string, enum: [MANUAL, PURCHASE, SALE, RETURN, ADJUSTMENT] }
-        quantity: { type: integer }
-        note: { type: string }
-        createdAt: { type: string, format: date-time }
-        product:
-          type: object
-          properties:
-            id: { type: string }
-            name: { type: string }
-            sku: { type: string }
-            stock: { type: integer }
-        recordedBy:
-          type: object
-          properties:
-            id: { type: string }
-            fullName: { type: string }
-        orderItem:
-          type: object
-          nullable: true
-          properties:
-            id: { type: string }
-            productNameSnapshot: { type: string }
-            order:
-              type: object
-              properties:
-                id: { type: string }
-                orderNumber: { type: string }
+          description: Not Found

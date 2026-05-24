@@ -390,7 +390,7 @@ const MainLayoutLoader = ({ isLoading }) => {
         sx={{
           display: "flex",
           flex: 1,
-          pt: isMobile ? `${HEADER.MOBILE_HEIGHT}px` : `${HEADER.DESKTOP_HEIGHT}px`,
+        
         }}
       >
         {/* Sidebar - only desktop */}

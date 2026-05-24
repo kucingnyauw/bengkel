@@ -32,8 +32,14 @@ class ReportService {
    */
   async getSalesSummary(range = {}) {
     const { startDate, endDate } = range;
-    const salesData = await this.reportRepo.getSalesData({ startDate, endDate });
-    const dailySales = await this.reportRepo.getDailySalesSummary({ startDate, endDate });
+    const salesData = await this.reportRepo.getSalesData({
+      startDate,
+      endDate,
+    });
+    const dailySales = await this.reportRepo.getDailySalesSummary({
+      startDate,
+      endDate,
+    });
 
     return {
       period: { startDate: startDate || null, endDate: endDate || null },
@@ -49,7 +55,10 @@ class ReportService {
    */
   async getProfitLossReport(range = {}) {
     const { startDate, endDate } = range;
-    const profitLossData = await this.reportRepo.getProfitLossData({ startDate, endDate });
+    const profitLossData = await this.reportRepo.getProfitLossData({
+      startDate,
+      endDate,
+    });
 
     return {
       period: { startDate: startDate || null, endDate: endDate || null },
@@ -100,7 +109,10 @@ class ReportService {
    * @returns {Promise<Object>} Laporan produk terlaris
    */
   async getTopProductsReport({ startDate, endDate, limit = 10 }) {
-    const products = await this.reportRepo.getProductSalesReport({ startDate, endDate }, limit);
+    const products = await this.reportRepo.getProductSalesReport(
+      { startDate, endDate },
+      limit
+    );
 
     for (const product of products) {
       if (product.image) {
@@ -114,7 +126,12 @@ class ReportService {
 
     return {
       period: { startDate: startDate || null, endDate: endDate || null },
-      summary: { totalQuantity, totalRevenue, totalProfit, productCount: products.length },
+      summary: {
+        totalQuantity,
+        totalRevenue,
+        totalProfit,
+        productCount: products.length,
+      },
       products,
     };
   }
@@ -126,11 +143,20 @@ class ReportService {
    */
   async getMechanicPerformanceReport(range = {}) {
     const { startDate, endDate } = range;
-    const mechanics = await this.reportRepo.getMechanicPerformanceReport({ startDate, endDate });
+    const mechanics = await this.reportRepo.getMechanicPerformanceReport({
+      startDate,
+      endDate,
+    });
 
     const totalTasks = mechanics.reduce((sum, m) => sum + m.totalTasks, 0);
-    const totalCompleted = mechanics.reduce((sum, m) => sum + m.completedTasks, 0);
-    const totalEarnings = mechanics.reduce((sum, m) => sum + m.totalEarnings, 0);
+    const totalCompleted = mechanics.reduce(
+      (sum, m) => sum + m.completedTasks,
+      0
+    );
+    const totalEarnings = mechanics.reduce(
+      (sum, m) => sum + m.totalEarnings,
+      0
+    );
 
     return {
       period: { startDate: startDate || null, endDate: endDate || null },
@@ -139,7 +165,8 @@ class ReportService {
         totalTasks,
         totalCompleted,
         totalEarnings,
-        averageCompletionRate: totalTasks > 0 ? (totalCompleted / totalTasks) * 100 : 0,
+        averageCompletionRate:
+          totalTasks > 0 ? (totalCompleted / totalTasks) * 100 : 0,
       },
       mechanics,
     };
@@ -159,10 +186,10 @@ class ReportService {
         return await this._getCashierDashboard(userId);
       case "MECHANIC":
         return await this._getMechanicDashboard(userId);
-      case "SUPERADMIN":
       case "ADMIN":
-      default:
         return await this._getAdminDashboard();
+        default :
+        return null;
     }
   }
 
@@ -180,9 +207,22 @@ class ReportService {
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const [todaySales, monthSales, activeShift, pendingCount, productSummary, lowStockProducts] = await Promise.all([
-      this.reportRepo.getSalesData({ startDate: startOfDay, endDate: endOfDay }),
-      this.reportRepo.getSalesData({ startDate: startOfMonth, endDate: endOfDay }),
+    const [
+      todaySales,
+      monthSales,
+      activeShift,
+      pendingCount,
+      productSummary,
+      lowStockProducts,
+    ] = await Promise.all([
+      this.reportRepo.getSalesData({
+        startDate: startOfDay,
+        endDate: endOfDay,
+      }),
+      this.reportRepo.getSalesData({
+        startDate: startOfMonth,
+        endDate: endOfDay,
+      }),
       this.reportRepo.getActiveShift(),
       this.reportRepo.countOrdersByStatus(["DRAFT", "QUEUED", "IN_PROGRESS"]),
       this.reportRepo.getProductSummary(),
@@ -204,9 +244,15 @@ class ReportService {
         date: startOfDay.toISOString(),
         orders: todaySales.totalOrders,
         revenue: todaySales.totalSales,
-        averageOrderValue: todaySales.totalOrders > 0 ? todaySales.totalSales / todaySales.totalOrders : 0,
+        averageOrderValue:
+          todaySales.totalOrders > 0
+            ? todaySales.totalSales / todaySales.totalOrders
+            : 0,
       },
-      thisMonth: { orders: monthSales.totalOrders, revenue: monthSales.totalSales },
+      thisMonth: {
+        orders: monthSales.totalOrders,
+        revenue: monthSales.totalSales,
+      },
       pending: { orders: pendingCount },
       activeShift: activeShift
         ? {
@@ -243,7 +289,11 @@ class ReportService {
     const recentOrders = await prisma.order.findMany({
       where: { cashierId, deletedAt: null },
       select: {
-        id: true, orderNumber: true, total: true, status: true, createdAt: true,
+        id: true,
+        orderNumber: true,
+        total: true,
+        status: true,
+        createdAt: true,
         customer: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -283,16 +333,24 @@ class ReportService {
         where: {
           mechanicId,
           endAt: null,
-          orderItem: { order: { status: { in: ["QUEUED", "IN_PROGRESS"] }, deletedAt: null } },
+          orderItem: {
+            order: {
+              status: { in: ["QUEUED", "IN_PROGRESS"] },
+              deletedAt: null,
+            },
+          },
         },
         select: {
           id: true,
           orderItem: {
             select: {
-              id: true, productNameSnapshot: true,
+              id: true,
+              productNameSnapshot: true,
               order: {
                 select: {
-                  id: true, orderNumber: true, status: true,
+                  id: true,
+                  orderNumber: true,
+                  status: true,
                   vehicle: { select: { plateNumber: true } },
                 },
               },
@@ -353,7 +411,10 @@ class ReportService {
    */
   async getPaymentReport(range = {}) {
     const { startDate, endDate } = range;
-    const paymentSummary = await this.reportRepo.getPaymentSummary({ startDate, endDate });
+    const paymentSummary = await this.reportRepo.getPaymentSummary({
+      startDate,
+      endDate,
+    });
 
     return {
       period: { startDate: startDate || null, endDate: endDate || null },
@@ -370,8 +431,14 @@ class ReportService {
    * @returns {Promise<Object>} Laporan pergerakan stok
    */
   async getStockMovementReport(productId, { startDate, endDate }) {
-    const movementSummary = await this.reportRepo.getMovementSummaryByDateRange(productId, startDate, endDate);
-    const stockConsistency = await this.reportRepo.validateStockConsistency(productId);
+    const movementSummary = await this.reportRepo.getMovementSummaryByDateRange(
+      productId,
+      startDate,
+      endDate
+    );
+    const stockConsistency = await this.reportRepo.validateStockConsistency(
+      productId
+    );
 
     return {
       period: { startDate: startDate || null, endDate: endDate || null },
@@ -406,11 +473,17 @@ class ReportService {
    * @returns {Promise<Object>} Pendapatan mekanik
    */
   async getMechanicEarnings(mechanicId, range = {}) {
-    const earnings = await this.reportRepo.getTotalEarningsByMechanic(mechanicId, range);
+    const earnings = await this.reportRepo.getTotalEarningsByMechanic(
+      mechanicId,
+      range
+    );
 
     return {
       mechanicId,
-      period: { startDate: range.startDate || null, endDate: range.endDate || null },
+      period: {
+        startDate: range.startDate || null,
+        endDate: range.endDate || null,
+      },
       ...earnings,
     };
   }

@@ -55,9 +55,10 @@ const CustomerCreateDialog = ({
 
   const { createCustomerAndVehicle, isPending } = useCreateCustomerMutation({
     onSuccess: (data) => {
+
       dispatch(
         showNotification({
-          message: `Pelanggan "${data?.name || "baru"}" berhasil ditambahkan`,
+          message: `Pelanggan "${data?.customer?.name || "baru"}" berhasil ditambahkan`,
           type: "success",
           title: "Berhasil",
           variant: "snackbar",

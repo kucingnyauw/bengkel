@@ -39,9 +39,9 @@ class OrderHistoryRepository {
         subtotal: true,
         productNameSnapshot: true,
         product: {
-          select: { 
-            id: true, 
-            name: true, 
+          select: {
+            id: true,
+            name: true,
             type: true,
             image: {
               select: { path: true }
@@ -98,8 +98,6 @@ class OrderHistoryRepository {
    * Mencari riwayat pesanan berdasarkan nomor pesanan
    * @param {string} orderNumber - Nomor pesanan
    * @returns {Promise<Object|null>} Data pesanan lengkap dengan riwayat
-   * @complexity Before: O(n) - findFirst without index
-   * @complexity After: O(log n) - Uses unique index on orderNumber
    */
   async findByOrderNumber(orderNumber) {
     return prisma.order.findFirst({
@@ -112,8 +110,6 @@ class OrderHistoryRepository {
    * Mencari riwayat pesanan berdasarkan ID pesanan
    * @param {string} orderId - ID pesanan
    * @returns {Promise<Object|null>} Data pesanan lengkap dengan riwayat
-   * @complexity Before: O(log n) - Primary key lookup
-   * @complexity After: O(log n) - No change needed
    */
   async findByOrderId(orderId) {
     return prisma.order.findUnique({
@@ -130,8 +126,6 @@ class OrderHistoryRepository {
    * @param {string} data.changedById - ID user yang mengubah
    * @param {string} [data.note] - Catatan perubahan
    * @returns {Promise<Object>} Record riwayat yang dibuat
-   * @complexity Before: O(1) - Single insert
-   * @complexity After: O(1) - No change needed
    */
   async createHistory(data) {
     return prisma.orderStatusHistory.create({
@@ -157,8 +151,6 @@ class OrderHistoryRepository {
    * Mendapatkan riwayat status berdasarkan ID pesanan
    * @param {string} orderId - ID pesanan
    * @returns {Promise<Array>} Daftar riwayat status
-   * @complexity Before: O(n) - findMany without proper ordering
-   * @complexity After: O(log n) - Uses composite index (orderId, createdAt)
    */
   async getHistoryByOrderId(orderId) {
     return prisma.orderStatusHistory.findMany({
@@ -187,8 +179,6 @@ class OrderHistoryRepository {
    * @param {string|Date} [query.startDate] - Filter tanggal mulai
    * @param {string|Date} [query.endDate] - Filter tanggal akhir
    * @returns {Promise<{data: Array, metadata: Object}>} Data riwayat dan metadata
-   * @complexity Before: O(n) - Full scan with filters
-   * @complexity After: O(log n) - Uses composite indexes with filtered conditions
    */
   async findMany(query = {}) {
     const limit = query.limit || 10;
@@ -231,8 +221,6 @@ class OrderHistoryRepository {
    * Mendapatkan statistik perubahan status
    * @param {string} orderId - ID pesanan
    * @returns {Promise<Object>} Statistik perubahan status
-   * @complexity Before: O(n) - Fetch all histories then calculate in memory
-   * @complexity After: O(log n) - Database-level aggregation with GROUP BY
    */
   async getStatusTransitionStats(orderId) {
     const stats = await prisma.orderStatusHistory.groupBy({
@@ -261,9 +249,7 @@ class OrderHistoryRepository {
   /**
    * Mendapatkan durasi setiap status untuk pesanan
    * @param {string} orderId - ID pesanan
-   * @returns {Promise<Array>} Durasi setiap status
-   * @complexity Before: O(n) - Fetch all histories then calculate durations in memory
-   * @complexity After: O(log n) - Uses composite index (orderId, createdAt) with window function
+   * @returns {Promise<Array>} Durasi setiap status dalam detik
    */
   async getStatusDurations(orderId) {
     const query = `
@@ -293,8 +279,6 @@ class OrderHistoryRepository {
    * Mendapatkan ringkasan timeline pesanan
    * @param {string} orderId - ID pesanan
    * @returns {Promise<Object>} Ringkasan timeline
-   * @complexity Before: O(n) - Multiple queries with nested data
-   * @complexity After: O(log n) - Parallel execution with optimized queries
    */
   async getOrderTimeline(orderId) {
     const [order, histories, durations] = await Promise.all([
@@ -330,29 +314,14 @@ class OrderHistoryRepository {
 
     if (!order) return null;
 
-    const totalDuration = durations.reduce((sum, d) => sum + d.durationSeconds, 0);
+    const totalDurationSeconds = durations.reduce((sum, d) => sum + d.durationSeconds, 0);
 
     return {
       order,
       histories,
       durations,
-      totalDurationSeconds: totalDuration,
-      totalDurationFormatted: this.formatDuration(totalDuration),
+      totalDurationSeconds,
     };
-  }
-
-  /**
-   * Format durasi dari detik ke format readable
-   * @param {number} seconds - Durasi dalam detik
-   * @returns {string} Durasi terformat
-   * @private
-   */
-  formatDuration(seconds) {
-    if (seconds < 60) return `${seconds}s`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
   }
 }
 

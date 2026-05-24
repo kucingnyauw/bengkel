@@ -3,6 +3,7 @@ import SettingRepository from "#repository/settingRepository.js";
 import NotificationRepository from "#repository/notificationRepository.js";
 import UserRepository from "#repository/userRepository.js";
 import Currency from "#shared/utils/currency.js";
+import DateTime from "#shared/utils/datetime.js";
 import ApiError from "#shared/utils/error.js";
 import Storage from "#shared/utils/storage.js";
 import prisma from "#app/database.js";
@@ -42,7 +43,7 @@ class ShiftService {
   }
 
   /**
-   * Mengirim notifikasi ke kasir
+   * Mengirim notifikasi ke user
    * @param {string} userId
    * @param {string} title
    * @param {string} message
@@ -73,7 +74,6 @@ class ShiftService {
   async #notifyAdmins(title, message, type = "WARNING") {
     try {
       const admins = await this.userRepo.findByRole("ADMIN");
-
       const activeAdmins = admins.filter((a) => a.isActive);
 
       if (activeAdmins.length > 0) {
@@ -91,6 +91,43 @@ class ShiftService {
   }
 
   /**
+   * Format ringkasan keuangan shift untuk notifikasi
+   * @param {Object} data
+   * @returns {string}
+   * @private
+   */
+  #formatShiftSummary(data) {
+    const lines = [`Kasir         : ${data.cashierName}`];
+
+    if (data.shiftId) {
+      lines.push(`Shift ID      : ${data.shiftId}`);
+    }
+
+    if (data.duration) {
+      lines.push(`Durasi        : ${data.duration}`);
+    }
+
+    lines.push(
+      ``,
+      `Saldo Awal    : ${Currency.toIDR(data.startingCash)}`,
+      `Penjualan     : ${Currency.toIDR(data.cashSales || 0)}`,
+      `Kas Masuk     : ${Currency.toIDR(data.cashIn || 0)}`,
+      `Kas Keluar    : ${Currency.toIDR(data.cashOut || 0)}`,
+      `Saldo Akhir   : ${Currency.toIDR(data.endingCash)}`
+    );
+
+    if (data.expectedCash !== undefined) {
+      lines.push(`Saldo Harapan : ${Currency.toIDR(data.expectedCash)}`);
+    }
+
+    if (data.discrepancy !== undefined) {
+      lines.push(`Selisih       : ${Currency.toIDR(data.discrepancy)}`);
+    }
+
+    return lines.join("\n");
+  }
+
+  /**
    * Membuka shift baru untuk kasir
    * @param {string} cashierId
    * @param {number} startingCash
@@ -102,7 +139,9 @@ class ShiftService {
 
     if (startingCash < minStartingCash) {
       throw ApiError.badRequest({
-        message: `Gagal membuka shift. Saldo awal minimal ${Currency.toIDR(minStartingCash)}.`,
+        message: `Gagal membuka shift. Saldo awal minimal ${Currency.toIDR(
+          minStartingCash
+        )}.`,
       });
     }
 
@@ -110,22 +149,31 @@ class ShiftService {
     if (hasActiveShift) {
       const activeShift = await this.shiftRepo.findActiveByCashier(cashierId);
       throw ApiError.conflict({
-        message: `Gagal membuka shift. Kasir sudah memiliki shift aktif yang dibuka pada ${activeShift.openedAt}.`,
+        message: `Gagal membuka shift. Kasir sudah memiliki shift aktif yang dibuka pada ${DateTime.toFullID(
+          activeShift.openedAt
+        )}.`,
       });
     }
 
     const shift = await this.shiftRepo.create({ cashierId, startingCash });
-
     const cashier = await this.userRepo.findById(cashierId);
+
+    const notificationMessage = [
+      `Shift Baru Berhasil Dibuka`,
+      ``,
+      `Kasir         : ${cashier?.fullName || "-"}`,
+      `Saldo Awal    : ${Currency.toIDR(startingCash)}`,
+      `Waktu Buka    : ${DateTime.toFullID(shift.openedAt)}`,
+      ``,
+      `Shift telah aktif dan siap digunakan.`,
+      `Semua transaksi hari ini akan tercatat dalam shift ini.`,
+    ].join("\n");
 
     await this.#sendNotification(
       cashierId,
-      "Shift Dibuka",
-      `Shift baru berhasil dibuka.\n\n` +
-      `Kasir: ${cashier?.fullName || "-"}\n` +
-      `Saldo Awal: ${Currency.toIDR(startingCash)}\n` +
-      `Waktu: ${new Date(shift.openedAt).toLocaleString("id-ID")}`,
-      "INFO"
+      `Shift Dibuka - ${cashier?.fullName || "Kasir"}`,
+      notificationMessage,
+      "SUCCESS"
     );
 
     logger.info("Shift berhasil dibuka", {
@@ -155,7 +203,9 @@ class ShiftService {
 
     if (shift.status === "CLOSED") {
       throw ApiError.conflict({
-        message: `Gagal menutup shift. Shift sudah ditutup sebelumnya pada ${shift.closedAt}.`,
+        message: `Gagal menutup shift. Shift sudah ditutup sebelumnya pada ${DateTime.toFullID(
+          shift.closedAt
+        )}.`,
       });
     }
 
@@ -169,7 +219,7 @@ class ShiftService {
 
     if (draftOrders > 0) {
       throw ApiError.conflict({
-        message: `Tidak dapat menutup shift. Masih ada ${draftOrders} pesanan yang belum dibayar. Bayar atau batalkan terlebih dahulu.`,
+        message: `Tidak dapat menutup shift. Masih ada ${draftOrders} pesanan yang belum dibayar. Selesaikan atau batalkan terlebih dahulu.`,
       });
     }
 
@@ -184,32 +234,79 @@ class ShiftService {
     });
 
     const cashier = await this.userRepo.findById(shift.cashierId);
-    const duration = this.#formatShiftDuration(shift.openedAt, closedShift.closedAt);
+    const duration = DateTime.toDuration(shift.openedAt, closedShift.closedAt);
+
+    const notificationType = discrepancy === 0 ? "SUCCESS" : "WARNING";
+
+    let closingNote = "";
+    if (discrepancy === 0) {
+      closingNote = "Saldo akhir sesuai dengan perhitungan. Tidak ada selisih.";
+    } else if (discrepancy > 0) {
+      closingNote = `Terdapat kelebihan saldo sebesar ${Currency.toIDR(
+        discrepancy
+      )}. Harap periksa kembali pencatatan transaksi.`;
+    } else {
+      closingNote = `Terdapat kekurangan saldo sebesar ${Currency.toIDR(
+        Math.abs(discrepancy)
+      )}. Harap periksa kembali pencatatan transaksi.`;
+    }
+
+    const notificationMessage = [
+      `Shift Berhasil Ditutup`,
+      ``,
+      this.#formatShiftSummary({
+        cashierName: cashier?.fullName || "-",
+        shiftId: shift.id,
+        duration,
+        startingCash: shift.startingCash,
+        cashSales: shift.cashSales,
+        cashIn: shift.cashIn,
+        cashOut: shift.cashOut,
+        endingCash,
+        expectedCash,
+        discrepancy,
+      }),
+      ``,
+      `Waktu Buka    : ${DateTime.toFullID(shift.openedAt)}`,
+      `Waktu Tutup   : ${DateTime.toFullID(closedShift.closedAt)}`,
+      ``,
+      closingNote,
+    ].join("\n");
 
     await this.#sendNotification(
       shift.cashierId,
-      "Shift Ditutup",
-      `Shift berhasil ditutup.\n\n` +
-      `Kasir: ${cashier?.fullName || "-"}\n` +
-      `Durasi: ${duration}\n` +
-      `Saldo Awal: ${Currency.toIDR(shift.startingCash)}\n` +
-      `Total Penjualan: ${Currency.toIDR(shift.cashSales)}\n` +
-      `Kas Masuk: ${Currency.toIDR(shift.cashIn)}\n` +
-      `Kas Keluar: ${Currency.toIDR(shift.cashOut)}\n` +
-      `Saldo Akhir: ${Currency.toIDR(endingCash)}\n` +
-      `Selisih: ${Currency.toIDR(discrepancy)}`,
-      discrepancy === 0 ? "SUCCESS" : "WARNING"
+      `Shift Ditutup - ${cashier?.fullName || "Kasir"}`,
+      notificationMessage,
+      notificationType
     );
 
     if (Math.abs(discrepancy) >= 50000) {
+      const adminMessage = [
+        `Peringatan Selisih Shift Signifikan`,
+        ``,
+        this.#formatShiftSummary({
+          cashierName: cashier?.fullName || "-",
+          shiftId: shift.id,
+          duration,
+          startingCash: shift.startingCash,
+          cashSales: shift.cashSales,
+          cashIn: shift.cashIn,
+          cashOut: shift.cashOut,
+          endingCash,
+          expectedCash,
+          discrepancy,
+        }),
+        ``,
+        `Waktu Buka    : ${DateTime.toFullID(shift.openedAt)}`,
+        `Waktu Tutup   : ${DateTime.toFullID(closedShift.closedAt)}`,
+        ``,
+        `Selisih sebesar ${Currency.toIDR(discrepancy)} memerlukan perhatian.`,
+        `Harap segera lakukan pemeriksaan dan rekonsiliasi.`,
+      ].join("\n");
+
       await this.#notifyAdmins(
-        "Selisih Shift Signifikan",
-        `Shift kasir ${cashier?.fullName || "-"} memiliki selisih besar.\n\n` +
-        `Shift ID: ${shiftId}\n` +
-        `Selisih: ${Currency.toIDR(discrepancy)}\n` +
-        `Saldo Awal: ${Currency.toIDR(shift.startingCash)}\n` +
-        `Saldo Akhir: ${Currency.toIDR(endingCash)}\n` +
-        `Expected: ${Currency.toIDR(expectedCash)}`,
+        `Selisih Shift - ${cashier?.fullName || "Kasir"}`,
+        adminMessage,
         "WARNING"
       );
     }
@@ -224,23 +321,6 @@ class ShiftService {
     });
 
     return closedShift;
-  }
-
-  /**
-   * Format durasi shift
-   * @param {Date} openedAt
-   * @param {Date} closedAt
-   * @returns {string}
-   * @private
-   */
-  #formatShiftDuration(openedAt, closedAt) {
-    const diff = new Date(closedAt) - new Date(openedAt);
-    const hours = Math.floor(diff / 3600000);
-    const minutes = Math.floor((diff % 3600000) / 60000);
-
-    if (hours > 0 && minutes > 0) return `${hours} jam ${minutes} menit`;
-    if (hours > 0) return `${hours} jam`;
-    return `${minutes} menit`;
   }
 
   /**
@@ -374,13 +454,22 @@ class ShiftService {
       cashIn: amount,
     });
 
+    const notificationMessage = [
+      `Kas Masuk Berhasil Dicatat`,
+      ``,
+      `Jumlah         : ${Currency.toIDR(amount)}`,
+      `Total Kas Masuk: ${Currency.toIDR(updatedShift.cashIn)}`,
+      note ? `Catatan        : ${note}` : "",
+      ``,
+      `Waktu          : ${DateTime.toFullID(new Date())}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
     await this.#sendNotification(
       shift.cashierId,
-      "Kas Masuk Dicatat",
-      `Kas masuk berhasil dicatat.\n\n` +
-      `Jumlah: ${Currency.toIDR(amount)}\n` +
-      `Total Kas Masuk: ${Currency.toIDR(updatedShift.cashIn)}` +
-      (note ? `\nCatatan: ${note}` : ""),
+      `Kas Masuk - ${Currency.toIDR(amount)}`,
+      notificationMessage,
       "INFO"
     );
 
@@ -416,13 +505,22 @@ class ShiftService {
       cashOut: amount,
     });
 
+    const notificationMessage = [
+      `Kas Keluar Berhasil Dicatat`,
+      ``,
+      `Jumlah          : ${Currency.toIDR(amount)}`,
+      `Total Kas Keluar: ${Currency.toIDR(updatedShift.cashOut)}`,
+      note ? `Catatan         : ${note}` : "",
+      ``,
+      `Waktu           : ${DateTime.toFullID(new Date())}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
     await this.#sendNotification(
       shift.cashierId,
-      "Kas Keluar Dicatat",
-      `Kas keluar berhasil dicatat.\n\n` +
-      `Jumlah: ${Currency.toIDR(amount)}\n` +
-      `Total Kas Keluar: ${Currency.toIDR(updatedShift.cashOut)}` +
-      (note ? `\nCatatan: ${note}` : ""),
+      `Kas Keluar - ${Currency.toIDR(amount)}`,
+      notificationMessage,
       "INFO"
     );
 
@@ -450,7 +548,9 @@ class ShiftService {
       });
     if (shift.status !== "OPEN")
       throw ApiError.conflict({
-        message: `Gagal membuat pesanan. Shift sudah ditutup pada ${shift.closedAt}, tidak dapat membuat pesanan baru.`,
+        message: `Gagal membuat pesanan. Shift sudah ditutup pada ${DateTime.toFullID(
+          shift.closedAt
+        )}, tidak dapat membuat pesanan baru.`,
       });
     if (shift.cashierId !== cashierId)
       throw ApiError.forbidden({
@@ -483,7 +583,9 @@ class ShiftService {
       return {
         suggestedStartingCash: minStartingCash,
         source: "settings",
-        message: `Tidak ada shift sebelumnya. Menggunakan default dari pengaturan: ${Currency.toIDR(minStartingCash)}`,
+        message: `Tidak ada shift sebelumnya. Menggunakan default dari pengaturan: ${Currency.toIDR(
+          minStartingCash
+        )}`,
         lastShift: null,
       };
     }

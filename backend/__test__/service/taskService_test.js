@@ -1,4 +1,3 @@
-// __test__/taskService_test.js
 import TaskService from "#service/taskService.js";
 import TaskRepository from "#repository/taskRepository.js";
 import UserRepository from "#repository/userRepository.js";
@@ -19,8 +18,6 @@ jest.mock("#shared/utils/cache.js", () => {
     get: jest.fn().mockResolvedValue(null),
     set: jest.fn().mockResolvedValue(undefined),
     invalidate: jest.fn().mockResolvedValue(undefined),
-    invalidateAll: jest.fn().mockResolvedValue(undefined),
-    buildKey: jest.fn((key) => `order:${key}`),
   }));
 });
 
@@ -34,10 +31,6 @@ jest.mock("#app/database.js", () => ({
   $transaction: jest.fn((fn) => fn({
     order: { update: jest.fn().mockResolvedValue({}) },
     orderStatusHistory: { create: jest.fn().mockResolvedValue({}) },
-    shift: { update: jest.fn().mockResolvedValue({}) },
-    stockMovement: { create: jest.fn().mockResolvedValue({}) },
-    payment: { deleteMany: jest.fn().mockResolvedValue({}) },
-    product: { update: jest.fn().mockResolvedValue({}) },
   })),
 }));
 
@@ -47,6 +40,10 @@ jest.mock("#app/logger.js", () => ({
   error: jest.fn(),
 }));
 
+/**
+ * Unit test untuk TaskService
+ * @describe TaskService
+ */
 describe("TaskService", () => {
   let service;
   let mockTaskRepo;
@@ -72,9 +69,9 @@ describe("TaskService", () => {
     mockStorage = require("#shared/utils/storage.js");
   });
 
-  // ============================================================
-  // assignMechanicToOrder
-  // ============================================================
+  /**
+   * @describe assignMechanicToOrder
+   */
   describe("assignMechanicToOrder", () => {
     const orderId = "order-1";
     const mechanicId = "mech-1";
@@ -89,8 +86,9 @@ describe("TaskService", () => {
       id: orderId,
       orderNumber: "ORD-001",
       status: "QUEUED",
+      cashierId: "cashier-1",
       customer: { name: "Budi" },
-      vehicle: { plateNumber: "B 1234 CD" },
+      vehicle: { plateNumber: "B 1234 CD", brand: "Vespa", model: "Sprint" },
       items: [
         {
           id: "oi-1",
@@ -123,6 +121,9 @@ describe("TaskService", () => {
       mockNotifRepo.create.mockResolvedValue({});
     });
 
+    /**
+     * @test Menugaskan mekanik ke semua item service dan menginvalidasi cache
+     */
     it("should assign mechanic to all unassigned service items and invalidate cache", async () => {
       const result = await service.assignMechanicToOrder(orderId, mechanicId);
 
@@ -145,12 +146,15 @@ describe("TaskService", () => {
       expect(mockNotifRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: mechanicId,
-          title: "Tugas Baru Diterima",
+          title: expect.stringContaining("ORD-001"),
           type: "INFO",
         })
       );
     });
 
+    /**
+     * @test Melempar 400 ketika user bukan mekanik
+     */
     it("should throw 400 when user is not a mechanic", async () => {
       mockUserRepo.findById.mockResolvedValue({ id: mechanicId, role: "CASHIER" });
 
@@ -160,6 +164,9 @@ describe("TaskService", () => {
         .rejects.toMatchObject({ statusCode: 400 });
     });
 
+    /**
+     * @test Melempar 400 ketika mekanik tidak tersedia (kapasitas penuh)
+     */
     it("should throw 400 when mechanic is not available (max capacity reached)", async () => {
       mockTaskRepo.getActiveTaskCount.mockResolvedValue(5);
 
@@ -169,6 +176,9 @@ describe("TaskService", () => {
         .rejects.toMatchObject({ statusCode: 400 });
     });
 
+    /**
+     * @test Melempar 404 ketika pesanan tidak ditemukan
+     */
     it("should throw 404 when order not found", async () => {
       mockOrderRepo.findById.mockResolvedValue(null);
 
@@ -178,6 +188,9 @@ describe("TaskService", () => {
         .rejects.toMatchObject({ statusCode: 404 });
     });
 
+    /**
+     * @test Melempar 400 ketika status pesanan bukan QUEUED
+     */
     it("should throw 400 when order status is not QUEUED", async () => {
       mockOrderRepo.findById.mockResolvedValue({ ...mockOrder, status: "DRAFT" });
 
@@ -187,6 +200,9 @@ describe("TaskService", () => {
         .rejects.toMatchObject({ statusCode: 400 });
     });
 
+    /**
+     * @test Melempar 400 ketika pesanan tidak memiliki item service
+     */
     it("should throw 400 when order has no service items", async () => {
       const orderNoService = {
         ...mockOrder,
@@ -200,6 +216,9 @@ describe("TaskService", () => {
         .rejects.toMatchObject({ statusCode: 400 });
     });
 
+    /**
+     * @test Melempar 400 ketika semua item service sudah memiliki assignment
+     */
     it("should throw 400 when all service items already have assignments", async () => {
       const allAssigned = {
         ...mockOrder,
@@ -220,9 +239,9 @@ describe("TaskService", () => {
     });
   });
 
-  // ============================================================
-  // unassignMechanicFromOrder
-  // ============================================================
+  /**
+   * @describe unassignMechanicFromOrder
+   */
   describe("unassignMechanicFromOrder", () => {
     const orderId = "order-1";
     const userId = "cashier-1";
@@ -233,7 +252,7 @@ describe("TaskService", () => {
       status: "QUEUED",
       cashierId: userId,
       customer: { name: "Budi" },
-      vehicle: { plateNumber: "B 1234 CD" },
+      vehicle: { plateNumber: "B 1234 CD", brand: "Vespa", model: "Sprint" },
       items: [
         {
           id: "oi-1",
@@ -251,6 +270,9 @@ describe("TaskService", () => {
       mockNotifRepo.create.mockResolvedValue({});
     });
 
+    /**
+     * @test Melepas semua mekanik dari item service, invalidasi cache, dan kirim notifikasi
+     */
     it("should unassign all mechanics from service items, invalidate cache, and send notifications", async () => {
       await service.unassignMechanicFromOrder(orderId, userId);
 
@@ -270,12 +292,15 @@ describe("TaskService", () => {
       expect(mockNotifRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: "m1",
-          title: "Penugasan Dilepas",
+          title: expect.stringContaining("ORD-001"),
           type: "WARNING",
         })
       );
     });
 
+    /**
+     * @test Melepas mekanik dari pesanan IN_PROGRESS
+     */
     it("should unassign from IN_PROGRESS order", async () => {
       mockOrderRepo.findById.mockResolvedValue({ ...baseOrder, status: "IN_PROGRESS" });
 
@@ -285,6 +310,9 @@ describe("TaskService", () => {
       expect(mockCache.invalidate).toHaveBeenCalledWith("history:ORD-001");
     });
 
+    /**
+     * @test Melempar 404 ketika pesanan tidak ditemukan
+     */
     it("should throw 404 when order not found", async () => {
       mockOrderRepo.findById.mockResolvedValue(null);
 
@@ -294,6 +322,10 @@ describe("TaskService", () => {
         .rejects.toMatchObject({ statusCode: 404 });
     });
 
+    /**
+     * @test Melempar 400 ketika status pesanan COMPLETED, CLOSED, atau CANCELLED
+     * @param {string} status - Status pesanan
+     */
     it.each(["COMPLETED", "CLOSED", "CANCELLED"])(
       "should throw 400 when order status is %s",
       async (status) => {
@@ -306,6 +338,9 @@ describe("TaskService", () => {
       }
     );
 
+    /**
+     * @test Melempar 400 ketika pesanan DRAFT
+     */
     it("should throw 400 when order is DRAFT", async () => {
       mockOrderRepo.findById.mockResolvedValue({ ...baseOrder, status: "DRAFT" });
 
@@ -315,6 +350,9 @@ describe("TaskService", () => {
         .rejects.toMatchObject({ statusCode: 400 });
     });
 
+    /**
+     * @test Melempar 400 ketika tidak ada mekanik yang ditugaskan
+     */
     it("should throw 400 when no mechanic is assigned to service items", async () => {
       const orderWithoutAssignment = {
         ...baseOrder,
@@ -329,12 +367,46 @@ describe("TaskService", () => {
       await expect(service.unassignMechanicFromOrder(orderId, userId))
         .rejects.toMatchObject({ statusCode: 400 });
     });
+
+    /**
+     * @test Menangani multiple mechanics di-unassign
+     */
+    it("should unassign multiple mechanics from different service items", async () => {
+      const orderWithMultipleMechanics = {
+        ...baseOrder,
+        items: [
+          {
+            id: "oi-1",
+            product: { type: "SERVICE" },
+            assignments: [
+              { id: "a1", mechanicId: "m1", mechanic: { fullName: "Joko" } },
+            ],
+          },
+          {
+            id: "oi-2",
+            product: { type: "SERVICE" },
+            assignments: [
+              { id: "a2", mechanicId: "m2", mechanic: { fullName: "Budi" } },
+            ],
+          },
+        ],
+      };
+      mockOrderRepo.findById.mockResolvedValue(orderWithMultipleMechanics);
+
+      await service.unassignMechanicFromOrder(orderId, userId);
+
+      expect(mockTaskRepo.unassignMechanic).toHaveBeenCalledTimes(2);
+      expect(mockNotifRepo.create).toHaveBeenCalledTimes(2);
+    });
   });
 
-  // ============================================================
-  // getTaskById
-  // ============================================================
+  /**
+   * @describe getTaskById
+   */
   describe("getTaskById", () => {
+    /**
+     * @test Mengembalikan assignment dengan signed URL jika ada gambar produk
+     */
     it("should return assignment and add signed URL if product image exists", async () => {
       const assignment = {
         id: "a1",
@@ -354,6 +426,9 @@ describe("TaskService", () => {
       expect(mockStorage.getSignedUrl).toHaveBeenCalledWith("product-images/oli.jpg");
     });
 
+    /**
+     * @test Mengembalikan assignment tanpa signed URL jika tidak ada gambar
+     */
     it("should return assignment without signed URL if no image", async () => {
       const assignment = {
         id: "a1",
@@ -372,6 +447,9 @@ describe("TaskService", () => {
       expect(result.orderItem.product.image).toBeNull();
     });
 
+    /**
+     * @test Melempar 404 ketika assignment tidak ditemukan
+     */
     it("should throw 404 when assignment not found", async () => {
       mockTaskRepo.findById.mockResolvedValue(null);
 
@@ -380,9 +458,9 @@ describe("TaskService", () => {
     });
   });
 
-  // ============================================================
-  // getTasksByOrderId
-  // ============================================================
+  /**
+   * @describe getTasksByOrderId
+   */
   describe("getTasksByOrderId", () => {
     const orderId = "order-1";
     const baseOrder = {
@@ -394,7 +472,7 @@ describe("TaskService", () => {
       startedAt: new Date("2025-01-02"),
       completedAt: null,
       customer: { id: "c1", name: "Budi", phone: "0812" },
-      vehicle: { id: "v1", plateNumber: "B 1234 CD", brand: "Toyota", model: "Avanza" },
+      vehicle: { id: "v1", plateNumber: "B 1234 CD", brand: "Vespa", model: "Sprint" },
       items: [
         {
           id: "oi-1",
@@ -408,6 +486,9 @@ describe("TaskService", () => {
       ],
     };
 
+    /**
+     * @test Mengembalikan order dengan service, assignment, dan signed URLs
+     */
     it("should return order with grouped services, assignments, and signed URLs", async () => {
       mockOrderRepo.findById.mockResolvedValue(baseOrder);
       mockTaskRepo.findByOrderId.mockResolvedValue([
@@ -434,6 +515,9 @@ describe("TaskService", () => {
       expect(svc.product.image).toBe("https://signed-url.com/image.jpg");
     });
 
+    /**
+     * @test Mengembalikan assignment COMPLETED ketika endAt ada
+     */
     it("should return assignments with COMPLETED status when endAt exists", async () => {
       mockOrderRepo.findById.mockResolvedValue(baseOrder);
       mockTaskRepo.findByOrderId.mockResolvedValue([
@@ -452,6 +536,9 @@ describe("TaskService", () => {
       expect(svc.assignments[0].statusLabel).toBe("Selesai");
     });
 
+    /**
+     * @test Mengembalikan assignment PENDING ketika tidak ada startAt
+     */
     it("should return assignments with PENDING status when no startAt", async () => {
       mockOrderRepo.findById.mockResolvedValue(baseOrder);
       mockTaskRepo.findByOrderId.mockResolvedValue([
@@ -470,6 +557,9 @@ describe("TaskService", () => {
       expect(svc.assignments[0].statusLabel).toBe("Menunggu");
     });
 
+    /**
+     * @test Melempar 404 ketika pesanan tidak ditemukan
+     */
     it("should throw 404 when order not found", async () => {
       mockOrderRepo.findById.mockResolvedValue(null);
 
@@ -478,10 +568,13 @@ describe("TaskService", () => {
     });
   });
 
-  // ============================================================
-  // getTasks
-  // ============================================================
+  /**
+   * @describe getTasks
+   */
   describe("getTasks", () => {
+    /**
+     * @test Mendelegasikan ke taskRepo.findMany dengan query
+     */
     it("should delegate to taskRepo.findMany with query", async () => {
       const mockResult = { data: [], metadata: { total: 0 } };
       mockTaskRepo.findMany.mockResolvedValue(mockResult);
@@ -494,10 +587,13 @@ describe("TaskService", () => {
     });
   });
 
-  // ============================================================
-  // getTasksByMechanic
-  // ============================================================
+  /**
+   * @describe getTasksByMechanic
+   */
   describe("getTasksByMechanic", () => {
+    /**
+     * @test Mengelompokkan assignment berdasarkan order
+     */
     it("should group assignments by order", async () => {
       const assignments = [
         {
@@ -530,6 +626,9 @@ describe("TaskService", () => {
       expect(result[0].services[0].name).toBe("Ganti Oli");
     });
 
+    /**
+     * @test Melewati assignment tanpa order
+     */
     it("should skip assignments without order", async () => {
       mockTaskRepo.findByMechanicId.mockResolvedValue([
         { id: "a1", orderItem: null },
@@ -540,10 +639,13 @@ describe("TaskService", () => {
     });
   });
 
-  // ============================================================
-  // getTasksByOrderItem
-  // ============================================================
+  /**
+   * @describe getTasksByOrderItem
+   */
   describe("getTasksByOrderItem", () => {
+    /**
+     * @test Mendelegasikan ke repo.findByOrderItemId
+     */
     it("should delegate to repo.findByOrderItemId", async () => {
       const mockAssignments = [{ id: "a1" }];
       mockTaskRepo.findByOrderItemId.mockResolvedValue(mockAssignments);
@@ -554,10 +656,13 @@ describe("TaskService", () => {
     });
   });
 
-  // ============================================================
-  // getMyTasks
-  // ============================================================
+  /**
+   * @describe getMyTasks
+   */
   describe("getMyTasks", () => {
+    /**
+     * @test Mendelegasikan ke taskRepo.findMyTasks dengan mechanicId dan query
+     */
     it("should delegate to taskRepo.findMyTasks with mechanicId and query", async () => {
       const mockResult = { data: [], metadata: {} };
       mockTaskRepo.findMyTasks.mockResolvedValue(mockResult);
@@ -568,10 +673,13 @@ describe("TaskService", () => {
     });
   });
 
-  // ============================================================
-  // getUnassignedTasks
-  // ============================================================
+  /**
+   * @describe getUnassignedTasks
+   */
   describe("getUnassignedTasks", () => {
+    /**
+     * @test Mendelegasikan ke taskRepo.findUnassignedServiceTasks
+     */
     it("should delegate to taskRepo.findUnassignedServiceTasks", async () => {
       const mockResult = { data: [], metadata: {} };
       mockTaskRepo.findUnassignedServiceTasks.mockResolvedValue(mockResult);
@@ -582,9 +690,9 @@ describe("TaskService", () => {
     });
   });
 
-  // ============================================================
-  // startOrder
-  // ============================================================
+  /**
+   * @describe startOrder
+   */
   describe("startOrder", () => {
     const orderId = "order-1";
     const mechanicId = "mech-1";
@@ -594,7 +702,7 @@ describe("TaskService", () => {
       status: "QUEUED",
       startedAt: null,
       customer: { name: "Budi" },
-      vehicle: { plateNumber: "B 1234 CD" },
+      vehicle: { plateNumber: "B 1234 CD", brand: "Vespa", model: "Sprint" },
       cashierId: "cashier-1",
     };
 
@@ -621,6 +729,7 @@ describe("TaskService", () => {
 
     beforeEach(() => {
       mockOrderRepo.findById.mockResolvedValue(mockOrder);
+      mockUserRepo.findById.mockResolvedValue({ id: mechanicId, fullName: "Joko" });
       prisma.mechanicAssignment.findMany.mockResolvedValue(pendingAssignments);
       mockTaskRepo.startTask.mockImplementation((id) =>
         Promise.resolve({
@@ -632,6 +741,9 @@ describe("TaskService", () => {
       mockNotifRepo.create.mockResolvedValue({});
     });
 
+    /**
+     * @test Memulai semua assignment, transisi ke IN_PROGRESS, dan invalidasi cache
+     */
     it("should start all pending assignments, transition to IN_PROGRESS, and invalidate cache", async () => {
       const result = await service.startOrder(orderId, mechanicId);
 
@@ -644,11 +756,14 @@ describe("TaskService", () => {
       expect(mockNotifRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: "cashier-1",
-          title: "Pengerjaan Dimulai",
+          title: expect.stringContaining("ORD-001"),
         })
       );
     });
 
+    /**
+     * @test Melempar 404 ketika pesanan tidak ditemukan
+     */
     it("should throw 404 when order not found", async () => {
       mockOrderRepo.findById.mockResolvedValue(null);
 
@@ -658,6 +773,9 @@ describe("TaskService", () => {
         .rejects.toMatchObject({ statusCode: 404 });
     });
 
+    /**
+     * @test Melempar 400 ketika status pesanan bukan QUEUED
+     */
     it("should throw 400 when order status is not QUEUED", async () => {
       mockOrderRepo.findById.mockResolvedValue({ ...mockOrder, status: "DRAFT" });
 
@@ -667,6 +785,9 @@ describe("TaskService", () => {
         .rejects.toMatchObject({ statusCode: 400 });
     });
 
+    /**
+     * @test Melempar 400 ketika mekanik tidak memiliki assignment aktif
+     */
     it("should throw 400 when mechanic has no active assignments in this order", async () => {
       prisma.mechanicAssignment.findMany.mockResolvedValue([]);
 
@@ -676,6 +797,9 @@ describe("TaskService", () => {
         .rejects.toMatchObject({ statusCode: 400 });
     });
 
+    /**
+     * @test Melempar 409 ketika semua assignment sudah dimulai
+     */
     it("should throw 409 when all assignments are already started", async () => {
       prisma.mechanicAssignment.findMany.mockResolvedValue([
         { ...pendingAssignments[0], startAt: new Date() },
@@ -688,9 +812,9 @@ describe("TaskService", () => {
     });
   });
 
-  // ============================================================
-  // completeOrder
-  // ============================================================
+  /**
+   * @describe completeOrder
+   */
   describe("completeOrder", () => {
     const orderId = "order-1";
     const mechanicId = "mech-1";
@@ -701,7 +825,7 @@ describe("TaskService", () => {
       status: "IN_PROGRESS",
       startedAt: new Date(now.getTime() - 3600000),
       customer: { name: "Budi" },
-      vehicle: { plateNumber: "B 1234 CD" },
+      vehicle: { plateNumber: "B 1234 CD", brand: "Vespa", model: "Sprint" },
       cashierId: "cashier-1",
     };
 
@@ -720,6 +844,7 @@ describe("TaskService", () => {
 
     beforeEach(() => {
       mockOrderRepo.findById.mockResolvedValue(mockOrder);
+      mockUserRepo.findById.mockResolvedValue({ id: mechanicId, fullName: "Joko" });
       prisma.mechanicAssignment.findMany.mockResolvedValue(activeAssignments);
       mockTaskRepo.completeTask.mockImplementation((id) =>
         Promise.resolve({
@@ -732,6 +857,9 @@ describe("TaskService", () => {
       mockNotifRepo.create.mockResolvedValue({});
     });
 
+    /**
+     * @test Menyelesaikan semua assignment, transisi ke COMPLETED, dan invalidasi cache
+     */
     it("should complete all pending assignments, transition to COMPLETED, and invalidate cache", async () => {
       const result = await service.completeOrder(orderId, mechanicId);
 
@@ -742,12 +870,15 @@ describe("TaskService", () => {
       expect(mockNotifRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: "cashier-1",
-          title: "Pengerjaan Selesai",
+          title: expect.stringContaining("ORD-001"),
           type: "SUCCESS",
         })
       );
     });
 
+    /**
+     * @test Melempar 404 ketika pesanan tidak ditemukan
+     */
     it("should throw 404 when order not found", async () => {
       mockOrderRepo.findById.mockResolvedValue(null);
 
@@ -757,6 +888,9 @@ describe("TaskService", () => {
         .rejects.toMatchObject({ statusCode: 404 });
     });
 
+    /**
+     * @test Melempar 400 ketika status pesanan bukan IN_PROGRESS
+     */
     it("should throw 400 when order status is not IN_PROGRESS", async () => {
       mockOrderRepo.findById.mockResolvedValue({ ...mockOrder, status: "QUEUED" });
 
@@ -766,6 +900,9 @@ describe("TaskService", () => {
         .rejects.toMatchObject({ statusCode: 400 });
     });
 
+    /**
+     * @test Melempar 400 ketika mekanik tidak memiliki assignment aktif
+     */
     it("should throw 400 when mechanic has no active assignments", async () => {
       prisma.mechanicAssignment.findMany.mockResolvedValue([]);
 
@@ -775,6 +912,9 @@ describe("TaskService", () => {
         .rejects.toMatchObject({ statusCode: 400 });
     });
 
+    /**
+     * @test Melempar 409 ketika semua assignment sudah selesai
+     */
     it("should throw 409 when all assignments are already completed", async () => {
       prisma.mechanicAssignment.findMany.mockResolvedValue([
         { ...activeAssignments[0], endAt: new Date() },
@@ -787,24 +927,25 @@ describe("TaskService", () => {
     });
   });
 
-  // ============================================================
-  // getAvailableMechanics
-  // ============================================================
+  /**
+   * @describe getAvailableMechanics
+   */
   describe("getAvailableMechanics", () => {
+    /**
+     * @test Mengembalikan mekanik dengan status isAvailable
+     */
     it("should return mechanics with isAvailable status", async () => {
       const mockResult = {
         data: [
-          { id: "m1", fullName: "Joko", activeTaskCount: 3 },
-          { id: "m2", fullName: "Budi", activeTaskCount: 5 },
+          { id: "m1", fullName: "Joko" },
+          { id: "m2", fullName: "Budi" },
         ],
         metadata: { total: 2 },
       };
       mockTaskRepo.getAvailableMechanics.mockResolvedValue(mockResult);
-      mockTaskRepo.getActiveTaskCount.mockImplementation((id) => {
-        if (id === "m1") return Promise.resolve(3);
-        if (id === "m2") return Promise.resolve(5);
-        return Promise.resolve(0);
-      });
+      mockTaskRepo.getActiveTaskCount
+        .mockResolvedValueOnce(3)
+        .mockResolvedValueOnce(5);
 
       const result = await service.getAvailableMechanics({ page: 1, limit: 10 });
 
@@ -813,10 +954,13 @@ describe("TaskService", () => {
     });
   });
 
-  // ============================================================
-  // getMechanicAvailabilityStatus
-  // ============================================================
+  /**
+   * @describe getMechanicAvailabilityStatus
+   */
   describe("getMechanicAvailabilityStatus", () => {
+    /**
+     * @test Mengembalikan status ketersediaan mekanik
+     */
     it("should return availability status for a mechanic", async () => {
       mockUserRepo.findById.mockResolvedValue({ id: "m1", role: "MECHANIC" });
       mockTaskRepo.getActiveTaskCount.mockResolvedValue(4);
@@ -831,6 +975,9 @@ describe("TaskService", () => {
       });
     });
 
+    /**
+     * @test Melempar 400 ketika user bukan mekanik
+     */
     it("should throw 400 when user is not a mechanic", async () => {
       mockUserRepo.findById.mockResolvedValue({ id: "m1", role: "CASHIER" });
 
@@ -839,12 +986,28 @@ describe("TaskService", () => {
       await expect(service.getMechanicAvailabilityStatus("m1"))
         .rejects.toMatchObject({ statusCode: 400 });
     });
+
+    /**
+     * @test Mengembalikan isAvailable false ketika kapasitas penuh
+     */
+    it("should return isAvailable false when capacity is full", async () => {
+      mockUserRepo.findById.mockResolvedValue({ id: "m1", role: "MECHANIC" });
+      mockTaskRepo.getActiveTaskCount.mockResolvedValue(5);
+
+      const result = await service.getMechanicAvailabilityStatus("m1");
+
+      expect(result.isAvailable).toBe(false);
+      expect(result.remainingCapacity).toBe(0);
+    });
   });
 
-  // ============================================================
-  // hasMechanicAssigned
-  // ============================================================
+  /**
+   * @describe hasMechanicAssigned
+   */
   describe("hasMechanicAssigned", () => {
+    /**
+     * @test Mendelegasikan ke taskRepo.hasMechanicAssigned
+     */
     it("should delegate to taskRepo.hasMechanicAssigned", async () => {
       mockTaskRepo.hasMechanicAssigned.mockResolvedValue(true);
 
@@ -854,17 +1017,18 @@ describe("TaskService", () => {
     });
   });
 
-  // ============================================================
-  // bulkAssignMechanics
-  // ============================================================
+  /**
+   * @describe bulkAssignMechanics
+   */
   describe("bulkAssignMechanics", () => {
     const mockMechanic = { id: "m1", fullName: "Joko", role: "MECHANIC" };
     const mockOrder = {
       id: "o1",
       orderNumber: "ORD-001",
       status: "QUEUED",
+      cashierId: "cashier-1",
       customer: { name: "Budi" },
-      vehicle: { plateNumber: "B 1234 CD" },
+      vehicle: { plateNumber: "B 1234 CD", brand: "Vespa", model: "Sprint" },
       items: [
         {
           id: "oi-1",
@@ -882,6 +1046,9 @@ describe("TaskService", () => {
       mockNotifRepo.create.mockResolvedValue({});
     });
 
+    /**
+     * @test Memproses semua assignment dan mengembalikan success/failed
+     */
     it("should process all assignments and return success/failed", async () => {
       const mockOrder2 = { ...mockOrder, id: "o2", orderNumber: "ORD-002", status: "DRAFT" };
 
@@ -901,6 +1068,9 @@ describe("TaskService", () => {
       expect(result.failed[0].orderId).toBe("o2");
     });
 
+    /**
+     * @test Menangani array assignments kosong
+     */
     it("should handle empty assignments array", async () => {
       const result = await service.bulkAssignMechanics([]);
       expect(result.success).toEqual([]);
@@ -908,10 +1078,13 @@ describe("TaskService", () => {
     });
   });
 
-  // ============================================================
-  // getMyTaskHistory
-  // ============================================================
+  /**
+   * @describe getMyTaskHistory
+   */
   describe("getMyTaskHistory", () => {
+    /**
+     * @test Mendelegasikan ke taskRepo.findHistoryByMechanic
+     */
     it("should delegate to taskRepo.findHistoryByMechanic", async () => {
       const mockResult = { data: [], metadata: { total: 0 } };
       mockTaskRepo.findHistoryByMechanic.mockResolvedValue(mockResult);

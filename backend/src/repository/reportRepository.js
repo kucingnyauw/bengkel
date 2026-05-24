@@ -5,6 +5,8 @@ class ReportRepository {
    * Helper untuk membangun filter tanggal
    * @param {string} field - Nama field tanggal
    * @param {Object} range - Object rentang waktu
+   * @param {string|Date} [range.startDate] - Tanggal mulai
+   * @param {string|Date} [range.endDate] - Tanggal akhir
    * @returns {Object} Object filter Prisma
    * @private
    */
@@ -31,11 +33,9 @@ class ReportRepository {
   /**
    * Mendapatkan data penjualan agregat dalam rentang waktu tertentu
    * @param {Object} [range={}] - Rentang waktu filter
-   * @param {string|Date} [range.startDate]
-   * @param {string|Date} [range.endDate]
-   * @returns {Promise<Object>} Data agregat penjualan
-   * @complexity Before: O(n) - Single aggregation scan
-   * @complexity After: O(log n) - Uses composite indexes on (status, deletedAt) and payment status
+   * @param {string|Date} [range.startDate] - Tanggal mulai
+   * @param {string|Date} [range.endDate] - Tanggal akhir
+   * @returns {Promise<{totalOrders: number, totalSales: number, totalSubtotal: number, totalTax: number}>} Data agregat penjualan
    */
   async getSalesData(range = {}) {
     const where = {
@@ -62,9 +62,9 @@ class ReportRepository {
   /**
    * Mendapatkan ringkasan penjualan harian
    * @param {Object} [range={}] - Rentang waktu filter
-   * @returns {Promise<Array>} Array ringkasan penjualan per hari
-   * @complexity Before: O(n) - Fetch all orders then group in memory
-   * @complexity After: O(log n) - Database-level grouping with raw SQL
+   * @param {string|Date} [range.startDate] - Tanggal mulai
+   * @param {string|Date} [range.endDate] - Tanggal akhir
+   * @returns {Promise<Array<{date: string, orderCount: number, totalSales: number, averageOrderValue: number}>>} Array ringkasan penjualan per hari
    */
   async getDailySalesSummary(range = {}) {
     const whereConditions = [
@@ -75,17 +75,13 @@ class ReportRepository {
     const params = [];
 
     if (range.startDate) {
-      const start = new Date(range.startDate);
-      start.setHours(0, 0, 0, 0);
-      params.push(start);
-      whereConditions.push(`o."createdAt" >= $${params.length}`);
+      params.push(new Date(range.startDate));
+      whereConditions.push(`o."createdAt" >= $${params.length}::timestamp`);
     }
 
     if (range.endDate) {
-      const end = new Date(range.endDate);
-      end.setHours(23, 59, 59, 999);
-      params.push(end);
-      whereConditions.push(`o."createdAt" <= $${params.length}`);
+      params.push(new Date(range.endDate));
+      whereConditions.push(`o."createdAt" <= $${params.length}::timestamp`);
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
@@ -94,8 +90,8 @@ class ReportRepository {
       SELECT 
         DATE(o."createdAt") as date,
         COUNT(o."id")::int as "orderCount",
-        SUM(o."total")::int as "totalSales",
-        AVG(o."total")::float as "averageOrderValue"
+        COALESCE(SUM(o."total"), 0)::int as "totalSales",
+        COALESCE(AVG(o."total"), 0)::float as "averageOrderValue"
       FROM "Order" o
       INNER JOIN "Payment" p ON o."id" = p."orderId"
       ${whereClause}
@@ -103,59 +99,73 @@ class ReportRepository {
       ORDER BY DATE(o."createdAt") ASC
     `;
 
-    return prisma.$queryRawUnsafe(query, ...params);
+    const rawData = await prisma.$queryRawUnsafe(query, ...params);
+    
+    return rawData.map((item) => ({
+      date: item.date,
+      orderCount: Number(item.orderCount),
+      totalSales: Number(item.totalSales),
+      averageOrderValue: Number(item.averageOrderValue),
+    }));
   }
 
   /**
    * Mendapatkan data laba rugi
    * @param {Object} [range={}] - Rentang waktu filter
-   * @returns {Promise<Object>} Data laba rugi
-   * @complexity Before: O(n²) - Fetch all order items then calculate COGS in memory
-   * @complexity After: O(log n) - Database-level aggregation with JOINs
+   * @param {string|Date} [range.startDate] - Tanggal mulai
+   * @param {string|Date} [range.endDate] - Tanggal akhir
+   * @returns {Promise<{grossRevenue: number, totalCogs: number, grossProfit: number, grossMargin: number, totalOperatingExpenses: number, netProfit: number, netMargin: number}>} Data laba rugi
    */
   async getProfitLossData(range = {}) {
-    const whereConditions = [
+    const orderConditions = [
       `o."status" IN ('COMPLETED', 'CLOSED')`,
       `o."deletedAt" IS NULL`,
       `p."status" = 'PAID'`
     ];
+    const expenseConditions = [];
     const params = [];
+    let paramIndex = 0;
 
     if (range.startDate) {
+      paramIndex++;
       const start = new Date(range.startDate);
       start.setHours(0, 0, 0, 0);
       params.push(start);
-      whereConditions.push(`o."createdAt" >= $${params.length}`);
+      orderConditions.push(`o."createdAt" >= $${paramIndex}::timestamp`);
+      expenseConditions.push(`"date" >= $${paramIndex}::timestamp`);
     }
 
     if (range.endDate) {
+      paramIndex++;
       const end = new Date(range.endDate);
       end.setHours(23, 59, 59, 999);
       params.push(end);
-      whereConditions.push(`o."createdAt" <= $${params.length}`);
+      orderConditions.push(`o."createdAt" <= $${paramIndex}::timestamp`);
+      expenseConditions.push(`"date" <= $${paramIndex}::timestamp`);
     }
 
-    const orderWhereClause = whereConditions.length > 0 ? `AND ${whereConditions.join(' AND ')}` : '';
+    const orderWhereClause = `WHERE ${orderConditions.join(' AND ')}`;
+    const expenseWhereClause = expenseConditions.length > 0 
+      ? `WHERE ${expenseConditions.join(' AND ')}` 
+      : '';
 
     const query = `
       WITH expense_total AS (
-        SELECT COALESCE(SUM("amount"), 0)::int as "totalExpenses"
+        SELECT COALESCE(SUM("amount"), 0)::bigint as "totalExpenses"
         FROM "Expense"
-        WHERE 1=1
-        ${range.startDate ? `AND "date" >= $${params.indexOf(new Date(range.startDate)) + 1}` : ''}
-        ${range.endDate ? `AND "date" <= $${params.indexOf(new Date(range.endDate)) + 1}` : ''}
+        ${expenseWhereClause}
       )
       SELECT 
-        COALESCE(SUM(o."subtotal"), 0)::int as "grossRevenue",
-        COALESCE(SUM(oi."unitCostSnapshot" * oi."quantity"), 0)::int as "totalCogs",
-        COALESCE(SUM(o."subtotal") - SUM(oi."unitCostSnapshot" * oi."quantity"), 0)::int as "grossProfit",
+        COALESCE(SUM(o."subtotal"), 0)::bigint as "grossRevenue",
+        COALESCE(SUM(oi."unitCostSnapshot" * oi."quantity"), 0)::bigint as "totalCogs",
+        COALESCE(SUM(o."subtotal") - SUM(oi."unitCostSnapshot" * oi."quantity"), 0)::bigint as "grossProfit",
         CASE 
           WHEN SUM(o."subtotal") > 0 
           THEN ((SUM(o."subtotal") - SUM(oi."unitCostSnapshot" * oi."quantity"))::float / SUM(o."subtotal") * 100) 
           ELSE 0 
         END as "grossMargin",
-        COALESCE((SELECT "totalExpenses" FROM expense_total), 0)::int as "totalOperatingExpenses",
-        COALESCE(SUM(o."subtotal") - SUM(oi."unitCostSnapshot" * oi."quantity") - (SELECT "totalExpenses" FROM expense_total), 0)::int as "netProfit",
+        COALESCE((SELECT "totalExpenses" FROM expense_total), 0)::bigint as "totalOperatingExpenses",
+        COALESCE(SUM(o."subtotal") - SUM(oi."unitCostSnapshot" * oi."quantity") - (SELECT "totalExpenses" FROM expense_total), 0)::bigint as "netProfit",
         CASE 
           WHEN SUM(o."subtotal") > 0 
           THEN ((SUM(o."subtotal") - SUM(oi."unitCostSnapshot" * oi."quantity") - (SELECT "totalExpenses" FROM expense_total))::float / SUM(o."subtotal") * 100) 
@@ -164,7 +174,7 @@ class ReportRepository {
       FROM "Order" o
       INNER JOIN "Payment" p ON o."id" = p."orderId"
       LEFT JOIN "OrderItem" oi ON o."id" = oi."orderId"
-      WHERE 1=1 ${orderWhereClause}
+      ${orderWhereClause}
     `;
 
     const [result] = await prisma.$queryRawUnsafe(query, ...params);
@@ -182,17 +192,15 @@ class ReportRepository {
 
   /**
    * Mendapatkan snapshot inventori saat ini
-   * @returns {Promise<Object>} Data snapshot inventori
-   * @complexity Before: O(n) - Fetch all products then calculate values in memory
-   * @complexity After: O(log n) - Database-level calculation with filtered query
+   * @returns {Promise<{totalAssetValue: number, totalRetailValue: number, potentialProfit: number, profitMargin: number, items: Array}>} Data snapshot inventori
    */
   async getInventorySnapshot() {
     const result = await prisma.$queryRaw`
       SELECT 
         COUNT(*)::int as "totalItems",
-        COALESCE(SUM("stock" * "cost"), 0)::int as "totalAssetValue",
-        COALESCE(SUM("stock" * "price"), 0)::int as "totalRetailValue",
-        COALESCE(SUM("stock" * "price") - SUM("stock" * "cost"), 0)::int as "potentialProfit",
+        COALESCE(SUM("stock" * "cost"), 0)::bigint as "totalAssetValue",
+        COALESCE(SUM("stock" * "price"), 0)::bigint as "totalRetailValue",
+        COALESCE(SUM("stock" * "price") - SUM("stock" * "cost"), 0)::bigint as "potentialProfit",
         CASE 
           WHEN SUM("stock" * "price") > 0 
           THEN ((SUM("stock" * "price") - SUM("stock" * "cost"))::float / SUM("stock" * "price") * 100) 
@@ -243,8 +251,6 @@ class ReportRepository {
    * Mendapatkan ringkasan shift kerja
    * @param {string} shiftId - ID shift
    * @returns {Promise<Object|null>} Ringkasan shift
-   * @complexity Before: O(n) - Load all orders then group payment methods in memory
-   * @complexity After: O(log n) - Database-level aggregation with payment grouping
    */
   async getShiftSummary(shiftId) {
     const [shift, expensesAgg, paymentBreakdown] = await Promise.all([
@@ -286,9 +292,7 @@ class ReportRepository {
   /**
    * Mendapatkan statistik task per order
    * @param {string} orderId - ID order
-   * @returns {Promise<Object>} Statistik task service
-   * @complexity Before: O(n) - Fetch tasks then filter assigned in memory
-   * @complexity After: O(log n) - Database-level count with indexed conditions
+   * @returns {Promise<{total: number, assigned: number, unassigned: number, tasks: Array}>} Statistik task service
    */
   async getTaskStatsByOrder(orderId) {
     const [total, assigned] = await Promise.all([
@@ -331,9 +335,7 @@ class ReportRepository {
   /**
    * Mendapatkan statistik tugas mekanik
    * @param {string} mechanicId - ID mekanik
-   * @returns {Promise<Object>} Statistik tugas mekanik
-   * @complexity Before: O(n) - Three separate counts
-   * @complexity After: O(log n) - Optimized counts using composite index (mechanicId, endAt)
+   * @returns {Promise<{totalTasks: number, completedTasks: number, pendingTasks: number}>} Statistik tugas mekanik
    */
   async getMechanicTaskStats(mechanicId) {
     const [pending, completed, total] = await Promise.all([
@@ -361,9 +363,9 @@ class ReportRepository {
    * Mendapatkan total pendapatan dari tugas mekanik
    * @param {string} mechanicId - ID mekanik
    * @param {Object} [range={}] - Rentang waktu filter (berdasarkan endAt)
-   * @returns {Promise<Object>} Total pendapatan
-   * @complexity Before: O(n) - Fetch all assignments then sum in memory
-   * @complexity After: O(log n) - Database-level aggregation with raw SQL
+   * @param {string|Date} [range.startDate] - Tanggal mulai
+   * @param {string|Date} [range.endDate] - Tanggal akhir
+   * @returns {Promise<{totalEarnings: number, taskCount: number, averagePerTask: number}>} Total pendapatan
    */
   async getTotalEarningsByMechanic(mechanicId, range = {}) {
     const conditions = [
@@ -376,19 +378,19 @@ class ReportRepository {
 
     if (range.startDate) {
       params.push(new Date(range.startDate));
-      conditions.push(`ma."endAt" >= $${params.length}`);
+      conditions.push(`ma."endAt" >= $${params.length}::timestamp`);
     }
 
     if (range.endDate) {
       params.push(new Date(range.endDate));
-      conditions.push(`ma."endAt" <= $${params.length}`);
+      conditions.push(`ma."endAt" <= $${params.length}::timestamp`);
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
     const query = `
       SELECT 
-        COALESCE(SUM(oi."subtotal"), 0)::int as "totalEarnings",
+        COALESCE(SUM(oi."subtotal"), 0)::bigint as "totalEarnings",
         COUNT(ma."id")::int as "taskCount"
       FROM "MechanicAssignment" ma
       INNER JOIN "OrderItem" oi ON ma."orderItemId" = oi."id"
@@ -411,13 +413,11 @@ class ReportRepository {
   /**
    * Mendapatkan total pengeluaran berdasarkan filter
    * @param {Object} [filters={}] - Parameter filter
-   * @param {string} [filters.shiftId]
-   * @param {string} [filters.category]
-   * @param {string|Date} [filters.startDate]
-   * @param {string|Date} [filters.endDate]
+   * @param {string} [filters.shiftId] - Filter by shift ID
+   * @param {string} [filters.category] - Filter by kategori
+   * @param {string|Date} [filters.startDate] - Tanggal mulai
+   * @param {string|Date} [filters.endDate] - Tanggal akhir
    * @returns {Promise<number>} Total pengeluaran
-   * @complexity Before: O(n) - Aggregation scan
-   * @complexity After: O(log n) - Uses index on date and category
    */
   async sumExpenses(filters = {}) {
     const where = { ...this._buildDateFilter("date", filters) };
@@ -431,12 +431,10 @@ class ReportRepository {
   /**
    * Mendapatkan pengeluaran berdasarkan kategori
    * @param {Object} [filters={}] - Parameter filter
-   * @param {string} [filters.shiftId]
-   * @param {string|Date} [filters.startDate]
-   * @param {string|Date} [filters.endDate]
-   * @returns {Promise<Array>} Pengeluaran per kategori
-   * @complexity Before: O(n) - GROUP BY scan
-   * @complexity After: O(log n) - Uses index on date and category
+   * @param {string} [filters.shiftId] - Filter by shift ID
+   * @param {string|Date} [filters.startDate] - Tanggal mulai
+   * @param {string|Date} [filters.endDate] - Tanggal akhir
+   * @returns {Promise<Array<{category: string, total: number, count: number}>>} Pengeluaran per kategori
    */
   async getExpensesByCategory(filters = {}) {
     const where = { ...this._buildDateFilter("date", filters) };
@@ -449,10 +447,10 @@ class ReportRepository {
       _count: { id: true },
     });
 
-    return expenses.map((e) => ({ 
-      category: e.category, 
-      total: Number(e._sum.amount || 0), 
-      count: Number(e._count.id) 
+    return expenses.map((e) => ({
+      category: e.category,
+      total: Number(e._sum.amount || 0),
+      count: Number(e._count.id),
     }));
   }
 
@@ -461,16 +459,14 @@ class ReportRepository {
    * @param {string} productId - ID produk
    * @param {Date|string} startDate - Tanggal mulai
    * @param {Date|string} endDate - Tanggal akhir
-   * @returns {Promise<Object>} Ringkasan pergerakan stok
-   * @complexity Before: O(n) - GROUP BY scan
-   * @complexity After: O(log n) - Uses composite index (productId, createdAt)
+   * @returns {Promise<{IN: number, OUT: number, ADJUSTMENT: number, netChange: number}>} Ringkasan pergerakan stok
    */
   async getMovementSummaryByDateRange(productId, startDate, endDate) {
     const start = startDate ? new Date(startDate) : null;
     const end = endDate ? new Date(endDate) : null;
-    
+
     const where = { productId };
-    
+
     if (start && end && !isNaN(start) && !isNaN(end)) {
       where.createdAt = { gte: start, lte: end };
     }
@@ -493,8 +489,6 @@ class ReportRepository {
    * Menghitung stok dari pergerakan stok
    * @param {string} productId - ID produk
    * @returns {Promise<number>} Stok hasil kalkulasi
-   * @complexity Before: O(n) - GROUP BY scan
-   * @complexity After: O(log n) - Uses composite index (productId, type)
    */
   async calculateStockFromMovements(productId) {
     const movements = await prisma.stockMovement.groupBy({
@@ -515,9 +509,7 @@ class ReportRepository {
   /**
    * Validasi konsistensi stok produk
    * @param {string} productId - ID produk
-   * @returns {Promise<Object|null>} Hasil validasi
-   * @complexity Before: O(n) - Two separate queries
-   * @complexity After: O(log n) - Parallel execution with indexed lookups
+   * @returns {Promise<{current: number, calculated: number, difference: number, isConsistent: boolean}|null>} Hasil validasi
    */
   async validateStockConsistency(productId) {
     const [product, calculatedStock] = await Promise.all([
@@ -538,9 +530,9 @@ class ReportRepository {
   /**
    * Mendapatkan laporan performa mekanik
    * @param {Object} [range={}] - Rentang waktu filter
-   * @returns {Promise<Array>} Data performa mekanik
-   * @complexity Before: O(n²) - N+1 queries with memory filtering and sorting
-   * @complexity After: O(log n) - Single aggregated query with database-level calculations
+   * @param {string|Date} [range.startDate] - Tanggal mulai
+   * @param {string|Date} [range.endDate] - Tanggal akhir
+   * @returns {Promise<Array<{mechanicId: string, mechanicName: string, email: string, totalTasks: number, completedTasks: number, pendingTasks: number, totalEarnings: number, averagePerTask: number, completionRate: number}>>} Data performa mekanik
    */
   async getMechanicPerformanceReport(range = {}) {
     const whereConditions = [`u."role" = 'MECHANIC'`];
@@ -548,15 +540,15 @@ class ReportRepository {
 
     if (range.startDate) {
       params.push(new Date(range.startDate));
-      whereConditions.push(`ma."createdAt" >= $${params.length}`);
+      whereConditions.push(`ma."createdAt" >= $${params.length}::timestamp`);
     }
 
     if (range.endDate) {
       params.push(new Date(range.endDate));
-      whereConditions.push(`ma."createdAt" <= $${params.length}`);
+      whereConditions.push(`ma."createdAt" <= $${params.length}::timestamp`);
     }
 
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+    const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
 
     const query = `
       SELECT 
@@ -566,7 +558,7 @@ class ReportRepository {
         COUNT(DISTINCT ma."id")::int as "totalTasks",
         COUNT(DISTINCT CASE WHEN ma."endAt" IS NOT NULL AND o."status" IN ('COMPLETED', 'CLOSED') AND o."deletedAt" IS NULL THEN ma."id" END)::int as "completedTasks",
         COUNT(DISTINCT CASE WHEN ma."endAt" IS NULL AND o."status" IN ('QUEUED', 'IN_PROGRESS') AND o."deletedAt" IS NULL THEN ma."id" END)::int as "pendingTasks",
-        COALESCE(SUM(CASE WHEN ma."endAt" IS NOT NULL AND o."status" IN ('COMPLETED', 'CLOSED') AND o."deletedAt" IS NULL THEN oi."subtotal" ELSE 0 END), 0)::int as "totalEarnings",
+        COALESCE(SUM(CASE WHEN ma."endAt" IS NOT NULL AND o."status" IN ('COMPLETED', 'CLOSED') AND o."deletedAt" IS NULL THEN oi."subtotal" ELSE 0 END), 0)::bigint as "totalEarnings",
         CASE 
           WHEN COUNT(DISTINCT CASE WHEN ma."endAt" IS NOT NULL AND o."status" IN ('COMPLETED', 'CLOSED') AND o."deletedAt" IS NULL THEN ma."id" END) > 0 
           THEN COALESCE(SUM(CASE WHEN ma."endAt" IS NOT NULL AND o."status" IN ('COMPLETED', 'CLOSED') AND o."deletedAt" IS NULL THEN oi."subtotal" ELSE 0 END), 0) / COUNT(DISTINCT CASE WHEN ma."endAt" IS NOT NULL AND o."status" IN ('COMPLETED', 'CLOSED') AND o."deletedAt" IS NULL THEN ma."id" END)
@@ -587,7 +579,7 @@ class ReportRepository {
     `;
 
     const rawData = await prisma.$queryRawUnsafe(query, ...params);
-    
+
     return rawData.map((item) => ({
       mechanicId: item.mechanicId,
       mechanicName: item.mechanicName,
@@ -604,10 +596,10 @@ class ReportRepository {
   /**
    * Mendapatkan laporan penjualan per produk
    * @param {Object} [range={}] - Rentang waktu filter
+   * @param {string|Date} [range.startDate] - Tanggal mulai
+   * @param {string|Date} [range.endDate] - Tanggal akhir
    * @param {number} [limit=10] - Batas jumlah produk
-   * @returns {Promise<Array>} Laporan penjualan per produk
-   * @complexity Before: O(n²) - Fetch all items then group and sort in memory
-   * @complexity After: O(log n) - Database-level aggregation with GROUP BY and ORDER BY
+   * @returns {Promise<Array<{productId: string, productName: string, sku: string, type: string, image: string|null, quantitySold: number, totalRevenue: number, totalCost: number, profit: number}>>} Laporan penjualan per produk
    */
   async getProductSalesReport(range = {}, limit = 10) {
     const whereConditions = [
@@ -619,15 +611,15 @@ class ReportRepository {
 
     if (range.startDate) {
       params.push(new Date(range.startDate));
-      whereConditions.push(`oi."createdAt" >= $${params.length}`);
+      whereConditions.push(`oi."createdAt" >= $${params.length}::timestamp`);
     }
 
     if (range.endDate) {
       params.push(new Date(range.endDate));
-      whereConditions.push(`oi."createdAt" <= $${params.length}`);
+      whereConditions.push(`oi."createdAt" <= $${params.length}::timestamp`);
     }
 
-    const whereClause = whereConditions.length > 0 ? `AND ${whereConditions.join(' AND ')}` : '';
+    const whereClause = `AND ${whereConditions.join(' AND ')}`;
 
     const query = `
       SELECT 
@@ -637,9 +629,9 @@ class ReportRepository {
         MAX(p."type") as "type",
         f."path" as "image",
         SUM(oi."quantity")::int as "quantitySold",
-        SUM(oi."subtotal")::int as "totalRevenue",
-        SUM(oi."unitCostSnapshot" * oi."quantity")::int as "totalCost",
-        SUM(oi."subtotal") - SUM(oi."unitCostSnapshot" * oi."quantity")::int as "profit"
+        SUM(oi."subtotal")::bigint as "totalRevenue",
+        SUM(oi."unitCostSnapshot" * oi."quantity")::bigint as "totalCost",
+        SUM(oi."subtotal") - SUM(oi."unitCostSnapshot" * oi."quantity")::bigint as "profit"
       FROM "OrderItem" oi
       INNER JOIN "Order" o ON oi."orderId" = o."id"
       INNER JOIN "Payment" p2 ON o."id" = p2."orderId"
@@ -652,7 +644,7 @@ class ReportRepository {
     `;
 
     const rawData = await prisma.$queryRawUnsafe(query, ...params);
-    
+
     return rawData.map((item) => ({
       productId: item.productId,
       productName: item.productName,
@@ -668,9 +660,7 @@ class ReportRepository {
 
   /**
    * Mendapatkan ringkasan produk untuk dashboard
-   * @returns {Promise<Object>} Ringkasan produk
-   * @complexity Before: O(n) - Multiple separate queries
-   * @complexity After: O(log n) - Optimized parallel queries with aggregated calculation
+   * @returns {Promise<{totalProducts: number, activeProducts: number, inactiveProducts: number, lowStockCount: number, totalStockValue: number, totalStockQuantity: number, byType: Array}>} Ringkasan produk
    */
   async getProductSummary() {
     const [productStats, stockValue] = await Promise.all([
@@ -683,7 +673,7 @@ class ReportRepository {
       prisma.$queryRaw`
         SELECT 
           COALESCE(SUM("stock"), 0)::int as "totalStockQuantity",
-          COALESCE(SUM("stock" * "cost"), 0)::int as "totalStockValue"
+          COALESCE(SUM("stock" * "cost"), 0)::bigint as "totalStockValue"
         FROM "Product"
         WHERE "type" = 'SPAREPART'
       `,
@@ -704,10 +694,8 @@ class ReportRepository {
 
   /**
    * Mendapatkan produk dengan stok rendah
-   * @param {number} threshold - Batas stok rendah
-   * @returns {Promise<Array>} Daftar produk stok rendah
-   * @complexity Before: O(n) - Full scan with filter
-   * @complexity After: O(log n) - Uses composite index (type, isActive, stock)
+   * @param {number} [threshold=5] - Batas stok rendah
+   * @returns {Promise<Array<{id: string, sku: string, name: string, stock: number, cost: number, price: number, image: string|null}>>} Daftar produk stok rendah
    */
   async getLowStockProducts(threshold = 5) {
     return prisma.product.findMany({
@@ -723,14 +711,12 @@ class ReportRepository {
   /**
    * Mendapatkan ringkasan pembayaran
    * @param {Object} [filter={}] - Parameter filter
-   * @param {string} [filter.orderId]
-   * @param {string} [filter.status]
-   * @param {string} [filter.method]
-   * @param {string|Date} [filter.startDate]
-   * @param {string|Date} [filter.endDate]
-   * @returns {Promise<Object>} Ringkasan pembayaran
-   * @complexity Before: O(n) - Multiple aggregation queries
-   * @complexity After: O(log n) - Parallel execution with proper indexes
+   * @param {string} [filter.orderId] - Filter by order ID
+   * @param {string} [filter.status] - Filter by status
+   * @param {string} [filter.method] - Filter by method
+   * @param {string|Date} [filter.startDate] - Tanggal mulai
+   * @param {string|Date} [filter.endDate] - Tanggal akhir
+   * @returns {Promise<{totalAmount: number, totalCount: number, byMethod: Array, byStatus: Array}>} Ringkasan pembayaran
    */
   async getPaymentSummary(filter = {}) {
     const where = {};
@@ -762,8 +748,6 @@ class ReportRepository {
    * Mendapatkan jumlah order berdasarkan status
    * @param {string|string[]} status - Status order
    * @returns {Promise<number>} Jumlah order
-   * @complexity Before: O(n) - Count scan
-   * @complexity After: O(log n) - Uses index on (status, deletedAt)
    */
   async countOrdersByStatus(status) {
     return prisma.order.count({
@@ -774,8 +758,6 @@ class ReportRepository {
   /**
    * Mendapatkan shift yang sedang aktif
    * @returns {Promise<Object|null>} Shift aktif
-   * @complexity Before: O(n) - findFirst with ORDER BY
-   * @complexity After: O(log n) - Uses index on status
    */
   async getActiveShift() {
     return prisma.shift.findFirst({
@@ -788,9 +770,7 @@ class ReportRepository {
   /**
    * Mendapatkan data penjualan hari ini untuk kasir tertentu
    * @param {string} cashierId - ID kasir
-   * @returns {Promise<Object>} Data penjualan kasir hari ini
-   * @complexity Before: O(n) - Two separate count queries
-   * @complexity After: O(log n) - Uses composite index (cashierId, status, createdAt)
+   * @returns {Promise<{todayOrders: number, todaySales: number, pendingOrders: number}>} Data penjualan kasir hari ini
    */
   async getCashierTodaySales(cashierId) {
     const today = new Date();
@@ -819,19 +799,17 @@ class ReportRepository {
       }),
     ]);
 
-    return { 
-      todayOrders: aggregations._count.id || 0, 
-      todaySales: Number(aggregations._sum.total || 0), 
-      pendingOrders: pendingCount 
+    return {
+      todayOrders: aggregations._count.id || 0,
+      todaySales: Number(aggregations._sum.total || 0),
+      pendingOrders: pendingCount,
     };
   }
 
   /**
    * Mendapatkan data tugas mekanik hari ini
    * @param {string} mechanicId - ID mekanik
-   * @returns {Promise<Object>} Data tugas mekanik hari ini
-   * @complexity Before: O(n) - Multiple queries with nested conditions
-   * @complexity After: O(log n) - Uses composite index (mechanicId, endAt) with raw SQL
+   * @returns {Promise<{pending: number, completed: number, earnings: number}>} Data tugas mekanik hari ini
    */
   async getMechanicTodayTasks(mechanicId) {
     const today = new Date();
@@ -851,13 +829,13 @@ class ReportRepository {
       prisma.$queryRaw`
         SELECT 
           COUNT(ma."id")::int as "completedCount",
-          COALESCE(SUM(oi."subtotal"), 0)::int as "earnings"
+          COALESCE(SUM(oi."subtotal"), 0)::bigint as "earnings"
         FROM "MechanicAssignment" ma
         INNER JOIN "OrderItem" oi ON ma."orderItemId" = oi."id"
         INNER JOIN "Order" o ON oi."orderId" = o."id"
         WHERE ma."mechanicId" = ${mechanicId}
-          AND ma."endAt" >= ${startOfDay}
-          AND ma."endAt" <= ${endOfDay}
+          AND ma."endAt" >= ${startOfDay}::timestamp
+          AND ma."endAt" <= ${endOfDay}::timestamp
           AND o."status" IN ('COMPLETED', 'CLOSED')
           AND o."deletedAt" IS NULL
       `,

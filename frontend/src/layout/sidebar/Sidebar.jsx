@@ -1,3 +1,10 @@
+/**
+ * Sidebar - Application sidebar dengan menu items, responsive drawer untuk mobile, 
+ * dan role-based filtering
+ * Hanya dirender ketika user sudah terautentikasi (status: "auth")
+ * @component
+ * @returns {JSX.Element} Rendered sidebar component
+ */
 import { useEffect } from "react";
 import { Box, Drawer, Paper } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -19,13 +26,6 @@ import { useDevice } from "@hooks/useDevice.js";
 import INFO from "@data/Info.js";
 import MenuItem from "@layout/sidebar/MenuItem.jsx";
 
-/**
- * Sidebar - Application sidebar dengan menu items, responsive drawer untuk mobile, 
- * dan role-based filtering
- * Hanya dirender ketika user sudah terautentikasi (status: "auth")
- * @component
- * @returns {JSX.Element} Rendered sidebar component
- */
 const Sidebar = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
@@ -34,14 +34,8 @@ const Sidebar = () => {
   const isSidebarOpen = useSelector(selectSidebarIsOpen);
   const { isMobile, isTablet } = useDevice();
 
-  /**
-   * Filter menu items berdasarkan role user
-   */
   const filteredMenu = filterMenuByRole(menuItems.items, user?.role);
 
-  /**
-   * Effect untuk menandai menu item yang aktif berdasarkan URL saat ini
-   */
   useEffect(() => {
     const findActiveItem = (items) => {
       for (const item of items) {
@@ -61,9 +55,6 @@ const Sidebar = () => {
     if (activeId) dispatch(setActiveItem(activeId));
   }, [location.pathname, filteredMenu, dispatch]);
 
-  /**
-   * Close sidebar saat item diklik (mobile/tablet)
-   */
   const handleItemClick = () => {
     if (isMobile || isTablet) dispatch(closeSidebar());
   };
@@ -72,17 +63,14 @@ const Sidebar = () => {
     ? SIDEBAR.EXPANDED_WIDTH
     : SIDEBAR.COLLAPSED_WIDTH;
 
-  /**
-   * Logo component
-   */
   const LogoSection = (
     <Box
       sx={{
         display: "flex",
         alignItems: "center",
         justifyContent: isMobile ? "flex-start" : "center",
-        px: isMobile ? 2 : isSidebarOpen ? 2.5 : 1,
-        py: 2,
+        px: isMobile ? 2.5 : isSidebarOpen ? 3 : 1.5,
+        py: 2.5,
         flexShrink: 0,
       }}
     >
@@ -103,17 +91,14 @@ const Sidebar = () => {
     </Box>
   );
 
-  /**
-   * Menu content yang akan dirender di sidebar/drawer
-   */
   const MenuContent = (
     <Box
       sx={{
         flexGrow: 1,
         overflowY: "auto",
         overflowX: "hidden",
-        px: isMobile || isSidebarOpen ? 2 : 1,
-        py: 1,
+        px: isMobile || isSidebarOpen ? 2.5 : 1.5,
+        py: 1.5,
         display: "flex",
         flexDirection: "column",
         gap: 0.5,
@@ -144,9 +129,6 @@ const Sidebar = () => {
     </Box>
   );
 
-  /**
-   * Mobile: render sebagai Drawer full height dengan logo
-   */
   if (isMobile) {
     return (
       <Drawer
@@ -162,7 +144,6 @@ const Sidebar = () => {
             width: SIDEBAR.EXPANDED_WIDTH,
             borderRadius: 0,
             border: "none",
-            borderRight: `1px solid ${theme.palette.divider}`,
             backgroundColor: theme.palette.background.paper,
             boxShadow: `4px 0 20px -8px ${alpha(theme.palette.common.black, 0.12)}`,
             display: "flex",
@@ -176,9 +157,6 @@ const Sidebar = () => {
     );
   }
 
-  /**
-   * Desktop: render sebagai sidebar tetap
-   */
   return (
     <Paper
       component="nav"
@@ -199,7 +177,6 @@ const Sidebar = () => {
         overflowX: "hidden",
         borderRadius: 0,
         border: "none",
-        borderRight: `1px solid ${theme.palette.divider}`,
         backgroundColor: theme.palette.background.paper,
         boxShadow: `4px 0 20px -8px ${alpha(theme.palette.common.black, 0.08)}`,
       }}

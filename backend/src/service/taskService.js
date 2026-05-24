@@ -4,6 +4,7 @@ import OrderRepository from "#repository/orderRepository.js";
 import NotificationRepository from "#repository/notificationRepository.js";
 import SettingRepository from "#repository/settingRepository.js";
 import CacheManager from "#shared/utils/cache.js";
+import DateTime from "#shared/utils/datetime.js";
 import ApiError from "#shared/utils/error.js";
 import Storage from "#shared/utils/storage.js";
 import prisma from "#app/database.js";
@@ -13,7 +14,7 @@ import logger from "#app/logger.js";
  * Service untuk mengelola logika bisnis penugasan mekanik.
  *
  * Alur SERVICE:
- *   DRAFT → (payment) → QUEUED → (assign mechanic) → (start order) → IN_PROGRESS → (complete order) → COMPLETED → (close) → CLOSED
+ *   DRAFT -> (payment) -> QUEUED -> (assign mechanic) -> (start order) -> IN_PROGRESS -> (complete order) -> COMPLETED -> (close) -> CLOSED
  *
  * Mekanik di-assign setelah pembayaran (QUEUED).
  * Start order mengubah status order ke IN_PROGRESS dan memulai semua task sekaligus.
@@ -53,6 +54,30 @@ class TaskService {
   async #getSetting(key, defaultValue) {
     const setting = await this.settingRepo.findByKey(key);
     return setting ? setting.value : defaultValue;
+  }
+
+  /**
+   * Format detail kendaraan
+   * @param {Object} vehicle
+   * @returns {string}
+   * @private
+   */
+  #formatVehicleInfo(vehicle) {
+    if (!vehicle) return "Tidak ada kendaraan";
+    return `${vehicle.plateNumber} - ${vehicle.brand || ""} ${
+      vehicle.model || ""
+    }`.trim();
+  }
+
+  /**
+   * Format daftar service untuk notifikasi
+   * @param {Array} services
+   * @returns {string}
+   * @private
+   */
+  #formatServiceList(services) {
+    if (!services || services.length === 0) return "";
+    return services.map((name, index) => `  ${index + 1}. ${name}`).join("\n");
   }
 
   /**
@@ -176,23 +201,14 @@ class TaskService {
    */
   async #sendNotification(userId, title, message, type = "INFO") {
     if (!userId) return;
-    await this.notifRepo.create({ title, message, type, userId });
-  }
-
-  /**
-   * Menghitung durasi kerja dalam format readable
-   * @param {Date} startAt
-   * @param {Date} endAt
-   * @returns {string}
-   * @private
-   */
-  #formatDuration(startAt, endAt) {
-    const diff = new Date(endAt) - new Date(startAt);
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 60) return `${minutes} menit`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0 ? `${hours} jam ${remainingMinutes} menit` : `${hours} jam`;
+    try {
+      await this.notifRepo.create({ title, message, type, userId });
+    } catch (err) {
+      logger.warn("Gagal mengirim notifikasi task", {
+        userId,
+        error: err.message,
+      });
+    }
   }
 
   /**
@@ -249,7 +265,10 @@ class TaskService {
     const assignments = [];
     const serviceNames = [];
     for (const item of unassignedItems) {
-      const assignment = await this.taskRepo.assignMechanic(item.id, mechanicId);
+      const assignment = await this.taskRepo.assignMechanic(
+        item.id,
+        mechanicId
+      );
       assignments.push(assignment);
       serviceNames.push(item.productNameSnapshot || item.product?.name);
     }
@@ -259,20 +278,37 @@ class TaskService {
         orderId,
         status: "QUEUED",
         changedById: mechanicId,
-        note: `Mekanik ${mechanic.fullName} ditugaskan ke ${assignments.length} item service: ${serviceNames.join(", ")}.`,
+        note: `Mekanik ${mechanic.fullName} ditugaskan ke ${
+          assignments.length
+        } item service: ${serviceNames.join(", ")}.`,
       },
     });
 
     await this.#invalidateOrderHistoryCache(order.orderNumber);
 
+    const customerName = order.customer?.name || "Pelanggan";
+    const vehicleInfo = this.#formatVehicleInfo(order.vehicle);
+    const serviceList = this.#formatServiceList(serviceNames);
+
+    const mechanicMessage = [
+      `Tugas Baru Diterima`,
+      ``,
+      `Pesanan       : #${order.orderNumber}`,
+      `Pelanggan     : ${customerName}`,
+      `Kendaraan     : ${vehicleInfo}`,
+      ``,
+      `Item Service (${assignments.length}):`,
+      `${serviceList}`,
+      ``,
+      `Silakan mulai pengerjaan setelah siap.`,
+      `Pastikan semua service diselesaikan dengan baik.`,
+    ].join("\n");
+
     await this.#sendNotification(
       mechanicId,
-      "Tugas Baru Diterima",
-      `Anda ditugaskan ke pesanan #${order.orderNumber}\n\n` +
-      `${assignments.length} service menunggu:\n` +
-      serviceNames.map((name) => `- ${name}`).join("\n") +
-      `\n\nPelanggan: ${order.customer?.name || "-"}\n` +
-      `Kendaraan: ${order.vehicle?.plateNumber || "-"}`
+      `Tugas Baru - #${order.orderNumber}`,
+      mechanicMessage,
+      "INFO"
     );
 
     logger.info("Mekanik berhasil di-assign ke order", {
@@ -298,9 +334,14 @@ class TaskService {
       throw ApiError.notFound({ message: "Pesanan tidak ditemukan." });
     }
 
-    if (order.status === "COMPLETED" || order.status === "CLOSED" || order.status === "CANCELLED") {
+    if (
+      order.status === "COMPLETED" ||
+      order.status === "CLOSED" ||
+      order.status === "CANCELLED"
+    ) {
       throw ApiError.badRequest({
-        message: "Tidak dapat unassign dari pesanan yang sudah selesai, ditutup, atau dibatalkan.",
+        message:
+          "Tidak dapat unassign dari pesanan yang sudah selesai, ditutup, atau dibatalkan.",
       });
     }
 
@@ -336,24 +377,40 @@ class TaskService {
     }
 
     const changedById = userId || order.cashierId;
+    const uniqueMechanicNames = [...new Set(mechanicNames)];
+
     await prisma.orderStatusHistory.create({
       data: {
         orderId,
         status: order.status,
         changedById,
-        note: `Mekanik ${[...new Set(mechanicNames)].join(", ")} dilepas dari pesanan. Status tetap ${order.status}.`,
+        note: `Mekanik ${uniqueMechanicNames.join(
+          ", "
+        )} dilepas dari pesanan. Status tetap ${order.status}.`,
       },
     });
 
     await this.#invalidateOrderHistoryCache(order.orderNumber);
 
+    const customerName = order.customer?.name || "Pelanggan";
+    const vehicleInfo = this.#formatVehicleInfo(order.vehicle);
+
     for (const mId of mechanicIds) {
+      const mechanicMessage = [
+        `Penugasan Dilepas`,
+        ``,
+        `Pesanan       : #${order.orderNumber}`,
+        `Pelanggan     : ${customerName}`,
+        `Kendaraan     : ${vehicleInfo}`,
+        ``,
+        `Anda telah dilepas dari pesanan ini.`,
+        `Pesanan akan ditugaskan ke mekanik lain atau menunggu assign ulang.`,
+      ].join("\n");
+
       await this.#sendNotification(
         mId,
-        "Penugasan Dilepas",
-        `Anda dilepas dari pesanan #${order.orderNumber}\n\n` +
-        `Pelanggan: ${order.customer?.name || "-"}\n` +
-        `Kendaraan: ${order.vehicle?.plateNumber || "-"}`,
+        `Unassign - #${order.orderNumber}`,
+        mechanicMessage,
         "WARNING"
       );
     }
@@ -369,12 +426,15 @@ class TaskService {
    */
   async getTaskById(assignmentId) {
     const assignment = await this.taskRepo.findById(assignmentId);
-    if (!assignment) throw ApiError.notFound({ message: "Task tidak ditemukan." });
-    
+    if (!assignment)
+      throw ApiError.notFound({ message: "Task tidak ditemukan." });
+
     if (assignment.orderItem?.product) {
-      assignment.orderItem.product = await this.#addSignedUrlToProduct(assignment.orderItem.product);
+      assignment.orderItem.product = await this.#addSignedUrlToProduct(
+        assignment.orderItem.product
+      );
     }
-    
+
     return assignment;
   }
 
@@ -392,47 +452,56 @@ class TaskService {
 
     const tasks = await this.taskRepo.findByOrderId(orderId);
 
-    const serviceItems = order.items?.filter(
-      (item) => item.product?.type === "SERVICE"
-    ) || [];
+    const serviceItems =
+      order.items?.filter((item) => item.product?.type === "SERVICE") || [];
 
-    const services = await Promise.all(serviceItems.map(async (item) => {
-      const itemAssignments = tasks.filter(
-        (t) => t.orderItem?.id === item.id
-      );
+    const services = await Promise.all(
+      serviceItems.map(async (item) => {
+        const itemAssignments = tasks.filter(
+          (t) => t.orderItem?.id === item.id
+        );
 
-      const assignments = itemAssignments.map((a) => ({
-        id: a.id,
-        mechanic: a.mechanic ? {
-          id: a.mechanic.id,
-          fullName: a.mechanic.fullName,
-        } : null,
-        startAt: a.startAt,
-        endAt: a.endAt,
-        status: a.endAt ? "COMPLETED" : a.startAt ? "IN_PROGRESS" : "PENDING",
-        statusLabel: a.endAt ? "Selesai" : a.startAt ? "Dikerjakan" : "Menunggu",
-      }));
+        const assignments = itemAssignments.map((a) => ({
+          id: a.id,
+          mechanic: a.mechanic
+            ? {
+                id: a.mechanic.id,
+                fullName: a.mechanic.fullName,
+              }
+            : null,
+          startAt: a.startAt,
+          endAt: a.endAt,
+          status: a.endAt ? "COMPLETED" : a.startAt ? "IN_PROGRESS" : "PENDING",
+          statusLabel: a.endAt
+            ? "Selesai"
+            : a.startAt
+            ? "Dikerjakan"
+            : "Menunggu",
+        }));
 
-      let imageUrl = null;
-      if (item.product?.image?.path) {
-        imageUrl = await Storage.getSignedUrl(item.product.image.path);
-      }
+        let imageUrl = null;
+        if (item.product?.image?.path) {
+          imageUrl = await Storage.getSignedUrl(item.product.image.path);
+        }
 
-      return {
-        orderItemId: item.id,
-        serviceName: item.productNameSnapshot || item.product?.name,
-        product: item.product ? {
-          id: item.product.id,
-          name: item.product.name,
-          type: item.product.type,
-          image: imageUrl,
-        } : null,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        subtotal: item.subtotal,
-        assignments,
-      };
-    }));
+        return {
+          orderItemId: item.id,
+          serviceName: item.productNameSnapshot || item.product?.name,
+          product: item.product
+            ? {
+                id: item.product.id,
+                name: item.product.name,
+                type: item.product.type,
+                image: imageUrl,
+              }
+            : null,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          subtotal: item.subtotal,
+          assignments,
+        };
+      })
+    );
 
     return {
       orderId: order.id,
@@ -442,17 +511,21 @@ class TaskService {
       createdAt: order.createdAt,
       startedAt: order.startedAt,
       completedAt: order.completedAt,
-      customer: order.customer ? {
-        id: order.customer.id,
-        name: order.customer.name,
-        phone: order.customer.phone,
-      } : null,
-      vehicle: order.vehicle ? {
-        id: order.vehicle.id,
-        plateNumber: order.vehicle.plateNumber,
-        brand: order.vehicle.brand,
-        model: order.vehicle.model,
-      } : null,
+      customer: order.customer
+        ? {
+            id: order.customer.id,
+            name: order.customer.name,
+            phone: order.customer.phone,
+          }
+        : null,
+      vehicle: order.vehicle
+        ? {
+            id: order.vehicle.id,
+            plateNumber: order.vehicle.plateNumber,
+            brand: order.vehicle.brand,
+            model: order.vehicle.model,
+          }
+        : null,
       services,
     };
   }
@@ -494,7 +567,9 @@ class TaskService {
 
       groupedMap.get(orderId).services.push({
         assignmentId: assignment.id,
-        name: assignment.orderItem.productNameSnapshot || assignment.orderItem.product?.name,
+        name:
+          assignment.orderItem.productNameSnapshot ||
+          assignment.orderItem.product?.name,
         startAt: assignment.startAt,
         endAt: assignment.endAt,
       });
@@ -550,6 +625,8 @@ class TaskService {
       });
     }
 
+    const mechanic = await this.userRepo.findById(mechanicId);
+
     const assignments = await this.#getActiveAssignments(orderId, mechanicId);
 
     if (assignments.length === 0) {
@@ -566,19 +643,21 @@ class TaskService {
 
     const startedAssignments = [];
     const serviceNames = [];
+    const startTime = new Date();
 
     for (const assignment of pendingAssignments) {
       const updated = await this.taskRepo.startTask(assignment.id);
       startedAssignments.push(updated);
       serviceNames.push(
-        updated.orderItem?.productNameSnapshot || updated.orderItem?.product?.name
+        updated.orderItem?.productNameSnapshot ||
+          updated.orderItem?.product?.name
       );
     }
 
     await prisma.$transaction(async (tx) => {
       await tx.order.update({
         where: { id: orderId },
-        data: { status: "IN_PROGRESS", startedAt: new Date() },
+        data: { status: "IN_PROGRESS", startedAt: startTime },
       });
 
       await tx.orderStatusHistory.create({
@@ -586,21 +665,41 @@ class TaskService {
           orderId,
           status: "IN_PROGRESS",
           changedById: mechanicId,
-          note: `Pengerjaan dimulai untuk ${startedAssignments.length} service: ${serviceNames.join(", ")}.`,
+          note: `Pengerjaan dimulai oleh ${
+            mechanic?.fullName || "Mekanik"
+          } untuk ${startedAssignments.length} service: ${serviceNames.join(
+            ", "
+          )}.`,
         },
       });
     });
 
     await this.#invalidateOrderHistoryCache(order.orderNumber);
 
+    const customerName = order.customer?.name || "Pelanggan";
+    const vehicleInfo = this.#formatVehicleInfo(order.vehicle);
+    const serviceList = this.#formatServiceList(serviceNames);
+
     if (order.cashierId) {
+      const cashierMessage = [
+        `Pengerjaan Dimulai`,
+        ``,
+        `Pesanan       : #${order.orderNumber}`,
+        `Pelanggan     : ${customerName}`,
+        `Kendaraan     : ${vehicleInfo}`,
+        `Mekanik       : ${mechanic?.fullName || "-"}`,
+        ``,
+        `Service (${startedAssignments.length}):`,
+        `${serviceList}`,
+        ``,
+        `Waktu Mulai   : ${DateTime.toFullID(startTime)}`,
+      ].join("\n");
+
       await this.#sendNotification(
         order.cashierId,
-        "Pengerjaan Dimulai",
-        `Pesanan #${order.orderNumber} mulai dikerjakan\n\n` +
-        `Service: ${serviceNames.join(", ")}\n` +
-        `Pelanggan: ${order.customer?.name || "-"}\n` +
-        `Kendaraan: ${order.vehicle?.plateNumber || "-"}`
+        `Pengerjaan Dimulai - #${order.orderNumber}`,
+        cashierMessage,
+        "INFO"
       );
     }
 
@@ -632,6 +731,8 @@ class TaskService {
       });
     }
 
+    const mechanic = await this.userRepo.findById(mechanicId);
+
     const assignments = await this.#getActiveAssignments(orderId, mechanicId);
 
     if (assignments.length === 0) {
@@ -648,19 +749,22 @@ class TaskService {
 
     const completedAssignments = [];
     const serviceNames = [];
+    const completeTime = new Date();
+    const duration = DateTime.toDuration(order.startedAt, completeTime);
 
     for (const assignment of pendingAssignments) {
       const updated = await this.taskRepo.completeTask(assignment.id);
       completedAssignments.push(updated);
       serviceNames.push(
-        updated.orderItem?.productNameSnapshot || updated.orderItem?.product?.name
+        updated.orderItem?.productNameSnapshot ||
+          updated.orderItem?.product?.name
       );
     }
 
     await prisma.$transaction(async (tx) => {
       await tx.order.update({
         where: { id: orderId },
-        data: { status: "COMPLETED", completedAt: new Date() },
+        data: { status: "COMPLETED", completedAt: completeTime },
       });
 
       await tx.orderStatusHistory.create({
@@ -668,22 +772,42 @@ class TaskService {
           orderId,
           status: "COMPLETED",
           changedById: mechanicId,
-          note: `Semua service selesai: ${serviceNames.join(", ")}. ` +
-            `Durasi pengerjaan: ${this.#formatDuration(order.startedAt, new Date())}.`,
+          note: `Semua service selesai dikerjakan oleh ${
+            mechanic?.fullName || "Mekanik"
+          }: ${serviceNames.join(", ")}. Durasi pengerjaan: ${duration}.`,
         },
       });
     });
 
     await this.#invalidateOrderHistoryCache(order.orderNumber);
 
+    const customerName = order.customer?.name || "Pelanggan";
+    const vehicleInfo = this.#formatVehicleInfo(order.vehicle);
+    const serviceList = this.#formatServiceList(serviceNames);
+
     if (order.cashierId) {
+      const cashierMessage = [
+        `Pengerjaan Selesai`,
+        ``,
+        `Pesanan       : #${order.orderNumber}`,
+        `Pelanggan     : ${customerName}`,
+        `Kendaraan     : ${vehicleInfo}`,
+        `Mekanik       : ${mechanic?.fullName || "-"}`,
+        ``,
+        `Service (${completedAssignments.length}):`,
+        `${serviceList}`,
+        ``,
+        `Waktu Mulai   : ${DateTime.toFullID(order.startedAt)}`,
+        `Waktu Selesai : ${DateTime.toFullID(completeTime)}`,
+        `Durasi        : ${duration}`,
+        ``,
+        `Pesanan siap untuk ditutup dan diserahkan ke pelanggan.`,
+      ].join("\n");
+
       await this.#sendNotification(
         order.cashierId,
-        "Pengerjaan Selesai",
-        `Pesanan #${order.orderNumber} selesai dikerjakan\n\n` +
-        `Service: ${serviceNames.join(", ")}\n` +
-        `Pelanggan: ${order.customer?.name || "-"}\n` +
-        `Kendaraan: ${order.vehicle?.plateNumber || "-"}`,
+        `Pengerjaan Selesai - #${order.orderNumber}`,
+        cashierMessage,
         "SUCCESS"
       );
     }
@@ -692,7 +816,7 @@ class TaskService {
       orderId,
       mechanicId,
       taskCount: completedAssignments.length,
-      duration: this.#formatDuration(order.startedAt, new Date()),
+      duration,
     });
 
     return completedAssignments;
@@ -724,7 +848,9 @@ class TaskService {
   async getMechanicAvailabilityStatus(mechanicId) {
     const mechanic = await this.userRepo.findById(mechanicId);
     if (!mechanic || mechanic.role !== "MECHANIC") {
-      throw ApiError.badRequest({ message: "User yang dipilih bukan mekanik." });
+      throw ApiError.badRequest({
+        message: "User yang dipilih bukan mekanik.",
+      });
     }
 
     const activeTaskCount = await this.taskRepo.getActiveTaskCount(mechanicId);
@@ -759,7 +885,10 @@ class TaskService {
 
     for (const item of assignments) {
       try {
-        const assigned = await this.assignMechanicToOrder(item.orderId, item.mechanicId);
+        const assigned = await this.assignMechanicToOrder(
+          item.orderId,
+          item.mechanicId
+        );
         results.push(...assigned);
       } catch (error) {
         errors.push({ orderId: item.orderId, error: error.message });

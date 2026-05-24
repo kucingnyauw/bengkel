@@ -4,8 +4,12 @@ import StockRepository from "#repository/stockRepository.js";
 import ShiftRepository from "#repository/shiftRepository.js";
 import SettingRepository from "#repository/settingRepository.js";
 import OrderHistoryRepository from "#repository/orderHistoryRepository.js";
+import NotificationRepository from "#repository/notificationRepository.js";
+import UserRepository from "#repository/userRepository.js";
 import CacheManager from "#shared/utils/cache.js";
 import CodeGenerator from "#shared/utils/code.js";
+import Currency from "#shared/utils/currency.js";
+import DateTime from "#shared/utils/datetime.js";
 import ApiError from "#shared/utils/error.js";
 import Storage from "#shared/utils/storage.js";
 import prisma from "#app/database.js";
@@ -20,6 +24,8 @@ class OrderService {
     this.shiftRepo = new ShiftRepository();
     this.settingRepo = new SettingRepository();
     this.orderHistoryRepo = new OrderHistoryRepository();
+    this.notifRepo = new NotificationRepository();
+    this.userRepo = new UserRepository();
     this.cache = new CacheManager("order");
   }
 
@@ -82,6 +88,84 @@ class OrderService {
    */
   async #invalidateOrderCache(orderNumber) {
     await this.cache.invalidate(`history:${orderNumber}`);
+  }
+
+  /**
+   * Format detail kendaraan
+   * @param {Object} vehicle
+   * @returns {string}
+   * @private
+   */
+  #formatVehicleInfo(vehicle) {
+    if (!vehicle) return "Tidak ada kendaraan";
+    return `${vehicle.plateNumber} - ${vehicle.brand || ""} ${
+      vehicle.model || ""
+    }`.trim();
+  }
+
+  /**
+   * Format daftar item untuk notifikasi
+   * @param {Array} items
+   * @returns {string}
+   * @private
+   */
+  #formatItemList(items) {
+    if (!items || items.length === 0) return "";
+    return items
+      .map((item, index) => {
+        const name = item.productNameSnapshot || item.product?.name || "Item";
+        const qty = item.quantity > 1 ? ` (x${item.quantity})` : "";
+        const subtotal = item.subtotal || item.unitPrice * item.quantity;
+        return `  ${index + 1}. ${name}${qty} = ${Currency.toIDR(subtotal)}`;
+      })
+      .join("\n");
+  }
+
+  /**
+   * Mengirim notifikasi
+   * @param {string} userId
+   * @param {string} title
+   * @param {string} message
+   * @param {string} [type="INFO"]
+   * @returns {Promise<void>}
+   * @private
+   */
+  async #sendNotification(userId, title, message, type = "INFO") {
+    if (!userId) return;
+    try {
+      await this.notifRepo.create({ title, message, type, userId });
+    } catch (err) {
+      logger.warn("Gagal mengirim notifikasi order", {
+        userId,
+        error: err.message,
+      });
+    }
+  }
+
+  /**
+   * Mengirim notifikasi ke semua admin
+   * @param {string} title
+   * @param {string} message
+   * @param {string} [type="INFO"]
+   * @returns {Promise<void>}
+   * @private
+   */
+  async #notifyAdmins(title, message, type = "INFO") {
+    try {
+      const admins = await this.userRepo.findByRole("ADMIN");
+      const activeAdmins = admins.filter((a) => a.isActive);
+      if (activeAdmins.length > 0) {
+        await Promise.all(
+          activeAdmins.map((admin) =>
+            this.notifRepo.create({ title, message, type, userId: admin.id })
+          )
+        );
+      }
+    } catch (err) {
+      logger.warn("Gagal mengirim notifikasi ke admin", {
+        error: err.message,
+      });
+    }
   }
 
   /**
@@ -276,7 +360,7 @@ class OrderService {
             create: {
               status: "DRAFT",
               changedById: data.cashierId,
-              note: "Pesanan baru dibuat sebagai draft",
+              note: "Pesanan baru dibuat sebagai draft. Menunggu pembayaran.",
             },
           },
         }),
@@ -289,6 +373,8 @@ class OrderService {
         tax: true,
         total: true,
         createdAt: true,
+        customer: { select: { name: true } },
+        vehicle: { select: { plateNumber: true, brand: true, model: true } },
         items: {
           select: {
             id: true,
@@ -536,6 +622,37 @@ class OrderService {
       await this.#processSparePartItems(sparepartItems, order, cashierId);
     }
 
+    const cashier = await this.userRepo.findById(cashierId);
+    const itemList = this.#formatItemList(processedItems);
+    const orderType = hasService ? "Service" : "Sparepart";
+
+    const notificationMessage = [
+      `Pesanan Baru Dibuat`,
+      ``,
+      `Nomor Pesanan  : #${orderNumber}`,
+      `Tipe Pesanan   : ${orderType}`,
+      `Kasir          : ${cashier?.fullName || "-"}`,
+      ``,
+      `Rincian Item (${processedItems.length}):`,
+      `${itemList}`,
+      ``,
+      `Subtotal       : ${Currency.toIDR(subtotal)}`,
+      `Pajak (${taxRate}%)   : ${Currency.toIDR(taxAmount)}`,
+      `Total          : ${Currency.toIDR(total)}`,
+      ``,
+      `Status         : DRAFT`,
+      `Waktu          : ${DateTime.toFullID(new Date())}`,
+      ``,
+      `Pesanan menunggu pembayaran.`,
+    ].join("\n");
+
+    await this.#sendNotification(
+      cashierId,
+      `Pesanan Baru - #${orderNumber}`,
+      notificationMessage,
+      "SUCCESS"
+    );
+
     logger.info("Pesanan berhasil dibuat", {
       orderId: order.id,
       orderNumber,
@@ -637,7 +754,7 @@ class OrderService {
             orderId,
             status,
             changedById,
-            note: `Status diubah dari "${order.status}" ke "${status}"`,
+            note: `Status diubah dari "${order.status}" ke "${status}".`,
           },
         });
       }
@@ -709,6 +826,26 @@ class OrderService {
       }
       await tx.payment.deleteMany({ where: { orderId: order.id } });
     });
+
+    const cashier = await this.userRepo.findById(changedById);
+
+    const notificationMessage = [
+      `Pesanan Dibatalkan`,
+      ``,
+      `Nomor Pesanan  : #${order.orderNumber}`,
+      `Total          : ${Currency.toIDR(order.total)}`,
+      `Dibatalkan Oleh: ${cashier?.fullName || "-"}`,
+      `Waktu          : ${DateTime.toFullID(new Date())}`,
+      ``,
+      `Stok sparepart telah dikembalikan dan shift disesuaikan.`,
+    ].join("\n");
+
+    await this.#sendNotification(
+      order.cashierId,
+      `Pesanan Dibatalkan - #${order.orderNumber}`,
+      notificationMessage,
+      "WARNING"
+    );
 
     logger.warn("Pesanan dibatalkan via update status", {
       orderId: order.id,
@@ -784,6 +921,35 @@ class OrderService {
 
     await this.#invalidateOrderCache(order.orderNumber);
 
+    const cashier = await this.userRepo.findById(changedById);
+
+    const notificationMessage = [
+      `Pesanan Dibatalkan`,
+      ``,
+      `Nomor Pesanan  : #${order.orderNumber}`,
+      `Total          : ${Currency.toIDR(order.total)}`,
+      `Alasan         : ${reason}`,
+      `Dibatalkan Oleh: ${cashier?.fullName || "-"}`,
+      `Waktu          : ${DateTime.toFullID(new Date())}`,
+      ``,
+      `Stok sparepart telah dikembalikan dan shift disesuaikan.`,
+    ].join("\n");
+
+    await this.#sendNotification(
+      order.cashierId,
+      `Pesanan Dibatalkan - #${order.orderNumber}`,
+      notificationMessage,
+      "WARNING"
+    );
+
+    if (Math.abs(order.total) >= 500000) {
+      await this.#notifyAdmins(
+        `Pesanan Besar Dibatalkan - #${order.orderNumber}`,
+        notificationMessage,
+        "WARNING"
+      );
+    }
+
     logger.warn("Pesanan dibatalkan", {
       orderId,
       orderNumber: order.orderNumber,
@@ -792,7 +958,7 @@ class OrderService {
   }
 
   /**
-   * Menutup pesanan (COMPLETED → CLOSED)
+   * Menutup pesanan (COMPLETED -> CLOSED)
    * @param {string} orderId
    * @param {string} userId
    * @returns {Promise<Object>}
@@ -835,7 +1001,7 @@ class OrderService {
             orderId,
             status: "CLOSED",
             changedById,
-            note: "Pesanan ditutup.",
+            note: "Pesanan ditutup. Motor sudah diambil oleh pelanggan.",
           },
         });
       }
@@ -844,6 +1010,30 @@ class OrderService {
     });
 
     await this.#invalidateOrderCache(order.orderNumber);
+
+    const cashier = await this.userRepo.findById(changedById);
+    const customerName = order.customer?.name || "Pelanggan";
+    const vehicleInfo = this.#formatVehicleInfo(order.vehicle);
+
+    const notificationMessage = [
+      `Pesanan Ditutup`,
+      ``,
+      `Nomor Pesanan  : #${order.orderNumber}`,
+      `Pelanggan      : ${customerName}`,
+      `Kendaraan      : ${vehicleInfo}`,
+      `Total          : ${Currency.toIDR(order.total)}`,
+      `Ditutup Oleh   : ${cashier?.fullName || "-"}`,
+      `Waktu Tutup    : ${DateTime.toFullID(updated.closedAt)}`,
+      ``,
+      `Pesanan telah selesai dan motor sudah diambil pelanggan.`,
+    ].join("\n");
+
+    await this.#sendNotification(
+      order.cashierId,
+      `Pesanan Ditutup - #${order.orderNumber}`,
+      notificationMessage,
+      "SUCCESS"
+    );
 
     logger.info("Pesanan ditutup", { orderId, orderNumber: order.orderNumber });
     return updated;

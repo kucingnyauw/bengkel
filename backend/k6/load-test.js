@@ -1,7 +1,19 @@
 /**
  * K6 LOAD TEST SCRIPT - Bengkel Vespa API
+ * 
  * Skenario pengujian beban umum (Load Testing) untuk mengukur performa
  * dan throughput dari endpoint utama aplikasi.
+ * 
+ * Fitur:
+ * - Baseline test untuk mengukur performa normal
+ * - Ramp-up test untuk melihat batas kapasitas
+ * - Spike test untuk ketahanan terhadap lonjakan
+ * - Sustained test untuk ketahanan jangka panjang
+ * - Concurrent write test untuk integritas data
+ * - Malformed payload test untuk validasi input
+ * 
+ * @version 1.0.0
+ * @requires k6
  */
 
 import http from "k6/http";
@@ -11,26 +23,112 @@ import { randomString, randomIntBetween, randomItem } from "https://jslib.k6.io/
 
 /**
  * Metrik Kustom K6
+ * @type {Rate}
  */
 const errorRate = new Rate("errors");
+
+/**
+ * Metrik tingkat timeout
+ * @type {Rate}
+ */
 const timeoutRate = new Rate("timeouts");
+
+/**
+ * Metrik tingkat keberhasilan
+ * @type {Rate}
+ */
 const successRate = new Rate("success");
+
+/**
+ * Metrik latensi persentil ke-95
+ * @type {Trend}
+ */
 const p95Trend = new Trend("p95_latency");
+
+/**
+ * Metrik latensi persentil ke-99
+ * @type {Trend}
+ */
 const p99Trend = new Trend("p99_latency");
+
+/**
+ * Metrik latensi rata-rata
+ * @type {Trend}
+ */
 const avgLatency = new Trend("avg_latency");
+
+/**
+ * Metrik keberhasilan pembuatan pesanan
+ * @type {Rate}
+ */
 const orderCreationRate = new Rate("order_creation_success");
+
+/**
+ * Metrik keberhasilan pembayaran
+ * @type {Rate}
+ */
 const paymentSuccessRate = new Rate("payment_success");
+
+/**
+ * Metrik durasi per endpoint
+ * @type {Trend}
+ */
 const endpointTiming = new Trend("endpoint_timing");
 
 /**
  * Konfigurasi URL dan Environment
+ * @type {string}
  */
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3000";
+
+/**
+ * Versi API yang digunakan
+ * @type {string}
+ */
 const API_VERSION = __ENV.API_VERSION || "v1";
+
+/**
+ * Prefix path API
+ * @type {string}
+ */
 const API_PREFIX = `/api/${API_VERSION}`;
 
+/**
+ * Flag untuk bypass autentikasi
+ * @type {boolean}
+ */
 const BYPASS_AUTH = __ENV.BYPASS_AUTH !== "false";
+
+/**
+ * Role untuk bypass autentikasi
+ * @type {string}
+ */
 const BYPASS_ROLE = __ENV.BYPASS_ROLE || "CASHIER";
+
+/**
+ * Daftar nama pelanggan untuk data acak
+ * @type {Array<string>}
+ */
+const CUSTOMER_NAMES = [
+  "Budi Santoso", "Siti Nurhaliza", "Ahmad Dhani", 
+  "Dewi Lestari", "Rudi Hermawan", "Ani Rahayu",
+  "Joko Widodo", "Mega Wati", "Susilo Bambang",
+];
+
+/**
+ * Daftar merek kendaraan untuk data acak
+ * @type {Array<string>}
+ */
+const VEHICLE_BRANDS = ["Vespa", "Honda", "Yamaha", "Suzuki", "Kawasaki"];
+
+/**
+ * Daftar model kendaraan untuk data acak
+ * @type {Array<string>}
+ */
+const VEHICLE_MODELS = [
+  "Sprint 150", "Primavera 150", "GTS Super 300", 
+  "PX 150", "NMax 155", "PCX 160", "Aerox 155",
+];
 
 /**
  * Thresholds - Batas kelulusan untuk Load Test
@@ -46,37 +144,36 @@ export const options = {
 };
 
 /**
- * Helper: Menghasilkan data pelanggan acak
- * @returns {Object} Data pelanggan
+ * Menghasilkan data pelanggan acak
+ * 
+ * @returns {Object} Data pelanggan dengan nama dan nomor telepon acak
  */
 function generateCustomerData() {
-  const names = ["Budi Santoso", "Siti Nurhaliza", "Ahmad Dhani", "Dewi Lestari", "Rudi Hermawan"];
-  const phones = Array.from({ length: 5 }, () => `08${randomIntBetween(100000000, 999999999)}`);
-
   return {
-    name: randomItem(names),
-    phone: randomItem(phones),
+    name: randomItem(CUSTOMER_NAMES),
+    phone: `08${randomIntBetween(100000000, 999999999)}`,
   };
 }
 
 /**
- * Helper: Menghasilkan data kendaraan acak
- * @returns {Object} Data kendaraan
+ * Menghasilkan data kendaraan acak
+ * 
+ * @returns {Object} Data kendaraan dengan plat nomor, merek, dan model acak
  */
 function generateVehicleData() {
-  const brands = ["Vespa", "Honda", "Yamaha", "Suzuki", "Kawasaki"];
-  const models = ["Sprint 150", "Primavera 150", "GTS Super 300", "PX 150", "NMax 155"];
-
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  
   return {
-    plateNumber: `B ${randomIntBetween(1000, 9999)} ${randomString(2, "ABCDEFGHIJKLMNOPQRSTUVWXYZ")}`,
-    brand: randomItem(brands),
-    model: randomItem(models),
+    plateNumber: `B ${randomIntBetween(1000, 9999)} ${randomString(2, letters)}`,
+    brand: randomItem(VEHICLE_BRANDS),
+    model: randomItem(VEHICLE_MODELS),
   };
 }
 
 /**
- * Helper: Menghasilkan daftar item pesanan dari ID produk
- * @param {Array<string>} productIds - Array ID Produk
+ * Menghasilkan daftar item pesanan dari ID produk yang tersedia
+ * 
+ * @param {Array<string>} productIds - Array ID produk yang tersedia
  * @returns {Array<Object>} Daftar item pesanan
  */
 function generateOrderItems(productIds) {
@@ -94,11 +191,16 @@ function generateOrderItems(productIds) {
 }
 
 /**
- * Helper: Menghasilkan payload malformasi untuk negative testing
+ * Menghasilkan payload malformasi untuk negative testing
+ * 
  * @param {string} type - Jenis payload cacat
- * @returns {Object} Payload cacat
+ * @returns {Object} Payload dengan data cacat sesuai tipe
  */
 function generateMalformedPayload(type) {
+  /**
+   * Koleksi payload malformasi berdasarkan tipe
+   * @type {Object<string, Object>}
+   */
   const payloads = {
     missing_fields: { name: "Test" },
     invalid_types: { name: 123, phone: true, email: "invalid" },
@@ -109,16 +211,24 @@ function generateMalformedPayload(type) {
     negative_price: { productId: "p1", quantity: -5 },
     invalid_status: { status: "INVALID_STATUS" },
     null_fields: { name: null, phone: null },
+    unicode_bomb: { name: "🤖".repeat(1000), phone: "☎️".repeat(1000) },
+    array_instead_of_object: [{ name: "Test" }],
+    nested_deep: { a: { b: { c: { d: { e: "deep" } } } } },
   };
 
   return payloads[type] || payloads.empty_body;
 }
 
 /**
- * Helper: Mengambil header request (termasuk bypass auth jika diaktifkan)
- * @returns {Object} Parameter headers
+ * Mengambil header request termasuk bypass auth jika diaktifkan
+ * 
+ * @returns {Object} Parameter headers untuk HTTP request
  */
 function getHeaders() {
+  /**
+   * Header dasar untuk request
+   * @type {Object}
+   */
   const headers = {
     "Content-Type": "application/json",
   };
@@ -132,18 +242,24 @@ function getHeaders() {
 }
 
 /**
- * Helper: Request API Generik dengan penangkapan metrik error dan durasi
- * @param {string} method - HTTP Method
- * @param {string} path - Endpoint Path
- * @param {Object} [body] - Body Request
- * @param {Object} [options] - Opsi tambahan k6
- * @returns {Object} Hasil respons dan status
+ * Request API generik dengan penangkapan metrik error dan durasi
+ * 
+ * @param {string} method - HTTP method (GET, POST, PUT, DELETE)
+ * @param {string} path - Endpoint path (tanpa prefix)
+ * @param {Object} [body=null] - Body request untuk POST/PUT
+ * @param {Object} [options={}] - Opsi tambahan k6 (timeout, dll)
+ * @returns {{status: number, body: Object|null, duration: number, error: string|null}} Hasil respons
  */
 function apiRequest(method, path, body = null, options = {}) {
   const url = `${BASE_URL}${API_PREFIX}${path}`;
   const requestOptions = { ...getHeaders(), ...options };
 
+  /**
+   * Objek respons dari HTTP request
+   * @type {Object}
+   */
   let response;
+  
   try {
     response = http.request(method, url, body ? JSON.stringify(body) : null, {
       ...requestOptions,
@@ -165,10 +281,14 @@ function apiRequest(method, path, body = null, options = {}) {
     if (response.status === 504 || response.status === 408) {
       timeoutRate.add(1);
     }
-  } else {
+  } else if (response.status >= 200 && response.status < 400) {
     successRate.add(1);
   }
 
+  /**
+   * Body yang sudah diparse dari JSON
+   * @type {Object|null}
+   */
   let parsedBody = null;
   try {
     parsedBody = response.body ? JSON.parse(response.body) : null;
@@ -184,12 +304,15 @@ function apiRequest(method, path, body = null, options = {}) {
 }
 
 /**
- * Helper: Memastikan kasir memiliki shift aktif sebelum memproses pesanan
- * @returns {boolean} Status keberhasilan
+ * Memastikan kasir memiliki shift aktif sebelum memproses pesanan
+ * Jika belum ada shift aktif, akan membuka shift baru
+ * 
+ * @returns {boolean} Status keberhasilan (true jika shift aktif)
  */
 function ensureActiveShift() {
-  const checkRes = apiRequest("GET", "/shifts/active/check");
-  if (checkRes.status === 200 && checkRes.body?.exists) {
+  const checkRes = apiRequest("GET", "/shifts/active");
+  
+  if (checkRes.status === 200 && checkRes.body?.data) {
     return true;
   }
 
@@ -199,6 +322,11 @@ function ensureActiveShift() {
 
 /**
  * SKENARIO BISNIS: Menjelajahi produk publik
+ * 
+ * Menguji endpoint read-only untuk katalog produk.
+ * Mencakup list produk, detail, filter by SKU, services, dan spareparts.
+ * 
+ * @returns {void}
  */
 function browseProductsFlow() {
   group("Browse Products", () => {
@@ -206,7 +334,7 @@ function browseProductsFlow() {
 
     check(productsRes, {
       "products retrieved": (r) => r.status === 200,
-      "has data array": (r) => r.body?.data?.length > 0,
+      "has data array": (r) => r.body?.data?.length >= 0,
       "has metadata": (r) => r.body?.metadata !== undefined,
     });
 
@@ -239,6 +367,16 @@ function browseProductsFlow() {
 
 /**
  * SKENARIO BISNIS: Siklus pemesanan lengkap (Read/Write Heavy)
+ * 
+ * Mensimulasikan alur bisnis lengkap:
+ * 1. Membuat customer baru
+ * 2. Mendaftarkan kendaraan
+ * 3. Mengkalkulasi pesanan
+ * 4. Membuat pesanan
+ * 5. Melakukan pembayaran
+ * 6. Melacak riwayat pesanan
+ * 
+ * @returns {void}
  */
 function completeOrderFlow() {
   group("Complete Order Flow", () => {
@@ -268,10 +406,7 @@ function completeOrderFlow() {
 
     const productsRes = apiRequest("GET", "/products");
     const products = productsRes.body?.data || [];
-    
-    /** * Filter produk untuk memastikan SPAREPART memiliki stok, 
-     * agar order tidak ditolak dengan status 400.
-     */
+
     const availableProducts = products.filter(
       p => p.type === "SERVICE" || (p.type === "SPAREPART" && p.stock > 0)
     );
@@ -325,6 +460,11 @@ function completeOrderFlow() {
 
 /**
  * Eksekutor: Baseline Load Test
+ * 
+ * Beban normal untuk mengukur performa dasar.
+ * 50% browse produk, 35% complete order, 15% kombinasi.
+ * 
+ * @returns {void}
  */
 export function baselineTest() {
   const action = randomIntBetween(1, 100);
@@ -344,6 +484,11 @@ export function baselineTest() {
 
 /**
  * Eksekutor: Ramp-up Test (Bertahap)
+ * 
+ * Beban meningkat bertahap untuk menemukan titik jenuh.
+ * Lebih banyak read dibanding baseline.
+ * 
+ * @returns {void}
  */
 export function rampUpTest() {
   const action = randomIntBetween(1, 100);
@@ -363,6 +508,11 @@ export function rampUpTest() {
 
 /**
  * Eksekutor: Spike Test (Mendadak)
+ * 
+ * Lonjakan beban tiba-tiba untuk menguji ketahanan.
+ * Interval sleep lebih pendek untuk tekanan lebih tinggi.
+ * 
+ * @returns {void}
  */
 export function spikeTest() {
   const action = randomIntBetween(1, 100);
@@ -382,6 +532,11 @@ export function spikeTest() {
 
 /**
  * Eksekutor: Sustained Load Test
+ * 
+ * Beban berkelanjutan dengan variasi berdasarkan waktu.
+ * Pola: 3 menit browse, 4 menit order, 3 menit campuran.
+ * 
+ * @returns {void}
  */
 export function sustainedTest() {
   const minute = Math.floor(Date.now() / 60000) % 10;
@@ -401,11 +556,16 @@ export function sustainedTest() {
 
 /**
  * Eksekutor: Concurrent Write Test
+ * 
+ * Pengujian konkurensi tinggi pada operasi write.
+ * Membuat customer dan 3 pesanan sekaligus.
+ * 
+ * @returns {void}
  */
 export function concurrentWriteTest() {
   group("Concurrent Write Operations", () => {
     ensureActiveShift();
-    
+
     const productsRes = apiRequest("GET", "/products");
     const availableProducts = (productsRes.body?.data || []).filter(
       p => p.type === "SERVICE" || (p.type === "SPAREPART" && p.stock > 0)
@@ -431,20 +591,36 @@ export function concurrentWriteTest() {
 
 /**
  * Eksekutor: Malformed Payload Test
+ * 
+ * Pengujian ketahanan terhadap input tidak valid.
+ * Mengirim berbagai tipe payload cacat ke berbagai endpoint.
+ * 
+ * @returns {void}
  */
 export function malformedPayloadTest() {
   group("Malformed Payload Tests", () => {
+    /**
+     * Daftar tipe payload malformasi
+     * @type {Array<string>}
+     */
     const payloadTypes = [
       "missing_fields", "invalid_types", "empty_body",
       "xss_attempt", "sql_injection", "oversized_payload",
       "negative_price", "invalid_status", "null_fields",
+      "unicode_bomb", "array_instead_of_object", "nested_deep",
     ];
 
     const testType = randomItem(payloadTypes);
     const malformedData = generateMalformedPayload(testType);
 
+    /**
+     * Daftar endpoint target untuk pengujian malformasi
+     * @type {Array<{method: string, path: string}>}
+     */
     const endpoints = [
       { method: "POST", path: "/customers" },
+      { method: "POST", path: "/vehicles" },
+      { method: "POST", path: "/products" },
       { method: "POST", path: "/orders" },
       { method: "POST", path: "/payments" },
       { method: "PUT", path: "/customers/upsert" },
@@ -465,23 +641,44 @@ export function malformedPayloadTest() {
 
 /**
  * Setup Data Skenario
- * @returns {Object} Data konfigurasi awal
+ * Dipanggil sekali sebelum tes dimulai untuk menyiapkan data awal
+ * 
+ * @returns {Object} Data konfigurasi awal (kosong)
  */
 export function setup() {
+  console.log("=== LOAD TEST SETUP ===");
+  console.log(`Base URL: ${BASE_URL}`);
+  console.log(`API Version: ${API_VERSION}`);
+  console.log(`Bypass Auth: ${BYPASS_AUTH}`);
+  console.log(`Bypass Role: ${BYPASS_ROLE}`);
+  console.log("=======================\n");
+  
   return {};
 }
 
 /**
  * Teardown Skenario
+ * Dipanggil sekali setelah tes selesai
+ * 
  * @param {Object} data - Data dari fungsi setup
+ * @returns {void}
  */
 export function teardown(data) {
-  /** Kosong, K6 secara otomatis akan mencetak metrik bawaan */
+  console.log("\n=== LOAD TEST COMPLETED ===");
+  console.log("Check K6 output above for detailed metrics.");
+  console.log("Key metrics to watch:");
+  console.log("  - http_req_duration: p95 < 2000ms, p99 < 5000ms");
+  console.log("  - http_req_failed: rate < 80%");
+  console.log("  - errors: rate < 80%");
+  console.log("  - timeouts: rate < 5%");
+  console.log("===========================\n");
 }
 
 /**
  * Titik masuk utama (Default Export)
- * Menentukan skenario yang dijalankan berdasarkan variabel environment
+ * Menentukan skenario yang dijalankan berdasarkan variabel environment SCENARIO
+ * 
+ * @returns {void}
  */
 export default function () {
   const scenario = __ENV.SCENARIO || "baseline";

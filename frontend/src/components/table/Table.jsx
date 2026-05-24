@@ -1,5 +1,5 @@
 /**
- * AppTable - Komponen tabel reusable dengan fitur pencarian, pagination, tombol aksi, dan salin via klik kanan.
+ * AppTable - Komponen tabel reusable dengan fitur pencarian, pagination, tombol aksi, salin via klik kanan, visibilitas kolom, expandable rows, dan navigasi keyboard.
  * Kompatibel MUI v9 | Integrasi theme penuh | Clean architecture styling
  *
  * @component
@@ -9,6 +9,7 @@
  * @param {string[]} [props.headers=[]] - Array header kolom
  * @param {Object[]} [props.data=[]] - Array data baris
  * @param {Function} [props.renderRow] - Fungsi render baris kustom yang menerima objek baris dan mengembalikan array nilai sel
+ * @param {Function} [props.renderExpandableRow] - Fungsi render konten detail yang dapat diekspansi, menerima objek baris
  * @param {string|number} [props.selectedId] - ID baris yang sedang dipilih untuk highlight
  * @param {string} [props.searchVal] - Nilai input pencarian terkontrol
  * @param {string} [props.searchPlaceholder="Cari..."] - Teks placeholder untuk input pencarian
@@ -35,12 +36,29 @@
  *
  * @returns {JSX.Element} Komponen tabel
  */
-import { memo, useState, useCallback } from "react";
-import PropTypes from "prop-types";
-import { Copy, Search } from "lucide-react";
 import {
+  memo,
+  useState,
+  useCallback,
+  Fragment,
+  useRef,
+  useEffect,
+} from "react";
+import PropTypes from "prop-types";
+import {
+  Copy,
+  Search,
+  Rows,
+  Columns,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
+import {
+  Alert,
   Box,
   Card,
+  Checkbox,
+  Collapse,
   Divider,
   IconButton,
   ListItemIcon,
@@ -94,6 +112,7 @@ const AppTable = memo(
     onSearchChange,
     page = 1,
     renderRow,
+    renderExpandableRow,
     rowsPerPage = 5,
     rowsPerPageOptions = [5, 10, 25, 50],
     rowsSkeletonCount = 10,
@@ -105,108 +124,192 @@ const AppTable = memo(
   }) => {
     const theme = useTheme();
     const { isMobile } = useDevice();
-    const hasHeader = title || subtitle || onSearchChange || actions.length > 0;
+    const tableContainerRef = useRef(null);
 
+    // State Menu & Snackbar
     const [contextMenu, setContextMenu] = useState(null);
     const [highlightedCell, setHighlightedCell] = useState(null);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
 
-    /**
-     * Menangani klik kanan pada sel
-     */
-    const handleContextMenu = useCallback((e, cellValue, rowId, colIdx) => {
-      e.preventDefault();
-      const text = extractCellText(cellValue);
-      if (text) {
-        setHighlightedCell(`${rowId}-${colIdx}`);
-        setContextMenu({
-          mouseX: e.clientX,
-          mouseY: e.clientY,
-          text,
-          cellKey: `${rowId}-${colIdx}`,
-        });
-      }
-    }, []);
+    // State UX Lanjutan
+    const [hiddenColumns, setHiddenColumns] = useState(new Set());
+    const [colToggleAnchor, setColToggleAnchor] = useState(null);
+    const [expandedRows, setExpandedRows] = useState(new Set());
+    const [focusedIndex, setFocusedIndex] = useState(-1);
 
-    /**
-     * Menangani penutupan menu konteks
-     */
+    const hasHeader = title || subtitle || onSearchChange || actions.length > 0;
+    const hasExpandable = Boolean(renderExpandableRow);
+    const visibleColCount =
+      headers.length - hiddenColumns.size + (hasExpandable ? 1 : 0);
+
+    // --- Handlers: Keyboard Navigation ---
+    const handleKeyDown = useCallback(
+      (e) => {
+        if (!data || data.length === 0) return;
+
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setFocusedIndex((prev) => Math.min(prev + 1, data.length - 1));
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setFocusedIndex((prev) => Math.max(prev - 1, 0));
+        } else if (e.key === "Enter" && focusedIndex >= 0) {
+          e.preventDefault();
+          const selectedRow = data[focusedIndex];
+          if (hasExpandable) {
+            handleToggleExpand(selectedRow.id ?? focusedIndex);
+          }
+          if (onRowClick) {
+            onRowClick(selectedRow);
+          }
+        }
+      },
+      [data, focusedIndex, hasExpandable, onRowClick]
+    );
+
+    // Reset focus saat data berubah
+    useEffect(() => {
+      setFocusedIndex(-1);
+    }, [data, page]);
+
+    // --- Handlers: Column Visibility ---
+    const handleOpenColToggle = (e) => setColToggleAnchor(e.currentTarget);
+    const handleCloseColToggle = () => setColToggleAnchor(null);
+    const toggleColumnVisibility = (idx) => {
+      setHiddenColumns((prev) => {
+        const next = new Set(prev);
+        if (next.has(idx)) next.delete(idx);
+        else next.add(idx);
+        return next;
+      });
+    };
+
+    // --- Handlers: Expandable Rows ---
+    const handleToggleExpand = (rowId) => {
+      setExpandedRows((prev) => {
+        const next = new Set(prev);
+        if (next.has(rowId)) next.delete(rowId);
+        else next.add(rowId);
+        return next;
+      });
+    };
+
+    // --- Handlers: Context Menu & Copy ---
+    const handleContextMenu = useCallback(
+      (e, cellValue, rowId, colIdx, rowText) => {
+        e.preventDefault();
+        const cellText = extractCellText(cellValue);
+        if (cellText || rowText) {
+          setHighlightedCell(`${rowId}-${colIdx}`);
+          setContextMenu({
+            mouseX: e.clientX,
+            mouseY: e.clientY,
+            cellText,
+            rowText,
+            cellKey: `${rowId}-${colIdx}`,
+          });
+        }
+      },
+      []
+    );
+
     const handleCloseContextMenu = useCallback(() => {
       setContextMenu(null);
       setHighlightedCell(null);
     }, []);
 
-    /**
-     * Menangani salin teks sel ke clipboard
-     */
-    const handleCopyCell = useCallback(async () => {
-      if (!contextMenu?.text) return;
-      try {
-        await navigator.clipboard.writeText(contextMenu.text);
-        setSnackbarOpen(true);
-      } catch {
-        const textarea = document.createElement("textarea");
-        textarea.value = contextMenu.text;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-        setSnackbarOpen(true);
-      }
-      handleCloseContextMenu();
-    }, [contextMenu, handleCloseContextMenu]);
+    const copyToClipboard = useCallback(
+      async (text) => {
+        if (!text) return;
+        try {
+          await navigator.clipboard.writeText(text);
+          setSnackbarOpen(true);
+        } catch {
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+          setSnackbarOpen(true);
+        }
+        handleCloseContextMenu();
+      },
+      [handleCloseContextMenu]
+    );
 
-    /**
-     * Menangani penutupan snackbar
-     */
-    const handleCloseSnackbar = useCallback(() => {
-      setSnackbarOpen(false);
-    }, []);
+    const handleCopyCell = () => copyToClipboard(contextMenu?.cellText);
+    const handleCopyRow = () => copyToClipboard(contextMenu?.rowText);
+    const handleCloseSnackbar = useCallback(() => setSnackbarOpen(false), []);
 
+    // --- Renderers ---
     const renderedHeaders = (
       <TableRow>
-        {headers.map((header, idx) => (
+        {hasExpandable && (
           <TableCell
-            align="left"
-            key={idx}
             sx={{
-              py: 2,
-              px: 2.5,
-              [theme.breakpoints.down("sm")]: { py: 1.5, px: 1.5 },
+              py: { xs: 1.75, sm: 2 },
+              px: { xs: 2, sm: 2.5 },
+              width: 48,
+              backgroundColor: alpha(theme.palette.background.default, 0.6),
             }}
-          >
-            {isLoading ? (
-              <Skeleton animation="wave" height={16} variant="text" width={80} />
-            ) : (
-              header
-            )}
-          </TableCell>
-        ))}
+          />
+        )}
+        {headers.map((header, idx) => {
+          if (hiddenColumns.has(idx)) return null;
+          return (
+            <TableCell
+              align="left"
+              key={idx}
+              sx={{
+                py: { xs: 1.75, sm: 2 },
+                px: { xs: 2, sm: 2.5 },
+                fontWeight: 600,
+                backgroundColor: alpha(theme.palette.background.default, 0.6),
+              }}
+            >
+              {isLoading ? (
+                <Skeleton
+                  animation="wave"
+                  height={16}
+                  variant="text"
+                  width={80}
+                />
+              ) : (
+                header
+              )}
+            </TableCell>
+          );
+        })}
       </TableRow>
     );
 
     const renderedSkeletons = Array.from({ length: rowsSkeletonCount }).map(
       (_, idx) => (
         <TableRow key={`skeleton-${idx}`}>
-          {headers.map((_, i) => (
-            <TableCell
-              key={`cell-skeleton-${i}`}
-              sx={{
-                py: 2,
-                px: 2.5,
-                [theme.breakpoints.down("sm")]: { py: 1.5, px: 1.5 },
-              }}
-            >
-              <Skeleton
-                animation="wave"
-                height={20}
-                variant="text"
-                width={`${60 + Math.random() * 40}%`}
-              />
+          {hasExpandable && (
+            <TableCell sx={{ py: { xs: 1.75, sm: 2 }, px: { xs: 2, sm: 2.5 } }}>
+              <Skeleton variant="circular" width={20} height={20} />
             </TableCell>
-          ))}
+          )}
+          {headers.map((_, i) => {
+            if (hiddenColumns.has(i)) return null;
+            return (
+              <TableCell
+                key={`cell-skeleton-${i}`}
+                sx={{ py: { xs: 1.75, sm: 2 }, px: { xs: 2, sm: 2.5 } }}
+              >
+                <Skeleton
+                  animation="wave"
+                  height={20}
+                  variant="text"
+                  width={`${60 + Math.random() * 40}%`}
+                />
+              </TableCell>
+            );
+          })}
         </TableRow>
       )
     );
@@ -217,15 +320,18 @@ const AppTable = memo(
         <TableRow>
           <TableCell
             align="center"
-            colSpan={headers.length}
+            colSpan={visibleColCount}
             sx={{
               borderBottom: 0,
-              py: 8,
-              [theme.breakpoints.down("sm")]: { py: 5 },
+              py: { xs: 6, sm: 8 },
             }}
           >
-            <Stack sx={{ gap: 1, alignItems: "center" }}>
-              <Typography color="text.secondary" variant="body1">
+            <Stack sx={{ gap: 1.5, alignItems: "center" }}>
+              <Typography
+                color="text.secondary"
+                variant="body1"
+                fontWeight={500}
+              >
                 {emptyStateMessage}
               </Typography>
               <Typography color="text.disabled" variant="caption">
@@ -239,60 +345,140 @@ const AppTable = memo(
       renderedRows = data.map((row, idx) => {
         const rowId = row.id ?? idx;
         const isSelected = selectedId === rowId;
-        const cells = renderRow ? renderRow(row) : Object.values(row);
+        const isFocused = focusedIndex === idx;
+        const isExpanded = expandedRows.has(rowId);
+
+        const rawCells = renderRow ? renderRow(row) : Object.values(row);
+        const rowText = rawCells
+          .map((val) => extractCellText(val))
+          .filter(Boolean)
+          .join(" \t ");
 
         return (
-          <TableRow
-            hover
-            key={rowId}
-            onClick={() => onRowClick?.(row)}
-            onDoubleClick={() => onRowDoubleClick?.(row)}
-            selected={isSelected}
-            sx={{
-              cursor: onRowClick || onRowDoubleClick ? "pointer" : "default",
-              "&.Mui-selected": {
-                backgroundColor: alpha(theme.palette.secondary.main, 0.06),
-                "&:hover": {
-                  backgroundColor: alpha(theme.palette.secondary.main, 0.1),
+          <Fragment key={rowId}>
+            <TableRow
+              hover
+              onClick={() => {
+                setFocusedIndex(idx);
+                if (hasExpandable) handleToggleExpand(rowId);
+                onRowClick?.(row);
+              }}
+              onDoubleClick={() => onRowDoubleClick?.(row)}
+              selected={isSelected}
+              sx={{
+                cursor:
+                  onRowClick || onRowDoubleClick || hasExpandable
+                    ? "pointer"
+                    : "default",
+                "&.Mui-selected": {
+                  backgroundColor: alpha(theme.palette.secondary.main, 0.06),
+                  "&:hover": {
+                    backgroundColor: alpha(theme.palette.secondary.main, 0.1),
+                  },
                 },
-              },
-              "&:hover": {
-                backgroundColor: alpha(theme.palette.secondary.main, 0.03),
-              },
-            }}
-          >
-            {cells.map((val, i) => {
-              const cellKey = `${rowId}-${i}`;
-              const isHighlighted = highlightedCell === cellKey;
-
-              return (
+                "&:hover": {
+                  backgroundColor: alpha(theme.palette.secondary.main, 0.03),
+                },
+                ...(isFocused && {
+                  boxShadow: `inset 2px 0 0 0 ${theme.palette.primary.main}`,
+                  backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                }),
+              }}
+            >
+              {hasExpandable && (
                 <TableCell
-                  key={i}
-                  onContextMenu={(e) => handleContextMenu(e, val, rowId, i)}
                   sx={{
-                    py: 2,
-                    px: 2.5,
-                    [theme.breakpoints.down("sm")]: { py: 1.5, px: 1.5 },
-                    userSelect: "none",
-                    position: "relative",
-                    transition: theme.transitions.create(
-                      ["box-shadow", "border-color", "background-color"],
-                      { duration: theme.transitions.duration.shorter }
-                    ),
-                    ...(isHighlighted && {
-                      boxShadow: `inset 0 0 0 1.5px ${alpha(theme.palette.secondary.main, 0.5)}`,
-                      borderColor: `${alpha(theme.palette.secondary.main, 0.3)} !important`,
-                      backgroundColor: alpha(theme.palette.secondary.main, 0.04),
-                      borderRadius: `${theme.shape.borderRadius}px`,
-                      zIndex: 1,
-                    }),
+                    py: { xs: 1.75, sm: 2 },
+                    px: { xs: 2, sm: 2.5 },
+                    width: 48,
+                    borderBottom: isExpanded ? "none" : undefined,
                   }}
                 >
-                  {val}
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFocusedIndex(idx);
+                      handleToggleExpand(rowId);
+                    }}
+                    sx={{
+                      transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                      transition: theme.transitions.create("transform", {
+                        duration: theme.transitions.duration.shortest,
+                      }),
+                    }}
+                  >
+                    <ChevronRight size={18} />
+                  </IconButton>
                 </TableCell>
-              );
-            })}
-          </TableRow>
+              )}
+
+              {rawCells.map((val, i) => {
+                if (hiddenColumns.has(i)) return null;
+                const cellKey = `${rowId}-${i}`;
+                const isHighlighted = highlightedCell === cellKey;
+
+                return (
+                  <TableCell
+                    key={i}
+                    onContextMenu={(e) =>
+                      handleContextMenu(e, val, rowId, i, rowText)
+                    }
+                    sx={{
+                      py: { xs: 1.75, sm: 2 },
+                      px: { xs: 2, sm: 2.5 },
+                      userSelect: "none",
+                      position: "relative",
+                      borderBottom: isExpanded ? "none" : undefined,
+                      transition: theme.transitions.create(
+                        ["box-shadow", "border-color", "background-color"],
+                        { duration: theme.transitions.duration.shorter }
+                      ),
+                      ...(isHighlighted && {
+                        boxShadow: `inset 0 0 0 1.5px ${alpha(
+                          theme.palette.secondary.main,
+                          0.5
+                        )}`,
+                        borderColor: `${alpha(
+                          theme.palette.secondary.main,
+                          0.3
+                        )} !important`,
+                        backgroundColor: alpha(
+                          theme.palette.secondary.main,
+                          0.04
+                        ),
+                        borderRadius: `${theme.shape.borderRadius}px`,
+                        zIndex: 1,
+                      }),
+                    }}
+                  >
+                    {val}
+                  </TableCell>
+                );
+              })}
+            </TableRow>
+
+            {hasExpandable && (
+              <TableRow>
+                <TableCell
+                  colSpan={visibleColCount}
+                  sx={{
+                    py: 0,
+                    px: { xs: 2, sm: 2.5 },
+                    borderBottom: isExpanded ? undefined : "none",
+                    backgroundColor: alpha(
+                      theme.palette.background.default,
+                      0.2
+                    ),
+                  }}
+                >
+                  <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                    <Box sx={{ py: 2 }}>{renderExpandableRow(row)}</Box>
+                  </Collapse>
+                </TableCell>
+              </TableRow>
+            )}
+          </Fragment>
         );
       });
     }
@@ -308,221 +494,310 @@ const AppTable = memo(
       } = action;
 
       return (
-        <Box
-          key={idx}
-          component="span"
-          sx={{ display: "inline-flex", alignItems: "center" }}
-        >
-          <Tooltip arrow placement="top" title={label}>
-            <Box
-              component="span"
-              sx={{
-                display: "inline-flex",
-                borderRadius: `${theme.shape.borderRadius}px`,
-                border: "1px solid",
-                borderColor: disabled
-                  ? alpha(theme.palette.divider, 0.4)
-                  : alpha(theme.palette.divider, 0.8),
-                color: disabled
-                  ? theme.palette.action.disabled
-                  : theme.palette.text.secondary,
-                transition: theme.transitions.create(
-                  ["background-color", "border-color", "color"],
-                  { duration: theme.transitions.duration.shorter }
-                ),
-                "&:hover": hasTransitions && !disabled
+        <Tooltip key={idx} arrow placement="top" title={label}>
+          <Box
+            component="span"
+            sx={{
+              display: "inline-flex",
+              borderRadius: `${theme.shape.borderRadius}px`,
+              border: "1px solid",
+              borderColor: disabled
+                ? alpha(theme.palette.divider, 0.4)
+                : alpha(theme.palette.divider, 0.8),
+              color: disabled
+                ? theme.palette.action.disabled
+                : theme.palette.text.secondary,
+              transition: theme.transitions.create(
+                ["background-color", "border-color", "color"],
+                {
+                  duration: theme.transitions.duration.shorter,
+                }
+              ),
+              "&:hover":
+                hasTransitions && !disabled
                   ? {
                       bgcolor: alpha(theme.palette.secondary.main, 0.06),
                       borderColor: alpha(theme.palette.secondary.main, 0.4),
                       color: theme.palette.secondary.main,
                     }
                   : {},
-              }}
+            }}
+          >
+            <IconButton
+              color={color}
+              disabled={disabled}
+              onClick={onClick}
+              size="small"
+              aria-label={label}
+              sx={{ borderRadius: "inherit", p: { xs: 1, sm: 0.75 } }}
             >
-              <IconButton
-                color={color}
-                disabled={disabled}
-                onClick={onClick}
-                size="small"
-                aria-label={label}
-                sx={{ borderRadius: "inherit" }}
-              >
-                <Icon size={17} strokeWidth={1.5} />
-              </IconButton>
-            </Box>
-          </Tooltip>
-        </Box>
+              <Icon size={18} strokeWidth={1.5} />
+            </IconButton>
+          </Box>
+        </Tooltip>
       );
     });
 
     return (
-      <Card>
+      <Card
+        sx={{
+          borderRadius: `${theme.shape.borderRadius}px`,
+          boxShadow: `0 2px 12px ${alpha(theme.palette.common.black, 0.04)}`,
+          backgroundImage: "none",
+        }}
+      >
         {hasHeader && (
           <>
-            <Box
+            <Stack
               sx={{
-                display: "flex",
-                flexWrap: "wrap",
+                flexDirection: { xs: "column", sm: "row" },
                 alignItems: { xs: "stretch", sm: "center" },
                 justifyContent: "space-between",
-                gap: 2,
-                px: { xs: 2, sm: 3 },
-                py: { xs: 2, sm: 2.5 },
+                gap: { xs: 2.5, sm: 2 },
+                px: { xs: 2.5, sm: 3 },
+                py: { xs: 2.5, sm: 2.5 },
               }}
             >
-              <Box
-                sx={{
-                  order: 1,
-                  flex: { xs: "1 1 100%", sm: "0 1 auto" },
-                  minWidth: 0,
-                }}
-              >
+              <Box sx={{ minWidth: 0, width: "100%", flex: { sm: 1 } }}>
                 {title && (
-                  <Typography variant="h6">
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
                     {title}
                   </Typography>
                 )}
                 {subtitle && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 0.5 }}
+                  >
                     {subtitle}
                   </Typography>
                 )}
               </Box>
 
-              {onSearchChange && (
-                <Box
+              <Stack
+                sx={{
+                  flexDirection: { xs: "column", sm: "row" },
+                  alignItems: { xs: "stretch", sm: "center" },
+                  gap: { xs: 2, sm: 1.5 },
+                  width: { xs: "100%", sm: "auto" },
+                  flexShrink: 0,
+                }}
+              >
+                <Stack
                   sx={{
-                    order: { xs: 3, sm: 2 },
-                    flex: { xs: "1 1 100%", sm: "0 1 auto" },
-                    ml: { sm: "auto" },
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: "10px",
+                    justifyContent: "flex-end",
+                    order: { xs: 1, sm: 2 },
                   }}
                 >
-                  <TextField
-                    fullWidth
-                    size="small"
-                    value={searchVal || ""}
-                    onChange={onSearchChange}
-                    placeholder={searchPlaceholder}
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <Box
-                            sx={(theme) => ({
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              width: 36,
-                              height: 28,
-                              borderRadius: `${theme.shape.borderRadius}px`,
-                              bgcolor: alpha(theme.palette.secondary.main, 0.08),
-                              color: theme.palette.secondary.main,
-                              mr: 1,
-                            })}
-                          >
-                            <Search size={15} strokeWidth={1.5} />
-                          </Box>
-                        ),
-                      },
-                    }}
-                    sx={{ minWidth: { sm: 220 } }}
-                  />
-                </Box>
-              )}
+                  {/* Tombol Toggles Kolom Dinamis */}
+                  {headers.length > 0 && (
+                    <Tooltip arrow placement="top" title="Atur Kolom">
+                      <Box
+                        component="span"
+                        sx={{
+                          display: "inline-flex",
+                          borderRadius: `${theme.shape.borderRadius}px`,
+                          border: "1px solid",
+                          borderColor: Boolean(colToggleAnchor)
+                            ? alpha(theme.palette.secondary.main, 0.4)
+                            : alpha(theme.palette.divider, 0.8),
+                          color: Boolean(colToggleAnchor)
+                            ? theme.palette.secondary.main
+                            : theme.palette.text.secondary,
+                          bgcolor: Boolean(colToggleAnchor)
+                            ? alpha(theme.palette.secondary.main, 0.06)
+                            : "transparent",
+                          transition: theme.transitions.create([
+                            "background-color",
+                            "border-color",
+                            "color",
+                          ]),
+                          "&:hover": {
+                            bgcolor: alpha(theme.palette.secondary.main, 0.06),
+                            borderColor: alpha(
+                              theme.palette.secondary.main,
+                              0.4
+                            ),
+                            color: theme.palette.secondary.main,
+                          },
+                        }}
+                      >
+                        <IconButton
+                          onClick={handleOpenColToggle}
+                          size="small"
+                          aria-label="Toggle Columns"
+                          sx={{
+                            borderRadius: "inherit",
+                            p: { xs: 1, sm: 0.75 },
+                          }}
+                        >
+                          <Columns size={18} strokeWidth={1.5} />
+                        </IconButton>
+                      </Box>
+                    </Tooltip>
+                  )}
+                  {actionButtons}
+                </Stack>
 
-              {actions.length > 0 && (
-                <Box
-                  sx={{
-                    order: { xs: 2, sm: 3 },
-                    flex: { xs: "1 1 auto", sm: "0 0 auto" },
-                    display: "flex",
-                    justifyContent: { xs: "flex-end", sm: "flex-start" },
-                  }}
-                >
-                  <Box sx={{ display: "flex", flexDirection: "row", gap: 1 }}>
-                    {actionButtons}
+                {onSearchChange && (
+                  <Box
+                    sx={{
+                      order: { xs: 2, sm: 1 },
+                      width: { xs: "100%", sm: "auto" },
+                    }}
+                  >
+                    <TextField
+                      fullWidth
+                      size="small"
+                      value={searchVal || ""}
+                      onChange={onSearchChange}
+                      placeholder={searchPlaceholder}
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                width: 32,
+                                height: 26,
+                                borderRadius: `${theme.shape.borderRadius}px`,
+                                bgcolor: alpha(
+                                  theme.palette.secondary.main,
+                                  0.08
+                                ),
+                                color: theme.palette.secondary.main,
+                                mr: 1,
+                              }}
+                            >
+                              <Search size={15} strokeWidth={1.5} />
+                            </Box>
+                          ),
+                        },
+                      }}
+                      sx={{
+                        minWidth: { sm: 240 },
+                        width: "100%",
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: `${theme.shape.borderRadius}px`,
+                        },
+                      }}
+                    />
                   </Box>
-                </Box>
-              )}
-            </Box>
+                )}
+              </Stack>
+            </Stack>
             <Divider />
           </>
         )}
 
-        <TableContainer sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <TableContainer
+          ref={tableContainerRef}
+          onKeyDown={handleKeyDown}
+          tabIndex={0}
+          sx={{
+            overflowX: "auto",
+            WebkitOverflowScrolling: "touch",
+            outline: "none", // Menghilangkan border biru bawaan browser saat tab index aktif
+          }}
+        >
           <Table sx={{ minWidth: { xs: "100%", sm: minWidth } }}>
             <TableHead>{renderedHeaders}</TableHead>
-            <TableBody>{isLoading ? renderedSkeletons : renderedRows}</TableBody>
+            <TableBody>
+              {isLoading ? renderedSkeletons : renderedRows}
+            </TableBody>
           </Table>
         </TableContainer>
 
         {(isLoading || count > 1) && (
           <>
             <Divider />
-            <Box
+            <Stack
               sx={{
-                display: "flex",
                 flexDirection: { xs: "column", sm: "row" },
                 alignItems: "center",
-                justifyContent: { xs: "center", sm: "space-between" },
-                gap: { xs: 1.5, sm: 2 },
-                px: { xs: 2, sm: 3 },
-                py: { xs: 1.5, sm: 2 },
+                justifyContent: "space-between",
+                gap: { xs: 2, sm: 2 },
+                px: { xs: 2.5, sm: 3 },
+                py: { xs: 2.5, sm: 2 },
               }}
             >
-              {/* Rows per page */}
-              {onRowsPerPageChange && (
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1.5,
-                    flexShrink: 0,
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ whiteSpace: "nowrap" }}
-                  >
-                    Baris per halaman
-                  </Typography>
-                  <TextField
-                    select
-                    size="small"
-                    value={rowsPerPage}
-                    onChange={(e) => onRowsPerPageChange(Number(e.target.value))}
-                    slotProps={{ select: { native: true } }}
-                    sx={{
-                      minWidth: 70,
-                      "& .MuiInputBase-root": {
-                        fontSize: "0.8125rem",
-                      },
-                      "& .MuiNativeSelect-select": {
-                        py: 0.5,
-                        pl: 1,
-                        pr: 2.5,
-                      },
-                    }}
-                  >
-                    {rowsPerPageOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </TextField>
-                </Box>
-              )}
-
-              {/* Pagination */}
               <Box
                 sx={{
+                  order: { xs: 2, sm: 1 },
+                  width: { xs: "100%", sm: "auto" },
+                }}
+              >
+                {onRowsPerPageChange && (
+                  <Stack
+                    sx={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: { xs: "center", sm: "flex-start" },
+                      gap: 2,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ whiteSpace: "nowrap", fontWeight: 500 }}
+                    >
+                      Baris per halaman
+                    </Typography>
+                    <TextField
+                      select
+                      size="small"
+                      value={rowsPerPage}
+                      onChange={(e) =>
+                        onRowsPerPageChange(Number(e.target.value))
+                      }
+                      slotProps={{ select: { native: true } }}
+                      sx={{
+                        minWidth: 85,
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: `${theme.shape.borderRadius}px`,
+                        },
+                        "& .MuiInputBase-root": {
+                          fontSize: "0.875rem",
+                          bgcolor: theme.palette.background.paper,
+                        },
+                        "& .MuiNativeSelect-select": {
+                          py: { xs: 0.75, sm: 0.5 },
+                          pl: 1.5,
+                          pr: 3,
+                        },
+                      }}
+                    >
+                      {rowsPerPageOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </TextField>
+                  </Stack>
+                )}
+              </Box>
+
+              <Box
+                sx={{
+                  order: { xs: 1, sm: 2 },
+                  width: { xs: "100%", sm: "auto" },
                   display: "flex",
-                  justifyContent: "center",
-                  flexShrink: 0,
+                  justifyContent: { xs: "center", sm: "flex-end" },
                 }}
               >
                 {isLoading ? (
-                  <Skeleton height={36} variant="rounded" width={isMobile ? 200 : 300} />
+                  <Skeleton
+                    height={36}
+                    variant="rounded"
+                    width={isMobile ? 240 : 300}
+                    sx={{ borderRadius: `${theme.shape.borderRadius}px` }}
+                  />
                 ) : (
                   <Pagination
                     count={count}
@@ -531,21 +806,28 @@ const AppTable = memo(
                     showFirstButton={!isMobile}
                     showLastButton={!isMobile}
                     shape="rounded"
-                    size="small"
+                    size={isMobile ? "medium" : "small"}
                     siblingCount={isMobile ? 0 : 1}
-                    boundaryCount={isMobile ? 1 : 1}
+                    boundaryCount={1}
                     sx={{
                       "& .MuiPaginationItem-root": {
-                        fontSize: "0.8125rem",
-                        minWidth: 32,
-                        height: 32,
+                        fontSize: "0.875rem",
+                        minWidth: { xs: 36, sm: 32 },
+                        height: { xs: 36, sm: 32 },
                         borderRadius: `${theme.shape.borderRadius}px`,
                         border: `1px solid ${theme.palette.divider}`,
-                        bgcolor: "background.paper",
-                        color: "text.secondary",
+                        bgcolor: theme.palette.background.paper,
+                        color: theme.palette.text.secondary,
                         transition: theme.transitions.create(
-                          ["background-color", "border-color", "color", "box-shadow"],
-                          { duration: theme.transitions.duration.shorter }
+                          [
+                            "background-color",
+                            "border-color",
+                            "color",
+                            "box-shadow",
+                          ],
+                          {
+                            duration: theme.transitions.duration.shorter,
+                          }
                         ),
                         "&:hover": {
                           bgcolor: alpha(theme.palette.secondary.main, 0.06),
@@ -556,8 +838,11 @@ const AppTable = memo(
                           bgcolor: theme.palette.secondary.main,
                           color: theme.palette.secondary.contrastText,
                           borderColor: theme.palette.secondary.main,
-                          fontWeight: 500,
-                          boxShadow: `0 2px 8px ${alpha(theme.palette.secondary.main, 0.3)}`,
+                          fontWeight: 600,
+                          boxShadow: `0 2px 8px ${alpha(
+                            theme.palette.secondary.main,
+                            0.3
+                          )}`,
                           "&:hover": {
                             bgcolor: theme.palette.secondary.dark,
                           },
@@ -566,24 +851,78 @@ const AppTable = memo(
                       "& .MuiPaginationItem-ellipsis": {
                         border: "none",
                         bgcolor: "transparent",
-                        "&:hover": {
-                          bgcolor: "transparent",
-                        },
+                        "&:hover": { bgcolor: "transparent" },
                       },
-                      "& .MuiPagination-ul": {
-                        gap: 0.5,
-                      },
+                      "& .MuiPagination-ul": { gap: { xs: 1, sm: 0.5 } },
                     }}
                   />
                 )}
               </Box>
-
-              {/* Spacer for alignment when no rowsPerPage */}
-              {!onRowsPerPageChange && <Box sx={{ flexShrink: 0 }} />}
-            </Box>
+            </Stack>
           </>
         )}
 
+        {/* Popover untuk Pengaturan Visibilitas Kolom */}
+        <Popover
+          open={Boolean(colToggleAnchor)}
+          anchorEl={colToggleAnchor}
+          onClose={handleCloseColToggle}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
+          slotProps={{
+            paper: {
+              sx: {
+                mt: 1,
+                borderRadius: `${theme.shape.borderRadius}px`,
+                border: `1px solid ${alpha(
+                  theme.palette.secondary.main,
+                  0.15
+                )}`,
+                boxShadow: `0 4px 20px ${alpha(
+                  theme.palette.secondary.main,
+                  0.12
+                )}`,
+                minWidth: 180,
+                py: 2,
+              },
+            },
+          }}
+        >
+          <Box sx={{ px: 2, pb: 1 }}>
+            <Typography variant="caption" fontWeight={600}>
+              Tampilkan Kolom
+            </Typography>
+          </Box>
+          <MenuList dense>
+            {headers.map((header, idx) => (
+              <MenuItem
+                key={idx}
+                onClick={() => toggleColumnVisibility(idx)}
+                sx={{
+                  borderRadius: `${theme.shape.borderRadius}px`,
+                  mx: 1,
+                  px: 1,
+                }}
+              >
+                <Checkbox
+                  size="small"
+                  checked={!hiddenColumns.has(idx)}
+                  disableRipple
+                  sx={{ p: 0.5, mr: 1 }}
+                />
+                <ListItemText
+                  slotProps={{
+                    primary: { fontSize: "0.875rem" },
+                  }}
+                >
+                  {header}
+                </ListItemText>
+              </MenuItem>
+            ))}
+          </MenuList>
+        </Popover>
+
+        {/* Popover Copy Menu */}
         <Popover
           open={Boolean(contextMenu)}
           onClose={handleCloseContextMenu}
@@ -597,9 +936,15 @@ const AppTable = memo(
             paper: {
               sx: {
                 borderRadius: `${theme.shape.borderRadius}px`,
-                border: `1px solid ${alpha(theme.palette.secondary.main, 0.15)}`,
-                boxShadow: `0 4px 20px ${alpha(theme.palette.secondary.main, 0.12)}`,
-                minWidth: 140,
+                border: `1px solid ${alpha(
+                  theme.palette.secondary.main,
+                  0.15
+                )}`,
+                boxShadow: `0 4px 20px ${alpha(
+                  theme.palette.secondary.main,
+                  0.12
+                )}`,
+                minWidth: 160,
                 py: 0.5,
               },
             },
@@ -608,6 +953,7 @@ const AppTable = memo(
           <MenuList dense>
             <MenuItem
               onClick={handleCopyCell}
+              disabled={!contextMenu?.cellText}
               sx={{
                 borderRadius: `${theme.shape.borderRadius}px`,
                 mx: 0.5,
@@ -617,48 +963,155 @@ const AppTable = memo(
               }}
             >
               <ListItemIcon>
-                <Copy size={15} strokeWidth={1.5} />
+                <Copy size={16} strokeWidth={1.5} />
               </ListItemIcon>
-              <ListItemText>Salin</ListItemText>
+              <ListItemText
+                slotProps={{
+                  primary: { fontSize: "0.875rem" },
+                }}
+              >
+                Salin Sel
+              </ListItemText>
+            </MenuItem>
+
+            <MenuItem
+              onClick={handleCopyRow}
+              disabled={!contextMenu?.rowText}
+              sx={{
+                borderRadius: `${theme.shape.borderRadius}px`,
+                mx: 0.5,
+                "&:hover": {
+                  backgroundColor: alpha(theme.palette.secondary.main, 0.06),
+                },
+              }}
+            >
+              <ListItemIcon>
+                <Rows size={16} strokeWidth={1.5} />
+              </ListItemIcon>
+              <ListItemText
+                slotProps={{
+                  primary: { fontSize: "0.875rem" },
+                }}
+              >
+                Salin Baris
+              </ListItemText>
+            </MenuItem>
+          </MenuList>
+        </Popover>
+
+        {/* Popover Copy Menu */}
+        <Popover
+          open={Boolean(contextMenu)}
+          onClose={handleCloseContextMenu}
+          anchorReference="anchorPosition"
+          anchorPosition={
+            contextMenu
+              ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+              : undefined
+          }
+          slotProps={{
+            paper: {
+              sx: {
+                borderRadius: `${theme.shape.borderRadius}px`,
+                border: `1px solid ${alpha(
+                  theme.palette.secondary.main,
+                  0.15
+                )}`,
+                boxShadow: `0 4px 20px ${alpha(
+                  theme.palette.secondary.main,
+                  0.12
+                )}`,
+                minWidth: 160,
+                py: 0.5,
+              },
+            },
+          }}
+        >
+          <MenuList dense>
+            <MenuItem
+              onClick={handleCopyCell}
+              disabled={!contextMenu?.cellText}
+              sx={{
+                borderRadius: `${theme.shape.borderRadius}px`,
+                mx: 0.5,
+                "&:hover": {
+                  backgroundColor: alpha(theme.palette.secondary.main, 0.06),
+                },
+              }}
+            >
+              <ListItemIcon>
+                <Copy size={16} strokeWidth={1.5} />
+              </ListItemIcon>
+              <ListItemText
+                slotProps={{
+                  primary: { fontSize: "0.875rem" },
+                }}
+              >
+                Salin Sel
+              </ListItemText>
+            </MenuItem>
+
+            <MenuItem
+              onClick={handleCopyRow}
+              disabled={!contextMenu?.rowText}
+              sx={{
+                borderRadius: `${theme.shape.borderRadius}px`,
+                mx: 0.5,
+                "&:hover": {
+                  backgroundColor: alpha(theme.palette.secondary.main, 0.06),
+                },
+              }}
+            >
+              <ListItemIcon>
+                <Rows size={16} strokeWidth={1.5} />
+              </ListItemIcon>
+              <ListItemText
+                slotProps={{
+                  primary: { fontSize: "0.875rem" },
+                }}
+              >
+                Salin Baris
+              </ListItemText>
             </MenuItem>
           </MenuList>
         </Popover>
 
         <Snackbar
           open={snackbarOpen}
-          autoHideDuration={2000}
+          autoHideDuration={2500}
           onClose={handleCloseSnackbar}
           anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
-          <Box
-            onClick={handleCloseSnackbar}
-            sx={(theme) => ({
-              px: 2,
-              py: 1,
+          <Alert
+            severity="success"
+            variant="standard"
+            sx={{
+              minWidth: { xs: "auto", sm: 320 },
               borderRadius: `${theme.shape.borderRadius}px`,
-              bgcolor: alpha(theme.palette.success.main, 0.9),
-              color: theme.palette.success.contrastText,
-              fontSize: "0.8125rem",
-              fontWeight: 500,
-              cursor: "pointer",
-              boxShadow: `0 4px 12px ${alpha(theme.palette.common.black, 0.15)}`,
-              backdropFilter: "blur(8px)",
-              display: "flex",
+              boxShadow: `0 8px 24px ${alpha(
+                theme.palette.common.black,
+                0.12
+              )}`,
+              border: "1px solid",
+              borderColor: alpha(theme.palette.success.main, 0.15),
+              bgcolor: theme.palette.background.paper,
+              color: theme.palette.text.primary,
               alignItems: "center",
-              gap: 1,
-            })}
+              "& .MuiAlert-icon": {
+                color: theme.palette.success.main,
+                opacity: 0.9,
+                alignItems: "center",
+                pt: 0,
+              },
+              "& .MuiAlert-message": {
+                flex: 1,
+                fontWeight: 500,
+                fontSize: "0.875rem",
+              },
+            }}
           >
-            <Box
-              sx={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                bgcolor: "currentColor",
-                opacity: 0.8,
-              }}
-            />
-            Berhasil disalin
-          </Box>
+            Teks berhasil disalin ke clipboard
+          </Alert>
         </Snackbar>
       </Card>
     );
@@ -707,6 +1160,8 @@ AppTable.propTypes = {
   onSearchChange: PropTypes.func,
   /** Halaman saat ini */
   page: PropTypes.number,
+  /** Fungsi render konten detail yang dapat diekspansi (Expandable Row) */
+  renderExpandableRow: PropTypes.func,
   /** Fungsi render baris kustom */
   renderRow: PropTypes.func,
   /** Jumlah baris per halaman */

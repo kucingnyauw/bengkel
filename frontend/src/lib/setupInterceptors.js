@@ -136,7 +136,6 @@ export function setupInterceptors({ store }) {
        */
       if (
         errorCode === "NO_INTERNET_CONNECTION" ||
-        errorCode === "SERVER_UNREACHABLE" ||
         errorCode === "REQUEST_TIMEOUT"
       ) {
         if (!config?.skipErrorNotification) {
@@ -176,9 +175,6 @@ function getErrorTitle(code) {
   switch (code) {
     case "NO_INTERNET_CONNECTION":
       return "Koneksi Terputus";
-
-    case "SERVER_UNREACHABLE":
-      return "Layanan Tidak Tersedia";
 
     case "REQUEST_TIMEOUT":
       return "Waktu Permintaan Habis";

@@ -8,6 +8,7 @@ import { RotateCcw, X } from "lucide-react";
 import {
   Snackbar,
   Alert,
+  AlertTitle,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -20,6 +21,7 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { useDispatch, useSelector } from "react-redux";
+
 import { hideNotification } from "@store/notifications/notificationsSlice.js";
 import {
   selectNotificationOpen,
@@ -35,16 +37,19 @@ const NotificationHandler = () => {
   const dispatch = useDispatch();
 
   const open = useSelector(selectNotificationOpen);
-  const type = useSelector(selectNotificationType);
+  const type = useSelector(selectNotificationType) || "info";
   const title = useSelector(selectNotificationTitle);
   const message = useSelector(selectNotificationMessage);
   const variant = useSelector(selectNotificationVariant);
   const autoHide = useSelector(selectNotificationAutoHide);
 
-  const handleClose = () => dispatch(hideNotification());
+  const handleClose = (event, reason) => {
+    if (reason === "clickaway") return;
+    dispatch(hideNotification());
+  };
 
   const handleRefresh = () => {
-    handleClose();
+    dispatch(hideNotification());
     window.location.reload();
   };
 
@@ -57,14 +62,6 @@ const NotificationHandler = () => {
         onClose={handleClose}
         maxWidth="xs"
         fullWidth
-        slotProps={{
-          paper: {
-            sx: {
-              borderRadius: `${theme.shape.borderRadius}px`,
-              border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-            },
-          },
-        }}
       >
         {title && (
           <DialogTitle
@@ -72,38 +69,51 @@ const NotificationHandler = () => {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              fontWeight: 500,
+              pb: 1.5,
             }}
           >
             {title}
-            <IconButton onClick={handleClose} size="small">
-              <X size={18} strokeWidth={1.5} />
+            <IconButton
+              onClick={handleClose}
+              size="small"
+              sx={{
+                color: "text.secondary",
+                mr: -1,
+                "&:hover": { bgcolor: alpha(theme.palette.secondary.main, 0.08) },
+              }}
+            >
+              <X size={18} strokeWidth={2} />
             </IconButton>
           </DialogTitle>
         )}
 
-        <DialogContent dividers={!!title}>
-          <DialogContentText sx={{ fontWeight: 400 }}>
+        <DialogContent dividers={!!title} sx={{ py: 3 }}>
+          <DialogContentText color="text.primary" sx={{ lineHeight: 1.6 }}>
             {message}
           </DialogContentText>
         </DialogContent>
 
-        <DialogActions>
-          <Stack direction="row" sx={{ gap: 1, width: "100%", justifyContent: "space-between" }}>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Stack
+            direction="row"
+            sx={{ width: "100%", justifyContent: "space-between", alignItems: "center" }}
+          >
             <Button
               color="inherit"
-              variant="outlined"
               onClick={handleRefresh}
-              startIcon={<RotateCcw size={14} strokeWidth={1.5} />}
-              sx={{ fontWeight: 400 }}
+              startIcon={<RotateCcw size={16} strokeWidth={1.5} />}
+              sx={{
+                color: "text.secondary",
+                "&:hover": { color: "text.primary", bgcolor: "transparent" },
+              }}
             >
-              Refresh
+              Segarkan
             </Button>
             <Button
-              color="inherit"
-              variant="outlined"
+              variant="contained"
+              disableElevation
               onClick={handleClose}
-              sx={{ fontWeight: 400 }}
+              color={type === "error" ? "error" : "primary"}
             >
               Tutup
             </Button>
@@ -119,28 +129,29 @@ const NotificationHandler = () => {
       autoHideDuration={autoHide}
       onClose={handleClose}
       anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      slotProps={{
-        transition: {
-          direction: "up",
-        },
-      }}
     >
       <Alert
         severity={type}
-        variant="outlined"
+        variant="standard"
         sx={{
-          borderRadius: `${theme.shape.borderRadius}px`,
-          border: `1px solid ${alpha(theme.palette[type]?.main || theme.palette.primary.main, 0.3)}`,
-          bgcolor: alpha(theme.palette.background.paper, 0.95),
-          backdropFilter: "blur(8px)",
-          boxShadow: theme.shadows[3],
-          alignItems: "center",
-          fontWeight: 400,
+          minWidth: 320,
+          borderRadius: 2,
+          boxShadow: `0 8px 24px ${alpha(theme.palette.common.black, 0.12)}`,
+          border: "1px solid",
+          borderColor: alpha(theme.palette[type].main, 0.15),
+          bgcolor: theme.palette.background.paper,
+          color: "text.primary",
+          alignItems: title ? "flex-start" : "center",
           "& .MuiAlert-icon": {
-            color: theme.palette[type]?.main || theme.palette.primary.main,
+            color: theme.palette[type].main,
+            opacity: 0.9,
+          },
+          "& .MuiAlert-message": {
+            flex: 1,
           },
         }}
       >
+        {title && <AlertTitle sx={{ mb: 0.5 }}>{title}</AlertTitle>}
         {message}
       </Alert>
     </Snackbar>

@@ -1,3 +1,14 @@
+/**
+ * MenuItem - Recursive sidebar menu item supporting collapse, group, link, and badge.
+ *
+ * @component
+ * @param {Object} props
+ * @param {Object} props.item - Menu item configuration object
+ * @param {boolean} props.isCollapsed - Whether sidebar is collapsed
+ * @param {number} [props.level=0] - Nesting level for indentation
+ * @param {Function} [props.onItemClick] - Callback when item is clicked
+ * @returns {JSX.Element} Rendered menu item
+ */
 import { useState, useEffect, memo } from "react";
 import {
   Box,
@@ -17,17 +28,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { setActiveItem } from "@store/sidebar/sidebarSlices.js";
 import { selectSidebarActiveItem } from "@store/sidebar/sidebarSelector.js";
 
-/**
- * MenuItem - Recursive sidebar menu item supporting collapse, group, link, and badge.
- *
- * @component
- * @param {Object} props
- * @param {Object} props.item - Menu item configuration object
- * @param {boolean} props.isCollapsed - Whether sidebar is collapsed
- * @param {number} [props.level=0] - Nesting level for indentation
- * @param {Function} [props.onItemClick] - Callback when item is clicked
- * @returns {JSX.Element} Rendered menu item
- */
 const MenuItem = memo(function MenuItem({
   item,
   isCollapsed,
@@ -76,8 +76,8 @@ const MenuItem = memo(function MenuItem({
     return (
       <Box
         sx={{
-          mt: isCollapsed ? 0 : level === 0 ? 2.5 : 1,
-          mb: isCollapsed ? 0 : 0.5,
+          mt: isCollapsed ? 0 : level === 0 ? 3 : 1.5,
+          mb: isCollapsed ? 0 : 1,
         }}
       >
         {!isCollapsed && item.title && (
@@ -85,31 +85,17 @@ const MenuItem = memo(function MenuItem({
             variant="overline"
             sx={{
               px: 2,
-              mb: 1,
+              mb: 1.5,
               mt: level === 0 ? 0 : 0.5,
               display: "block",
-              fontWeight: 400,
+              fontWeight: 500,
               color: "text.disabled",
-              letterSpacing: "0.08em",
+              letterSpacing: "0.06em",
               fontSize: "0.625rem",
-              "&::first-letter": {
-                color: alpha(theme.palette.secondary.main, 0.7),
-              },
             }}
           >
             {item.title}
           </Typography>
-        )}
-
-        {isCollapsed && (
-          <Box
-            sx={{
-              height: "1px",
-              mx: 2,
-              my: 2,
-              background: `linear-gradient(90deg, ${alpha(theme.palette.secondary.main, 0.3)}, ${theme.palette.divider}, ${alpha(theme.palette.secondary.main, 0.3)})`,
-            }}
-          />
         )}
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
@@ -147,21 +133,19 @@ const MenuItem = memo(function MenuItem({
         justifyContent: isCollapsed ? "center" : "flex-start",
         borderRadius: `${theme.shape.borderRadius}px`,
         "&.Mui-selected": {
-          backgroundColor: alpha(theme.palette.secondary.main, 0.12),
+          backgroundColor: alpha(theme.palette.secondary.main, 0.08),
           color: theme.palette.secondary.main,
-          boxShadow: `0 0 12px -4px ${alpha(theme.palette.secondary.main, 0.2)}`,
           "& .MuiListItemIcon-root": {
             color: theme.palette.secondary.main,
           },
           "&:hover": {
-            backgroundColor: alpha(theme.palette.secondary.main, 0.16),
+            backgroundColor: alpha(theme.palette.secondary.main, 0.12),
           },
         },
         "&:hover": {
           backgroundColor: alpha(theme.palette.secondary.main, 0.04),
         },
         transition: "all 0.2s ease",
-        position: "relative",
       }}
     >
       {Icon && (
@@ -169,19 +153,13 @@ const MenuItem = memo(function MenuItem({
           sx={{
             minWidth: isCollapsed ? "auto" : 40,
             mr: isCollapsed ? 0 : 1.5,
-            color: isSelected ? theme.palette.secondary.main : "inherit",
-            transition: "color 0.2s ease, transform 0.2s ease",
-            ...(isSelected && {
-              transform: "scale(1.05)",
-            }),
+            color: isSelected ? theme.palette.secondary.main : "text.secondary",
+            transition: "color 0.2s ease",
           }}
         >
           <Icon
             size={level > 0 ? 15 : 17}
             strokeWidth={isSelected ? 1.75 : 1.5}
-            {...(isSelected && {
-              fill: alpha(theme.palette.secondary.main, 0.1),
-            })}
           />
         </ListItemIcon>
       )}
@@ -195,14 +173,13 @@ const MenuItem = memo(function MenuItem({
             alignItems: "center",
             justifyContent: "center",
             mr: 0.5,
-            color: isSelected ? theme.palette.secondary.main : "inherit",
-            opacity: isSelected ? 0.8 : 0.35,
+            color: isSelected ? theme.palette.secondary.main : "text.disabled",
             transition: "all 0.2s ease",
           }}
         >
           <Dot
-            size={isSelected ? 12 : 10}
-            strokeWidth={isSelected ? 3 : 2}
+            size={isSelected ? 12 : 8}
+            strokeWidth={isSelected ? 2.5 : 1.5}
             fill={isSelected ? theme.palette.secondary.main : "transparent"}
           />
         </Box>
@@ -216,11 +193,8 @@ const MenuItem = memo(function MenuItem({
               primary: {
                 sx: {
                   fontSize: level > 0 ? "0.8125rem" : "0.84375rem",
-                  fontWeight: 400,
+                  fontWeight: isSelected ? 500 : 400,
                   transition: "all 0.2s ease",
-                  ...(isSelected && {
-                    letterSpacing: "0.005em",
-                  }),
                 },
               },
             }}
@@ -233,9 +207,8 @@ const MenuItem = memo(function MenuItem({
               style={{
                 color: isSelected
                   ? theme.palette.secondary.main
-                  : "inherit",
-                opacity: isSelected ? 0.85 : 0.45,
-                transition: "transform 0.25s ease, opacity 0.2s ease",
+                  : theme.palette.text.disabled,
+                transition: "transform 0.25s ease",
                 transform: open ? "rotate(180deg)" : "rotate(0deg)",
               }}
             />
@@ -250,9 +223,9 @@ const MenuItem = memo(function MenuItem({
                 borderRadius: `${theme.shape.borderRadius}px`,
                 fontSize: "0.625rem",
                 fontWeight: 500,
-                backgroundColor: alpha(theme.palette.secondary.main, 0.12),
+                backgroundColor: alpha(theme.palette.secondary.main, 0.1),
                 color: theme.palette.secondary.main,
-                border: `1px solid ${alpha(theme.palette.secondary.main, 0.25)}`,
+                border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
                 lineHeight: 1.2,
               }}
             >
@@ -266,37 +239,10 @@ const MenuItem = memo(function MenuItem({
 
   const wrapped = isCollapsed ? (
     <Tooltip
-      title={
-        <Box sx={{ textAlign: "center" }}>
-          <Typography variant="caption" sx={{ fontWeight: 400 }}>
-            {item.title}
-          </Typography>
-          {item.badge && (
-            <Typography
-              variant="caption"
-              sx={{
-                display: "block",
-                color: theme.palette.secondary.main,
-                fontWeight: 500,
-                mt: 0.3,
-              }}
-            >
-              {item.badge}
-            </Typography>
-          )}
-        </Box>
-      }
+      title={item.title}
       placement="right"
       enterDelay={400}
       leaveDelay={100}
-      slotProps={{
-        tooltip: {
-          sx: {
-            border: `1px solid ${alpha(theme.palette.secondary.main, 0.3)}`,
-            boxShadow: `0 4px 12px ${alpha(theme.palette.secondary.main, 0.15)}`,
-          },
-        },
-      }}
     >
       {listItem}
     </Tooltip>
@@ -317,6 +263,7 @@ const MenuItem = memo(function MenuItem({
               gap: 0.5,
               mt: 0.5,
               mb: 0.5,
+              ml: isCollapsed ? 0 : 4,
             }}
           >
             {item.children.map((child) => (
